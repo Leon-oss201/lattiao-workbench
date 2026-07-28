@@ -1,11 +1,11 @@
 {
-  "name": "辣条的工作台",
-  "short_name": "辣条工作台",
-  "description": "日常待办汇总、强提醒、番茄钟与速记的综合工作台",
+  "name": "辣条旅行手账",
+  "short_name": "旅行手账",
+  "description": "记录每一段旅程 - 攻略、路线、照片、感受",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#E85D04",
+  "background_color": "#F9F7FC",
+  "theme_color": "#7C3AED",
   "orientation": "portrait-primary",
   "icons": [
     {
