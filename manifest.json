@@ -4,7 +4,7 @@
   "description": "记录每一段旅程 - 攻略、路线、照片、感受",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#FDF8F3",
+  "background_color": "#F9F7FC",
   "theme_color": "#7C3AED",
   "orientation": "portrait-primary",
   "icons": [
