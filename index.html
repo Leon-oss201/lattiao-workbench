@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辣条的工作台</title>
+<style>
+:root {
+  --primary: #E85D04;
+  --primary-dark: #DC2F02;
+  --primary-light: #FFF3E6;
+  --accent: #FFB627;
+  --bg: #F5F6FA;
+  --card: #FFFFFF;
+  --text: #1A1A2E;
+  --text-sec: #6C7293;
+  --text-light: #A0A3BD;
+  --success: #06A77D;
+  --warning: #F59E0B;
+  --danger: #EF233C;
+  --border: #E8E8E8;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ============ Layout ============ */
+.app { display: flex; height: 100vh; }
+
+.sidebar {
+  width: 200px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s;
+}
+
+.sidebar-header {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sidebar-title { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.sidebar-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+.nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-sec);
+  transition: all 0.2s;
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+.nav-item:hover { background: var(--primary-light); color: var(--primary); }
+.nav-item.active { background: var(--primary); color: #fff; font-weight: 600; }
+.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-item .nav-badge {
+  margin-left: auto;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+.nav-item.active .nav-badge { background: rgba(255,255,255,0.3); }
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  height: 56px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.topbar-title { font-size: 18px; font-weight: 700; flex: 1; }
+.topbar-date { font-size: 13px; color: var(--text-sec); }
+.topbar-clock { font-size: 14px; font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums; }
+
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* ============ Views ============ */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ============ Dashboard ============ */
+.dash-greeting {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.dash-greeting .wave { display: inline-block; animation: wave 2s infinite; }
+@keyframes wave { 0%,100%{transform:rotate(0)} 20%{transform:rotate(20deg)} 40%{transform:rotate(-15deg)} 60%{transform:rotate(20deg)} 80%{transform:rotate(-5deg)} }
+.dash-sub { font-size: 14px; color: var(--text-sec); margin-bottom: 20px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.stat-card .stat-icon { font-size: 28px; margin-bottom: 8px; }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; }
+.stat-card .stat-label { font-size: 12px; color: var(--text-sec); margin-top: 4px; }
+.stat-card .stat-bar {
+  position: absolute; bottom: 0; left: 0; height: 3px; width: 100%;
+}
+.stat-card.danger { border-left: 3px solid var(--danger); }
+.stat-card.warning { border-left: 3px solid var(--warning); }
+.stat-card.success { border-left: 3px solid var(--success); }
+.stat-card.primary { border-left: 3px solid var(--primary); }
+
+.dash-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.dash-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.donut::before {
+  content: ""; position: absolute; inset: 14px;
+  background: var(--card); border-radius: 50%;
+}
+.donut-text { position: relative; text-align: center; }
+.donut-text .num { font-size: 22px; font-weight: 700; }
+.donut-text .lbl { font-size: 11px; color: var(--text-sec); }
+.donut-legend { flex: 1; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend-val { margin-left: auto; font-weight: 600; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 140px; padding-top: 10px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bar { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; transition: height 0.5s; position: relative; }
+.bar-label { font-size: 11px; color: var(--text-sec); }
+.bar-val { font-size: 11px; font-weight: 600; }
+
+/* Mini task list */
+.mini-task {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+.mini-task:hover { background: var(--bg); }
+.mini-task .mt-check {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.mini-task .mt-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+.mini-task .mt-check.done::after { content: "\2713"; font-size: 11px; }
+.mini-task .mt-info { flex: 1; min-width: 0; }
+.mini-task .mt-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-task.done-task .mt-title { text-decoration: line-through; color: var(--text-light); }
+.mini-task .mt-meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.mini-task .mt-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
+
+.badge-overdue { background: #FFE0E0; color: var(--danger); }
+.badge-today { background: #FFE8CC; color: #E85D04; }
+.badge-soon { background: #FFF3CD; color: #856404; }
+.badge-cat { background: var(--primary-light); color: var(--primary); }
+
+/* Deadline item */
+.deadline-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  border-left: 3px solid;
+}
+.deadline-item.overdue { border-color: var(--danger); background: #FFF5F5; }
+.deadline-item.today { border-color: var(--warning); background: #FFF8EE; }
+.deadline-item.soon { border-color: var(--accent); background: #FFFBF0; }
+.deadline-item .dl-info { flex: 1; min-width: 0; }
+.deadline-item .dl-title { font-size: 13px; font-weight: 600; }
+.deadline-item .dl-date { font-size: 11px; margin-top: 2px; }
+.deadline-item.overdue .dl-date { color: var(--danger); }
+.deadline-item.today .dl-date { color: var(--warning); }
+.deadline-item.soon .dl-date { color: var(--accent); }
+.deadline-item .dl-countdown { font-size: 20px; font-weight: 700; flex-shrink: 0; }
+.deadline-item.overdue .dl-countdown { color: var(--danger); }
+.deadline-item.today .dl-countdown { color: var(--warning); }
+.deadline-item.soon .dl-countdown { color: var(--accent); }
+
+/* ============ Todos ============ */
+.todo-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.todo-search {
+  flex: 1; min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+.todo-search:focus { border-color: var(--primary); }
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--card);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  user-select: none;
+}
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip .chip-count { font-size: 11px; opacity: 0.8; margin-left: 4px; }
+
+.todo-add-bar {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.todo-add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.todo-add-input {
+  flex: 1; min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+}
+.todo-add-input:focus { border-color: var(--primary); }
+.todo-select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--card);
+  cursor: pointer;
+  outline: none;
+}
+.todo-date { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; outline: none; }
+.btn-add {
+  padding: 10px 20px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-add:hover { background: var(--primary-dark); }
+
+.todo-list { display: flex; flex-direction: column; gap: 8px; }
+
+.todo-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.2s;
+  border-left: 4px solid transparent;
+}
+.todo-card:hover { box-shadow: var(--shadow-lg); transform: translateX(2px); }
+.todo-card.priority-high { border-left-color: var(--danger); }
+.todo-card.priority-medium { border-left-color: var(--warning); }
+.todo-card.priority-low { border-left-color: var(--success); }
+.todo-card.completed { opacity: 0.6; }
+.todo-card.completed .tc-title { text-decoration: line-through; }
+
+.tc-check {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.2s;
+}
+.tc-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+.tc-check.done::after { content: "\2713"; font-size: 13px; }
+
+.tc-body { flex: 1; min-width: 0; }
+.tc-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.tc-desc { font-size: 12px; color: var(--text-sec); margin-bottom: 6px; }
+.tc-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tc-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+
+.tc-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.tc-btn {
+  width: 28px; height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  background: transparent;
+  color: var(--text-sec);
+  transition: all 0.2s;
+}
+.tc-btn:hover { background: var(--bg); color: var(--danger); }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state .empty-text { font-size: 14px; }
+
+/* ============ Calendar ============ */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cal-nav { display: flex; gap: 8px; align-items: center; }
+.cal-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.cal-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cal-month { font-size: 18px; font-weight: 700; min-width: 160px; text-align: center; }
+
+.cal-grid {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }
+.cal-weekday { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-sec); padding: 8px 0; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  position: relative;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+.cal-day:hover { background: var(--primary-light); }
+.cal-day.other-month { color: var(--text-light); opacity: 0.4; }
+.cal-day.today { background: var(--primary); color: #fff; font-weight: 700; }
+.cal-day.selected { border-color: var(--primary); }
+.cal-day .day-dots { display: flex; gap: 2px; margin-top: 2px; }
+.cal-day .day-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+.cal-tasks-panel {
+  margin-top: 16px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.cal-tasks-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+
+/* ============ Reminders ============ */
+.reminder-alert {
+  background: linear-gradient(135deg, #FFF5F5, #FFE8CC);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 2px solid var(--danger);
+}
+.reminder-alert .ra-icon { font-size: 40px; margin-bottom: 8px; }
+.reminder-alert .ra-title { font-size: 18px; font-weight: 700; color: var(--danger); }
+.reminder-alert .ra-sub { font-size: 14px; color: var(--text-sec); margin-top: 4px; }
+
+.reminder-section { margin-bottom: 20px; }
+.reminder-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reminder-section-title .rs-count {
+  font-size: 12px;
+  background: var(--danger);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ============ Pomodoro ============ */
+.pomo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+}
+.pomo-display {
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 30px;
+}
+.pomo-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.pomo-ring circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.pomo-ring .track { stroke: var(--border); }
+.pomo-ring .progress { stroke: var(--primary); transition: stroke-dashoffset 1s linear; }
+.pomo-ring.work .progress { stroke: var(--primary); }
+.pomo-ring.break .progress { stroke: var(--success); }
+.pomo-center { text-align: center; z-index: 1; }
+.pomo-time { font-size: 48px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pomo-mode { font-size: 14px; color: var(--text-sec); margin-top: 4px; }
+.pomo-controls { display: flex; gap: 12px; margin-bottom: 30px; }
+.pomo-btn {
+  padding: 12px 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pomo-btn.primary { background: var(--primary); color: #fff; }
+.pomo-btn.primary:hover { background: var(--primary-dark); }
+.pomo-btn.secondary { background: var(--card); color: var(--text-sec); border: 1px solid var(--border); }
+.pomo-btn.secondary:hover { border-color: var(--primary); color: var(--primary); }
+.pomo-stats { display: flex; gap: 30px; }
+.pomo-stat { text-align: center; }
+.pomo-stat .ps-num { font-size: 24px; font-weight: 700; }
+.pomo-stat .ps-label { font-size: 12px; color: var(--text-sec); }
+
+/* ============ Notes ============ */
+.notes-toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
+.note-add-btn {
+  padding: 10px 20px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.note-add-btn:hover { background: var(--primary-dark); }
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.note-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  border-top: 4px solid var(--accent);
+  transition: all 0.2s;
+}
+.note-card:hover { box-shadow: var(--shadow-lg); }
+.note-content {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 14px;
+  min-height: 80px;
+  font-family: inherit;
+  color: var(--text);
+  line-height: 1.6;
+}
+.note-content::placeholder { color: var(--text-light); }
+.note-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.note-time { font-size: 11px; color: var(--text-light); }
+.note-delete {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.note-delete:hover { color: var(--danger); background: #FFF0F0; }
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--text);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.danger { background: var(--danger); }
+.toast.success { background: var(--success); }
+
+/* ============ Mobile Bottom Nav ============ */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+}
+.mobile-nav-items { display: flex; justify-content: space-around; }
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-sec);
+  transition: color 0.2s;
+  user-select: none;
+  position: relative;
+}
+.mobile-nav-item .mn-icon { font-size: 22px; line-height: 1; }
+.mobile-nav-item.active { color: var(--primary); font-weight: 600; }
+.mobile-nav-item .mn-badge {
+  position: absolute;
+  top: 2px; right: 50%;
+  margin-right: -22px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 700;
+  min-width: 14px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 900px) {
+  .sidebar { width: 60px; }
+  .sidebar-title, .sidebar-sub, .nav-item span:not(.nav-icon):not(.nav-badge) { display: none; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-row, .dash-row-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .app { flex-direction: column; }
+  .sidebar { display: none; }
+  .mobile-nav { display: block; }
+  .main { width: 100%; }
+  .topbar { height: 50px; padding: 0 16px; gap: 10px; }
+  .topbar-title { font-size: 16px; }
+  .topbar-date { display: none; }
+  .topbar-clock { font-size: 13px; }
+  .content { padding: 14px 14px 90px; }
+  .dash-greeting { font-size: 20px; }
+  .dash-sub { font-size: 13px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-card .stat-icon { font-size: 22px; }
+  .stat-card .stat-value { font-size: 22px; }
+  .dash-row, .dash-row-2 { grid-template-columns: 1fr; }
+  .panel { padding: 14px; }
+  .donut-wrap { flex-direction: column; gap: 14px; }
+  .donut { width: 100px; height: 100px; }
+  .donut-text .num { font-size: 18px; }
+  .bar-chart { height: 110px; }
+  .todo-add-bar { padding: 10px; }
+  .todo-add-row { flex-direction: column; align-items: stretch; }
+  .todo-add-input, .todo-select, .todo-date { width: 100%; }
+  .btn-add { width: 100%; padding: 12px; }
+  .todo-toolbar { flex-direction: column; align-items: stretch; }
+  .filter-chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .chip { white-space: nowrap; flex-shrink: 0; }
+  .todo-card { padding: 12px; }
+  .tc-title { font-size: 13px; }
+  .tc-btn { width: 32px; height: 32px; font-size: 15px; }
+  .cal-day { font-size: 12px; }
+  .cal-weekday { font-size: 11px; }
+  .cal-grid { padding: 10px; }
+  .reminder-alert { padding: 16px; }
+  .reminder-alert .ra-icon { font-size: 32px; }
+  .reminder-alert .ra-title { font-size: 16px; }
+  .pomo-display { width: 200px; height: 200px; }
+  .pomo-time { font-size: 36px; }
+  .pomo-ring circle { stroke-width: 6; }
+  .pomo-controls { flex-wrap: wrap; justify-content: center; }
+  .pomo-btn { padding: 10px 22px; font-size: 14px; }
+  .pomo-stats { gap: 16px; }
+  .pomo-stat .ps-num { font-size: 20px; }
+  .notes-grid { grid-template-columns: 1fr; gap: 10px; }
+  .note-card { padding: 14px; }
+  .note-content { font-size: 13px; }
+}
+
+@media (max-width: 380px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .cal-day { font-size: 11px; }
+  .mobile-nav-item { font-size: 9px; }
+  .mobile-nav-item .mn-icon { font-size: 20px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D0D0D8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #B0B0B8; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🔥</div>
+      <div>
+        <div class="sidebar-title">辣条的工作台</div>
+        <div class="sidebar-sub">辣条子的专属工作台</div>
+      </div>
+    </div>
+    <div class="nav" id="nav">
+      <div class="nav-item active" data-view="dashboard">
+        <span class="nav-icon">📊</span><span>仪表盘</span>
+      </div>
+      <div class="nav-item" data-view="todos">
+        <span class="nav-icon">✅</span><span>待办事项</span>
+        <span class="nav-badge" id="badge-todos" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-view="calendar">
+        <span class="nav-icon">📅</span><span>日历</span>
+      </div>
+      <div class="nav-item" data-view="reminders">
+        <span class="nav-icon">⏰</span><span>提醒中心</span>
+        <span class="nav-badge" id="badge-reminders" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-view="pomodoro">
+        <span class="nav-icon">🍅</span><span>番茄钟</span>
+      </div>
+      <div class="nav-item" data-view="notes">
+        <span class="nav-icon">📝</span><span>速记</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      数据本地存储 · 安全可靠<br>🔥 辣条的工作台 v1.0
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">仪表盘</div>
+      <div class="topbar-date" id="topbar-date"></div>
+      <div class="topbar-clock" id="topbar-clock"></div>
+    </div>
+    <div class="content">
+
+      <!-- ===== Dashboard ===== -->
+      <div class="view active" id="view-dashboard">
+        <div class="dash-greeting">辣条子，<span class="wave">👋</span> <span id="dash-greet-time">下午好</span></div>
+        <div class="dash-sub" id="dash-sub">今天是 xxxx，祝你工作顺利！</div>
+
+        <div class="stat-grid">
+          <div class="stat-card primary">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value" id="stat-today">0</div>
+            <div class="stat-label">今日待办</div>
+            <div class="stat-bar" style="background:var(--primary)"></div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-done">0</div>
+            <div class="stat-label">今日已完成</div>
+            <div class="stat-bar" style="background:var(--success)"></div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-value" id="stat-overdue">0</div>
+            <div class="stat-label">逾期任务</div>
+            <div class="stat-bar" style="background:var(--danger)"></div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value" id="stat-rate">0%</div>
+            <div class="stat-label">本周完成率</div>
+            <div class="stat-bar" style="background:var(--warning)"></div>
+          </div>
+        </div>
+
+        <div class="dash-row">
+          <div class="panel">
+            <div class="panel-title">📌 今日任务</div>
+            <div id="dash-today-tasks"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">🎯 完成情况</div>
+            <div class="donut-wrap">
+              <div class="donut" id="donut"></div>
+              <div class="donut-legend" id="donut-legend"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-row-2">
+          <div class="panel">
+            <div class="panel-title">🔥 截止日期提醒</div>
+            <div id="dash-deadlines"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">📊 分类统计</div>
+            <div class="bar-chart" id="bar-chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Todos ===== -->
+      <div class="view" id="view-todos">
+        <div class="todo-add-bar">
+          <div class="todo-add-row">
+            <input type="text" class="todo-add-input" id="todo-input" placeholder="输入任务标题，按回车快速添加..." onkeydown="if(event.key==='Enter')addTodo()">
+            <select class="todo-select" id="todo-cat">
+              <option value="work">💼 工作</option>
+              <option value="life">🏠 生活</option>
+              <option value="study">📚 学习</option>
+              <option value="health">💪 健康</option>
+              <option value="other">📌 其他</option>
+            </select>
+            <select class="todo-select" id="todo-pri">
+              <option value="high">🔴 高优先级</option>
+              <option value="medium" selected>🟡 中优先级</option>
+              <option value="low">🟢 低优先级</option>
+            </select>
+            <input type="date" class="todo-date" id="todo-date">
+            <button class="btn-add" onclick="addTodo()">+ 添加</button>
+          </div>
+        </div>
+
+        <div class="todo-toolbar">
+          <input type="text" class="todo-search" id="todo-search" placeholder="🔍 搜索任务..." oninput="renderTodos()">
+          <div class="filter-chips">
+            <div class="chip active" data-filter="all" onclick="setFilter('all')">全部 <span class="chip-count" id="cnt-all">0</span></div>
+            <div class="chip" data-filter="today" onclick="setFilter('today')">今天 <span class="chip-count" id="cnt-today">0</span></div>
+            <div class="chip" data-filter="upcoming" onclick="setFilter('upcoming')">即将 <span class="chip-count" id="cnt-upcoming">0</span></div>
+            <div class="chip" data-filter="overdue" onclick="setFilter('overdue')">逾期 <span class="chip-count" id="cnt-overdue">0</span></div>
+            <div class="chip" data-filter="done" onclick="setFilter('done')">已完成 <span class="chip-count" id="cnt-done">0</span></div>
+          </div>
+        </div>
+
+        <div class="todo-list" id="todo-list"></div>
+      </div>
+
+      <!-- ===== Calendar ===== -->
+      <div class="view" id="view-calendar">
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+            <div class="cal-month" id="cal-month"></div>
+            <button class="cal-btn" onclick="changeMonth(1)">›</button>
+          </div>
+          <button class="btn-add" onclick="goToToday()">回到今天</button>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-weekdays">
+            <div class="cal-weekday">日</div>
+            <div class="cal-weekday">一</div>
+            <div class="cal-weekday">二</div>
+            <div class="cal-weekday">三</div>
+            <div class="cal-weekday">四</div>
+            <div class="cal-weekday">五</div>
+            <div class="cal-weekday">六</div>
+          </div>
+          <div class="cal-days" id="cal-days"></div>
+        </div>
+        <div class="cal-tasks-panel">
+          <div class="cal-tasks-title" id="cal-tasks-title">选择日期查看任务</div>
+          <div id="cal-tasks-list"></div>
+        </div>
+      </div>
+
+      <!-- ===== Reminders ===== -->
+      <div class="view" id="view-reminders">
+        <div id="reminder-alert-zone"></div>
+        <div id="reminder-list"></div>
+      </div>
+
+      <!-- ===== Pomodoro ===== -->
+      <div class="view" id="view-pomodoro">
+        <div class="pomo-wrap">
+          <div class="pomo-display">
+            <svg class="pomo-ring work" viewBox="0 0 260 260">
+              <circle class="track" cx="130" cy="130" r="120"></circle>
+              <circle class="progress" cx="130" cy="130" r="120" id="pomo-progress"></circle>
+            </svg>
+            <div class="pomo-center">
+              <div class="pomo-time" id="pomo-time">25:00</div>
+              <div class="pomo-mode" id="pomo-mode">专注工作中</div>
+            </div>
+          </div>
+          <div class="pomo-controls">
+            <button class="pomo-btn primary" id="pomo-start" onclick="togglePomo()">开始</button>
+            <button class="pomo-btn secondary" onclick="resetPomo()">重置</button>
+            <button class="pomo-btn secondary" onclick="skipPomo()">跳过</button>
+          </div>
+          <div class="pomo-stats">
+            <div class="pomo-stat">
+              <div class="ps-num" id="pomo-sessions">0</div>
+              <div class="ps-label">今日番茄数</div>
+            </div>
+            <div class="pomo-stat">
+              <div class="ps-num" id="pomo-total-min">0</div>
+              <div class="ps-label">专注分钟</div>
+            </div>
+            <div class="pomo-stat">
+              <div class="ps-num" id="pomo-total-sessions">0</div>
+              <div class="ps-label">累计番茄数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Notes ===== -->
+      <div class="view" id="view-notes">
+        <div class="notes-toolbar">
+          <button class="note-add-btn" onclick="addNote()">+ 新建速记</button>
+        </div>
+        <div class="notes-grid" id="notes-grid"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Nav -->
+<div class="mobile-nav">
+  <div class="mobile-nav-items">
+    <div class="mobile-nav-item active" data-view="dashboard">
+      <span class="mn-icon">📊</span><span>仪表盘</span>
+    </div>
+    <div class="mobile-nav-item" data-view="todos">
+      <span class="mn-icon">✅</span><span>待办</span>
+      <span class="mn-badge" id="mn-badge-todos" style="display:none">0</span>
+    </div>
+    <div class="mobile-nav-item" data-view="calendar">
+      <span class="mn-icon">📅</span><span>日历</span>
+    </div>
+    <div class="mobile-nav-item" data-view="reminders">
+      <span class="mn-icon">⏰</span><span>提醒</span>
+      <span class="mn-badge" id="mn-badge-reminders" style="display:none">0</span>
+    </div>
+    <div class="mobile-nav-item" data-view="pomodoro">
+      <span class="mn-icon">🍅</span><span>番茄</span>
+    </div>
+    <div class="mobile-nav-item" data-view="notes">
+      <span class="mn-icon">📝</span><span>速记</span>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ Data Layer ============
+var STORAGE_KEY = "lattiao_workbench";
+var POMO_KEY = "lattiao_pomodoro";
+var NOTES_KEY = "lattiao_notes";
+
+function load(key, def) {
+  try { var d = JSON.parse(localStorage.getItem(key)); return d || def; }
+  catch(e) { return def; }
+}
+function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+
+var todos = load(STORAGE_KEY, []);
+var notes = load(NOTES_KEY, []);
+var pomoData = load(POMO_KEY, { sessions: 0, totalMin: 0, totalSessions: 0 });
+
+// ============ Utils ============
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function dateStr(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function parseDate(s) { return new Date(s + "T00:00:00"); }
+function daysBetween(s) {
+  if (!s) return 999;
+  var diff = parseDate(s) - parseDate(todayStr());
+  return Math.round(diff / 86400000);
+}
+function formatDate(s) {
+  if (!s) return "无截止日期";
+  var d = parseDate(s);
+  return (d.getMonth()+1) + "月" + d.getDate() + "日";
+}
+function showToast(msg, type) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (type ? " " + type : "");
+  setTimeout(function(){ t.className = "toast"; }, 2500);
+}
+
+var CAT_LABELS = { work: "工作", life: "生活", study: "学习", health: "健康", other: "其他" };
+var CAT_COLORS = { work: "#E85D04", life: "#06A77D", study: "#3B82F6", health: "#EF233C", other: "#8B5CF6" };
+var PRI_LABELS = { high: "高", medium: "中", low: "低" };
+var PRI_COLORS = { high: "var(--danger)", medium: "var(--warning)", low: "var(--success)" };
+
+// ============ Navigation ============
+var currentView = "dashboard";
+var viewTitles = {
+  dashboard: "仪表盘", todos: "待办事项", calendar: "日历",
+  reminders: "提醒中心", pomodoro: "番茄钟", notes: "速记"
+};
+
+function switchView(name) {
+  currentView = name;
+  document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+  document.getElementById("view-" + name).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.remove("active"); });
+  document.querySelector('.nav-item[data-view="' + name + '"]').classList.add("active");
+  document.querySelectorAll(".mobile-nav-item").forEach(function(n){ n.classList.remove("active"); });
+  var mn = document.querySelector('.mobile-nav-item[data-view="' + name + '"]');
+  if (mn) mn.classList.add("active");
+  document.getElementById("topbar-title").textContent = viewTitles[name];
+  if (name === "dashboard") renderDashboard();
+  if (name === "todos") renderTodos();
+  if (name === "calendar") renderCalendar();
+  if (name === "reminders") renderReminders();
+  if (name === "pomodoro") updatePomoDisplay();
+  if (name === "notes") renderNotes();
+}
+
+document.querySelectorAll(".nav-item").forEach(function(n){
+  n.addEventListener("click", function(){ switchView(n.dataset.view); });
+});
+document.querySelectorAll(".mobile-nav-item").forEach(function(n){
+  n.addEventListener("click", function(){ switchView(n.dataset.view); });
+});
+
+// ============ Clock ============
+function updateClock() {
+  var d = new Date();
+  var days = ["日","一","二","三","四","五","六"];
+  var dateStr = d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日 星期" + days[d.getDay()];
+  document.getElementById("topbar-date").textContent = dateStr;
+  var h = d.getHours();
+  var m = d.getMinutes();
+  document.getElementById("topbar-clock").textContent = String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+  // greeting
+  var greet = h < 6 ? "凌晨好" : h < 12 ? "上午好" : h < 14 ? "中午好" : h < 18 ? "下午好" : "晚上好";
+  var gt = document.getElementById("dash-greet-time");
+  if (gt) gt.textContent = greet;
+  var ds = document.getElementById("dash-sub");
+  if (ds) ds.textContent = "今天是 " + dateStr + "，祝你工作顺利！";
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============ Todos ============
+var currentFilter = "all";
+
+function addTodo() {
+  var input = document.getElementById("todo-input");
+  var title = input.value.trim();
+  if (!title) { showToast("请输入任务标题", "danger"); return; }
+  var cat = document.getElementById("todo-cat").value;
+  var pri = document.getElementById("todo-pri").value;
+  var date = document.getElementById("todo-date").value;
+  var todo = {
+    id: Date.now(),
+    title: title,
+    desc: "",
+    category: cat,
+    priority: pri,
+    dueDate: date,
+    completed: false,
+    created: new Date().toISOString()
+  };
+  todos.unshift(todo);
+  save(STORAGE_KEY, todos);
+  input.value = "";
+  document.getElementById("todo-date").value = "";
+  showToast("任务已添加！", "success");
+  renderTodos();
+  updateBadges();
+}
+
+function toggleTodo(id) {
+  todos = todos.map(function(t){
+    if (t.id === id) t.completed = !t.completed;
+    return t;
+  });
+  save(STORAGE_KEY, todos);
+  renderTodos();
+  updateBadges();
+  if (currentView === "dashboard") renderDashboard();
+  if (currentView === "calendar") renderCalendar();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(function(t){ return t.id !== id; });
+  save(STORAGE_KEY, todos);
+  renderTodos();
+  updateBadges();
+  showToast("已删除", "danger");
+}
+
+function editTodo(id) {
+  var t = todos.find(function(x){ return x.id === id; });
+  if (!t) return;
+  var title = prompt("编辑任务标题：", t.title);
+  if (title === null) return;
+  t.title = title.trim() || t.title;
+  var desc = prompt("编辑描述（可留空）：", t.desc || "");
+  if (desc !== null) t.desc = desc.trim();
+  var date = prompt("截止日期 (YYYY-MM-DD)：", t.dueDate || "");
+  if (date !== null) t.dueDate = date.trim();
+  save(STORAGE_KEY, todos);
+  renderTodos();
+  showToast("已更新", "success");
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll(".chip").forEach(function(c){
+    c.classList.toggle("active", c.dataset.filter === f);
+  });
+  renderTodos();
+}
+
+function getFilteredTodos() {
+  var q = (document.getElementById("todo-search").value || "").toLowerCase();
+  var list = todos.filter(function(t){
+    if (q && t.title.toLowerCase().indexOf(q) < 0 && (t.desc || "").toLowerCase().indexOf(q) < 0) return false;
+    var days = daysBetween(t.dueDate);
+    switch(currentFilter) {
+      case "today": return !t.completed && days === 0;
+      case "upcoming": return !t.completed && days > 0 && days <= 7;
+      case "overdue": return !t.completed && days < 0;
+      case "done": return t.completed;
+      default: return true;
+    }
+  });
+  // sort: overdue first, then by date, then by priority
+  var priOrder = { high: 0, medium: 1, low: 2 };
+  list.sort(function(a, b) {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    var ad = a.dueDate || "9999";
+    var bd = b.dueDate || "9999";
+    if (ad !== bd) return ad < bd ? -1 : 1;
+    return priOrder[a.priority] - priOrder[b.priority];
+  });
+  return list;
+}
+
+function renderTodos() {
+  var list = getFilteredTodos();
+  var el = document.getElementById("todo-list");
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-text">没有任务，休息一下吧！</div></div>';
+  } else {
+    el.innerHTML = list.map(function(t){
+      var days = daysBetween(t.dueDate);
+      var badge = "";
+      if (!t.completed && t.dueDate) {
+        if (days < 0) badge = '<span class="mt-badge badge-overdue">逾期' + (-days) + '天</span>';
+        else if (days === 0) badge = '<span class="mt-badge badge-today">今天</span>';
+        else if (days <= 3) badge = '<span class="mt-badge badge-soon">' + days + '天后</span>';
+      }
+      var dateBadge = t.dueDate ? '<span class="mt-badge badge-cat">' + formatDate(t.dueDate) + '</span>' : "";
+      return '<div class="todo-card priority-' + t.priority + (t.completed ? " completed" : "") + '">' +
+        '<div class="tc-check' + (t.completed ? " done" : "") + '" onclick="toggleTodo(' + t.id + ')"></div>' +
+        '<div class="tc-body">' +
+          '<div class="tc-title">' + escapeHtml(t.title) + '</div>' +
+          (t.desc ? '<div class="tc-desc">' + escapeHtml(t.desc) + '</div>' : '') +
+          '<div class="tc-tags">' +
+            '<span class="tc-tag" style="background:' + (CAT_COLORS[t.category] || "#888") + "20;color:" + (CAT_COLORS[t.category] || "#888") + '">' + (CAT_LABELS[t.category] || "其他") + '</span>' +
+            '<span class="tc-tag" style="background:#f0f0f0;color:#666">优先级: ' + (PRI_LABELS[t.priority] || "中") + '</span>' +
+            dateBadge + badge +
+          '</div>' +
+        '</div>' +
+        '<div class="tc-actions">' +
+          '<button class="tc-btn" onclick="editTodo(' + t.id + ')" title="编辑">✏️</button>' +
+          '<button class="tc-btn" onclick="deleteTodo(' + t.id + ')" title="删除">🗑️</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+  // update filter counts
+  updateFilterCounts();
+  updateBadges();
+}
+
+function updateFilterCounts() {
+  var counts = { all: 0, today: 0, upcoming: 0, overdue: 0, done: 0 };
+  todos.forEach(function(t){
+    counts.all++;
+    var days = daysBetween(t.dueDate);
+    if (t.completed) counts.done++;
+    else if (days === 0) counts.today++;
+    else if (days < 0) counts.overdue++;
+    else if (days > 0 && days <= 7) counts.upcoming++;
+  });
+  Object.keys(counts).forEach(function(k){
+    var el = document.getElementById("cnt-" + k);
+    if (el) el.textContent = counts[k];
+  });
+}
+
+function updateBadges() {
+  var todayCount = todos.filter(function(t){ return !t.completed && daysBetween(t.dueDate) === 0; }).length;
+  var overdueCount = todos.filter(function(t){ return !t.completed && daysBetween(t.dueDate) < 0; }).length;
+  var bt = document.getElementById("badge-todos");
+  var br = document.getElementById("badge-reminders");
+  var mbt = document.getElementById("mn-badge-todos");
+  var mbr = document.getElementById("mn-badge-reminders");
+  if (todayCount > 0) { bt.style.display = "block"; bt.textContent = todayCount; } else bt.style.display = "none";
+  if (overdueCount > 0) { br.style.display = "block"; br.textContent = overdueCount; } else br.style.display = "none";
+  if (todayCount > 0) { mbt.style.display = "block"; mbt.textContent = todayCount; } else mbt.style.display = "none";
+  if (overdueCount > 0) { mbr.style.display = "block"; mbr.textContent = overdueCount; } else mbr.style.display = "none";
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ============ Dashboard ============
+function renderDashboard() {
+  var today = todayStr();
+  var todayTasks = todos.filter(function(t){ return !t.completed && t.dueDate === today; });
+  var todayDone = todos.filter(function(t){ return t.completed && t.dueDate === today; });
+  var overdue = todos.filter(function(t){ return !t.completed && t.dueDate && daysBetween(t.dueDate) < 0; });
+
+  // week stats
+  var now = new Date();
+  var weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  var weekStartStr = dateStr(weekStart);
+  var weekTodos = todos.filter(function(t){ return t.created && t.created.slice(0,10) >= weekStartStr; });
+  var weekDone = weekTodos.filter(function(t){ return t.completed; });
+  var weekRate = weekTodos.length > 0 ? Math.round(weekDone.length / weekTodos.length * 100) : 0;
+
+  document.getElementById("stat-today").textContent = todayTasks.length;
+  document.getElementById("stat-done").textContent = todayDone.length;
+  document.getElementById("stat-overdue").textContent = overdue.length;
+  document.getElementById("stat-rate").textContent = weekRate + "%";
+
+  // today tasks
+  var ttEl = document.getElementById("dash-today-tasks");
+  if (todayTasks.length === 0) {
+    ttEl.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">✨</div><div class="empty-text">今天没有待办，享受空闲吧！</div></div>';
+  } else {
+    ttEl.innerHTML = todayTasks.map(function(t){
+      return '<div class="mini-task">' +
+        '<div class="mt-check" onclick="toggleTodo(' + t.id + ')"></div>' +
+        '<div class="mt-info"><div class="mt-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="mt-meta">' + (CAT_LABELS[t.category]||"") + ' · ' + (PRI_LABELS[t.priority]||"") + '优先级</div></div>' +
+        '<span class="mt-badge" style="background:' + (PRI_COLORS[t.priority]||"") + ";color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600" + '">' + (PRI_LABELS[t.priority]||"") + '</span>' +
+      '</div>';
+    }).join("");
+  }
+
+  // donut chart
+  var allToday = todos.filter(function(t){ return t.dueDate === today; });
+  var dDone = allToday.filter(function(t){ return t.completed; }).length;
+  var dPending = allToday.length - dDone;
+  var total = allToday.length || 1;
+  var pct = Math.round(dDone / total * 100);
+  var donut = document.getElementById("donut");
+  donut.style.background = "conic-gradient(var(--success) " + (dDone/total*360) + "deg, var(--primary-light) 0deg)";
+  donut.innerHTML = '<div class="donut-text"><div class="num">' + pct + '%</div><div class="lbl">今日完成</div></div>';
+
+  var legend = document.getElementById("donut-legend");
+  legend.innerHTML =
+    '<div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>已完成<span class="legend-val">' + dDone + '</span></div>' +
+    '<div class="legend-item"><div class="legend-dot" style="background:var(--primary-light)"></div>待完成<span class="legend-val">' + dPending + '</span></div>' +
+    '<div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>逾期<span class="legend-val">' + overdue.length + '</span></div>';
+
+  // deadlines
+  var upcoming = todos.filter(function(t){ return !t.completed && t.dueDate; })
+    .sort(function(a,b){ return a.dueDate < b.dueDate ? -1 : 1; })
+    .slice(0, 5);
+  var dlEl = document.getElementById("dash-deadlines");
+  if (upcoming.length === 0) {
+    dlEl.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-text">暂无截止日期任务</div></div>';
+  } else {
+    dlEl.innerHTML = upcoming.map(function(t){
+      var days = daysBetween(t.dueDate);
+      var cls = days < 0 ? "overdue" : days === 0 ? "today" : "soon";
+      var cd = days < 0 ? (-days) + "天" : days === 0 ? "今天" : days + "天";
+      return '<div class="deadline-item ' + cls + '">' +
+        '<div class="dl-info"><div class="dl-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="dl-date">' + formatDate(t.dueDate) + '</div></div>' +
+        '<div class="dl-countdown">' + cd + '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  // bar chart - category distribution
+  var cats = Object.keys(CAT_LABELS);
+  var catCounts = cats.map(function(c){ return todos.filter(function(t){ return t.category === c; }).length; });
+  var maxCount = Math.max.apply(null, catCounts.concat([1]));
+  var barEl = document.getElementById("bar-chart");
+  barEl.innerHTML = cats.map(function(c, i){
+    var h = Math.round(catCounts[i] / maxCount * 100);
+    return '<div class="bar-col">' +
+      '<div class="bar-val">' + catCounts[i] + '</div>' +
+      '<div class="bar" style="height:' + h + '%;background:' + CAT_COLORS[c] + '"></div>' +
+      '<div class="bar-label">' + CAT_LABELS[c] + '</div>' +
+    '</div>';
+  }).join("");
+}
+
+// ============ Calendar ============
+var calDate = new Date();
+var calSelectedDate = todayStr();
+
+function changeMonth(delta) {
+  calDate.setMonth(calDate.getMonth() + delta);
+  renderCalendar();
+}
+
+function goToToday() {
+  calDate = new Date();
+  calSelectedDate = todayStr();
+  renderCalendar();
+}
+
+function renderCalendar() {
+  var y = calDate.getFullYear();
+  var m = calDate.getMonth();
+  document.getElementById("cal-month").textContent = y + "年 " + (m+1) + "月";
+
+  var firstDay = new Date(y, m, 1).getDay();
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var daysInPrev = new Date(y, m, 0).getDate();
+  var today = todayStr();
+
+  var html = "";
+  // prev month
+  for (var i = firstDay - 1; i >= 0; i--) {
+    var d = daysInPrev - i;
+    var ds = dateStr(new Date(y, m-1, d));
+    html += '<div class="cal-day other-month" data-date="' + ds + '"><span>' + d + '</span>' + getDayDots(ds) + '</div>';
+  }
+  // current month
+  for (var i = 1; i <= daysInMonth; i++) {
+    var ds = dateStr(new Date(y, m, i));
+    var cls = "cal-day";
+    if (ds === today) cls += " today";
+    if (ds === calSelectedDate) cls += " selected";
+    html += '<div class="' + cls + '" data-date="' + ds + '" onclick="selectCalDate(\'' + ds + '\')"><span>' + i + '</span>' + getDayDots(ds) + '</div>';
+  }
+  // next month
+  var totalCells = firstDay + daysInMonth;
+  var remaining = (7 - (totalCells % 7)) % 7;
+  for (var i = 1; i <= remaining; i++) {
+    var ds = dateStr(new Date(y, m+1, i));
+    html += '<div class="cal-day other-month" data-date="' + ds + '"><span>' + i + '</span>' + getDayDots(ds) + '</div>';
+  }
+
+  document.getElementById("cal-days").innerHTML = html;
+  renderCalTasks();
+}
+
+function getDayDots(ds) {
+  var dayTodos = todos.filter(function(t){ return t.dueDate === ds; });
+  if (dayTodos.length === 0) return "";
+  var dots = dayTodos.slice(0, 4).map(function(t){
+    var color = t.priority === "high" ? "#EF233C" : t.priority === "medium" ? "#F59E0B" : "#06A77D";
+    return '<div class="day-dot" style="background:' + color + '"></div>';
+  }).join("");
+  return '<div class="day-dots">' + dots + '</div>';
+}
+
+function selectCalDate(ds) {
+  calSelectedDate = ds;
+  renderCalendar();
+}
+
+function renderCalTasks() {
+  var dayTodos = todos.filter(function(t){ return t.dueDate === calSelectedDate; });
+  var title = document.getElementById("cal-tasks-title");
+  var list = document.getElementById("cal-tasks-list");
+  var d = parseDate(calSelectedDate);
+  title.textContent = (d.getMonth()+1) + "月" + d.getDate() + "日的任务 (" + dayTodos.length + ")";
+
+  if (dayTodos.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-text">这一天没有任务</div></div>';
+  } else {
+    list.innerHTML = dayTodos.map(function(t){
+      return '<div class="mini-task' + (t.completed ? " done-task" : "") + '">' +
+        '<div class="mt-check' + (t.completed ? " done" : "") + '" onclick="toggleTodo(' + t.id + ')"></div>' +
+        '<div class="mt-info"><div class="mt-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="mt-meta">' + (CAT_LABELS[t.category]||"") + ' · ' + (PRI_LABELS[t.priority]||"") + '</div></div>' +
+      '</div>';
+    }).join("");
+  }
+}
+
+// ============ Reminders ============
+function renderReminders() {
+  var overdue = [];
+  var today = [];
+  var soon = [];
+  var later = [];
+
+  todos.forEach(function(t){
+    if (t.completed || !t.dueDate) return;
+    var days = daysBetween(t.dueDate);
+    if (days < 0) overdue.push(t);
+    else if (days === 0) today.push(t);
+    else if (days <= 3) soon.push(t);
+    else if (days <= 14) later.push(t);
+  });
+
+  // sort each by date
+  function sortByDate(a, b) { return a.dueDate < b.dueDate ? -1 : 1; }
+  overdue.sort(sortByDate);
+  today.sort(sortByDate);
+  soon.sort(sortByDate);
+  later.sort(sortByDate);
+
+  var alertHtml = "";
+  if (overdue.length > 0 || today.length > 0) {
+    alertHtml = '<div class="reminder-alert">' +
+      '<div class="ra-icon">🚨</div>' +
+      '<div class="ra-title">' + (overdue.length > 0 ? overdue.length + " 个任务已逾期！" : "") +
+      (overdue.length > 0 && today.length > 0 ? " " : "") +
+      (today.length > 0 ? today.length + " 个任务今天截止！" : "") + '</div>' +
+      '<div class="ra-sub">请尽快处理！</div>' +
+    '</div>';
+  }
+  document.getElementById("reminder-alert-zone").innerHTML = alertHtml;
+
+  var html = "";
+  function section(title, icon, list, cls) {
+    if (list.length === 0) return "";
+    var items = list.map(function(t){
+      var days = daysBetween(t.dueDate);
+      var cd = days < 0 ? "逾期" + (-days) + "天" : days === 0 ? "今天截止" : days + "天后";
+      return '<div class="deadline-item ' + cls + '">' +
+        '<div class="dl-info"><div class="dl-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="dl-date">' + (CAT_LABELS[t.category]||"") + ' · ' + (PRI_LABELS[t.priority]||"") + '优先级 · ' + formatDate(t.dueDate) + '</div></div>' +
+        '<div class="dl-countdown">' + cd + '</div>' +
+        '<button class="tc-btn" onclick="toggleTodo(' + t.id + ')" title="标记完成" style="color:var(--success)">✅</button>' +
+      '</div>';
+    }).join("");
+    return '<div class="reminder-section"><div class="reminder-section-title">' + icon + " " + title +
+      '<span class="rs-count">' + list.length + '</span></div>' + items + '</div>';
+  }
+
+  html += section("已逾期", "🔴", overdue, "overdue");
+  html += section("今天截止", "🟠", today, "today");
+  html += section("即将截止 (3天内)", "🟡", soon, "soon");
+  html += section("未来两周", "🟢", later, "");
+
+  if (!html) {
+    html = '<div class="empty-state" style="padding:60px"><div class="empty-icon">🎉</div><div class="empty-text">没有需要提醒的任务！</div></div>';
+  }
+  document.getElementById("reminder-list").innerHTML = html;
+}
+
+// ============ Pomodoro ============
+var pomoState = {
+  mode: "work", // work | break
+  timeLeft: 25 * 60,
+  running: false,
+  timer: null
+};
+var POMO_WORK = 25 * 60;
+var POMO_BREAK = 5 * 60;
+
+function updatePomoDisplay() {
+  var m = Math.floor(pomoState.timeLeft / 60);
+  var s = pomoState.timeLeft % 60;
+  document.getElementById("pomo-time").textContent = String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  document.getElementById("pomo-mode").textContent = pomoState.mode === "work" ? "专注工作中" : "休息时间";
+  document.getElementById("pomo-mode").style.color = pomoState.mode === "work" ? "var(--primary)" : "var(--success)";
+
+  // ring progress
+  var ring = document.querySelector(".pomo-ring");
+  ring.className = "pomo-ring " + pomoState.mode;
+  var progress = document.getElementById("pomo-progress");
+  var total = pomoState.mode === "work" ? POMO_WORK : POMO_BREAK;
+  var circumference = 2 * Math.PI * 120;
+  var offset = circumference * (1 - pomoState.timeLeft / total);
+  progress.style.strokeDasharray = circumference;
+  progress.style.strokeDashoffset = offset;
+
+  document.getElementById("pomo-start").textContent = pomoState.running ? "暂停" : "开始";
+  document.getElementById("pomo-sessions").textContent = pomoData.sessions;
+  document.getElementById("pomo-total-min").textContent = pomoData.totalMin;
+  document.getElementById("pomo-total-sessions").textContent = pomoData.totalSessions;
+}
+
+function togglePomo() {
+  if (pomoState.running) {
+    pomoState.running = false;
+    clearInterval(pomoState.timer);
+  } else {
+    pomoState.running = true;
+    pomoState.timer = setInterval(function(){
+      pomoState.timeLeft--;
+      if (pomoState.timeLeft <= 0) {
+        clearInterval(pomoState.timer);
+        pomoState.running = false;
+        if (pomoState.mode === "work") {
+          pomoData.sessions++;
+          pomoData.totalSessions++;
+          pomoData.totalMin += 25;
+          save(POMO_KEY, pomoData);
+          pomoState.mode = "break";
+          pomoState.timeLeft = POMO_BREAK;
+          showToast("专注完成！休息5分钟 ☕", "success");
+          if (navigator.notifications && Notification.permission === "granted") {
+            new Notification("番茄钟", { body: "专注完成！该休息了" });
+          }
+        } else {
+          pomoState.mode = "work";
+          pomoState.timeLeft = POMO_WORK;
+          showToast("休息结束，开始下一个番茄！", "success");
+        }
+      }
+      updatePomoDisplay();
+    }, 1000);
+  }
+  updatePomoDisplay();
+}
+
+function resetPomo() {
+  clearInterval(pomoState.timer);
+  pomoState.running = false;
+  pomoState.mode = "work";
+  pomoState.timeLeft = POMO_WORK;
+  updatePomoDisplay();
+}
+
+function skipPomo() {
+  clearInterval(pomoState.timer);
+  pomoState.running = false;
+  if (pomoState.mode === "work") {
+    pomoState.mode = "break";
+    pomoState.timeLeft = POMO_BREAK;
+  } else {
+    pomoState.mode = "work";
+    pomoState.timeLeft = POMO_WORK;
+  }
+  updatePomoDisplay();
+}
+
+// ============ Notes ============
+function addNote() {
+  var note = { id: Date.now(), content: "", time: new Date().toISOString() };
+  notes.unshift(note);
+  save(NOTES_KEY, notes);
+  renderNotes();
+  // focus the new note
+  setTimeout(function(){
+    var el = document.querySelector('.note-card[data-id="' + note.id + '"] .note-content');
+    if (el) el.focus();
+  }, 100);
+}
+
+function updateNote(id, content) {
+  var n = notes.find(function(x){ return x.id === id; });
+  if (n) { n.content = content; n.time = new Date().toISOString(); save(NOTES_KEY, notes); }
+}
+
+function deleteNote(id) {
+  notes = notes.filter(function(n){ return n.id !== id; });
+  save(NOTES_KEY, notes);
+  renderNotes();
+  showToast("已删除", "danger");
+}
+
+function renderNotes() {
+  var el = document.getElementById("notes-grid");
+  if (notes.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-icon">📝</div><div class="empty-text">点击上方按钮创建第一条速记</div></div>';
+    return;
+  }
+  el.innerHTML = notes.map(function(n){
+    var d = new Date(n.time);
+    var timeStr = (d.getMonth()+1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    return '<div class="note-card" data-id="' + n.id + '">' +
+      '<textarea class="note-content" placeholder="写点什么..." oninput="updateNote(' + n.id + ', this.value)">' + escapeHtml(n.content) + '</textarea>' +
+      '<div class="note-footer"><span class="note-time">' + timeStr + '</span>' +
+      '<button class="note-delete" onclick="deleteNote(' + n.id + ')">🗑</button></div>' +
+    '</div>';
+  }).join("");
+}
+
+// ============ Init ============
+function init() {
+  // set default date to today
+  document.getElementById("todo-date").value = todayStr();
+  // request notification permission
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+  // initial render
+  renderDashboard();
+  renderTodos();
+  renderNotes();
+  updatePomoDisplay();
+  updateBadges();
+  // check reminders every minute
+  setInterval(function(){
+    checkReminders();
+  }, 60000);
+  checkReminders();
+}
+
+function checkReminders() {
+  var overdueCount = todos.filter(function(t){ return !t.completed && t.dueDate && daysBetween(t.dueDate) < 0; }).length;
+  var todayCount = todos.filter(function(t){ return !t.completed && t.dueDate && daysBetween(t.dueDate) === 0; }).length;
+  if (overdueCount > 0) {
+    if (Notification.permission === "granted") {
+      new Notification("辣条的工作台 提醒", { body: "你有 " + overdueCount + " 个任务已逾期，请尽快处理！" });
+    }
+  } else if (todayCount > 0) {
+    if (Notification.permission === "granted") {
+      new Notification("辣条的工作台 提醒", { body: "今天有 " + todayCount + " 个任务待完成！" });
+    }
+  }
+  updateBadges();
+}
+
+init();
+</script>
+</body>
+</html>
