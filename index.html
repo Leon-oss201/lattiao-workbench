@@ -58,6 +58,44 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
 .nav-icon { font-size:18px; width:24px; text-align:center; }
 .sidebar-footer { padding:16px 24px; border-top:1px solid var(--border); font-size:12px; color:var(--text-light); }
 
+/* Leon meets Lris decorative card */
+.meet-card {
+  margin:4px 16px 16px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#7C3AED 0%,#9333EA 40%,#EC4899 100%);
+  padding:18px 16px;
+  position:relative;
+  overflow:hidden;
+  cursor:default;
+  box-shadow:0 4px 16px rgba(124,58,237,.2);
+}
+.meet-card::before {
+  content:"";
+  position:absolute;
+  top:-30px; right:-30px;
+  width:80px; height:80px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+.meet-card::after {
+  content:"";
+  position:absolute;
+  bottom:-20px; left:-20px;
+  width:60px; height:60px;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+}
+.meet-hearts { font-size:22px; margin-bottom:6px; }
+.meet-title { font-size:14px; font-weight:700; color:#fff; letter-spacing:.5px; }
+.meet-sub { font-size:10px; color:rgba(255,255,255,.7); margin-top:3px; font-weight:400; }
+.meet-line { width:24px; height:2px; background:rgba(255,255,255,.4); border-radius:1px; margin:8px 0 6px; }
+.meet-names { display:flex; align-items:center; gap:6px; }
+.meet-name { font-size:11px; font-weight:600; color:rgba(255,255,255,.9); }
+.meet-amp { font-size:12px; color:rgba(255,255,255,.5); }
+.meet-spark { position:absolute; font-size:10px; opacity:.3; }
+.meet-spark.s1 { top:10px; right:12px; }
+.meet-spark.s2 { bottom:12px; right:20px; }
+
 .main { flex:1; margin-left:220px; min-height:100vh; display:flex; flex-direction:column; }
 .topbar { height:60px; background:rgba(255,255,255,.85); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; position:sticky; top:0; z-index:40; }
 .topbar-title { font-size:18px; font-weight:700; }
@@ -227,6 +265,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
   .sidebar-title,.sidebar-sub { display:none; }
   .nav-item span:not(.nav-icon) { display:none; }
   .nav-item { justify-content:center; }
+  .meet-card { display:none; }
   .main { margin-left:60px; }
 }
 @media (max-width:768px) {
@@ -276,6 +315,19 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
       <div class="nav-item" data-view="photos"><span class="nav-icon">📷</span><span>照片墙</span></div>
       <div class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span>设置分享</span></div>
     </nav>
+    <div class="meet-card">
+      <span class="meet-spark s1">✦</span>
+      <span class="meet-spark s2">✦</span>
+      <div class="meet-hearts">💜</div>
+      <div class="meet-title">Leon meets Lris</div>
+      <div class="meet-sub">Every journey is ours</div>
+      <div class="meet-line"></div>
+      <div class="meet-names">
+        <span class="meet-name">Leon</span>
+        <span class="meet-amp">&amp;</span>
+        <span class="meet-name">Lris</span>
+      </div>
+    </div>
     <div class="sidebar-footer">辣条旅行手账 v2.0<br>数据存储于本地浏览器</div>
   </aside>
 
@@ -291,7 +343,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
     <div class="content">
       <!-- Dashboard -->
       <div class="view active" id="view-dashboard">
-        <div class="dash-greeting" id="dash-greeting">你好，<span>辣条子</span> 👋</div>
+        <div class="dash-greeting" id="dash-greeting">你好，<span>Lris</span> 👋</div>
         <div class="dash-sub" id="dash-sub">欢迎回到你的旅行手账</div>
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-icon">🧳</div><div class="stat-value" id="stat-trips">0</div><div class="stat-label">旅行次数</div></div>
@@ -487,7 +539,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 
 // ============ Data Layer ============
 var TRIPS_KEY="lattiao_trips",GUIDES_KEY="lattiao_guides",SETTINGS_KEY="lattiao_settings";
-var trips=[],guides=[],settings={username:"辣条子"};
+var trips=[],guides=[],settings={username:"Lris"};
 var editingTripId=null,editingGuideId=null;
 var pendingCover=null,pendingPhotos=[];
 var currentPhotoFilter="all",currentGuideFilter="all";
@@ -501,7 +553,7 @@ function genId(){return Date.now().toString(36)+Math.random().toString(36).subst
 function initData(){
   trips=load(TRIPS_KEY,[]);
   guides=load(GUIDES_KEY,[]);
-  settings=load(SETTINGS_KEY,{username:"辣条子"});
+  settings=load(SETTINGS_KEY,{username:"Lris"});
 }
 
 // ============ Image Compression ============
@@ -548,7 +600,7 @@ function renderDashboard(){
   document.getElementById("stat-places").textContent=Object.keys(places).length;
   document.getElementById("stat-photos").textContent=photoCount;
   document.getElementById("stat-guides").textContent=guides.length;
-  var name=settings.username||"辣条子";
+  var name=settings.username||"Lris";
   document.getElementById("dash-greeting").innerHTML='你好，<span>'+name+'</span> 👋';
   document.getElementById("topbar-avatar").textContent=name.charAt(0);
   // Recent trips
