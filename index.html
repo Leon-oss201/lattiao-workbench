@@ -154,8 +154,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
 .dash-greeting span { background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .dash-sub { font-size:14px; color:var(--text-sec); margin-bottom:24px; }
 .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-.stat-card { background:var(--card); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; transition:transform .2s,box-shadow .2s; }
+.stat-card { background:var(--card); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; transition:transform .2s,box-shadow .2s; cursor:pointer; }
 .stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.stat-card:active { transform:scale(0.98); }
 .stat-icon { font-size:28px; }
 .stat-value { font-size:28px; font-weight:800; }
 .stat-label { font-size:13px; color:var(--text-sec); }
@@ -387,10 +388,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
         <div class="dash-greeting" id="dash-greeting">你好，<span>Lris</span> 👋</div>
         <div class="dash-sub" id="dash-sub">欢迎回到你的旅行手账</div>
         <div class="stat-grid">
-          <div class="stat-card"><div class="stat-icon">🧳</div><div class="stat-value" id="stat-trips">0</div><div class="stat-label">旅行次数</div></div>
-          <div class="stat-card"><div class="stat-icon">📍</div><div class="stat-value" id="stat-places">0</div><div class="stat-label">目的地</div></div>
-          <div class="stat-card"><div class="stat-icon">📷</div><div class="stat-value" id="stat-photos">0</div><div class="stat-label">照片</div></div>
-          <div class="stat-card"><div class="stat-icon">📖</div><div class="stat-value" id="stat-guides">0</div><div class="stat-label">攻略</div></div>
+          <div class="stat-card" onclick="switchView('trips')" title="查看旅行记录"><div class="stat-icon">🧳</div><div class="stat-value" id="stat-trips">0</div><div class="stat-label">旅行次数</div></div>
+          <div class="stat-card" onclick="switchView('trips')" title="查看旅行记录"><div class="stat-icon">📍</div><div class="stat-value" id="stat-places">0</div><div class="stat-label">目的地</div></div>
+          <div class="stat-card" onclick="switchView('photos')" title="查看照片墙"><div class="stat-icon">📷</div><div class="stat-value" id="stat-photos">0</div><div class="stat-label">照片</div></div>
+          <div class="stat-card" onclick="switchView('guides')" title="查看攻略库"><div class="stat-icon">📖</div><div class="stat-value" id="stat-guides">0</div><div class="stat-label">攻略</div></div>
         </div>
         <div class="dash-section-title">🧳 最近旅行</div>
         <div class="trip-grid" id="dash-recent-trips"></div>
@@ -892,6 +893,9 @@ function deleteTrip(id){
 function renderGuideFilters(){
   var cats={"all":"全部"};
   guides.forEach(function(g){if(g.category)cats[g.category]=1;});
+  // 旅行带来的分类
+  cats["旅行攻略"]=1;
+  cats["旅行感受"]=1;
   var html="";
   Object.keys(cats).forEach(function(c){
     html+='<div class="chip '+(currentGuideFilter===c?"active":"")+'" onclick="currentGuideFilter=\''+c+'\';renderGuides()">'+(c==="all"?"全部":c)+'</div>';
@@ -902,7 +906,21 @@ function renderGuideFilters(){
 function renderGuides(){
   renderGuideFilters();
   var search=document.getElementById("guide-search").value.toLowerCase();
-  var filtered=guides.filter(function(g){
+  var allItems=[];
+  // 独立攻略
+  guides.forEach(function(g){
+    allItems.push({type:"guide",id:g.id,title:g.title||"未命名攻略",content:g.content||"",category:g.category||"",createdAt:g.createdAt||0,source:""});
+  });
+  // 旅行中的攻略笔记
+  trips.forEach(function(t){
+    if(t.guide && t.guide.trim()){
+      allItems.push({type:"trip",id:t.id,title:(t.title||"未命名旅行")+" · 攻略笔记",content:t.guide,category:"旅行攻略",createdAt:t.createdAt||0,source:t.destination||""});
+    }
+    if(t.feeling && t.feeling.trim()){
+      allItems.push({type:"trip",id:t.id,title:(t.title||"未命名旅行")+" · 旅行感受",content:t.feeling,category:"旅行感受",createdAt:t.createdAt||0,source:t.destination||""});
+    }
+  });
+  var filtered=allItems.filter(function(g){
     var matchSearch=!search||(g.title&&g.title.toLowerCase().includes(search))||(g.content&&g.content.toLowerCase().includes(search));
     var matchFilter=currentGuideFilter==="all"||g.category===currentGuideFilter;
     return matchSearch&&matchFilter;
@@ -910,13 +928,15 @@ function renderGuides(){
   filtered.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
   var html="";
   if(filtered.length===0){
-    html='<div class="empty-state"><div class="es-icon">📖</div><div class="es-title">'+(search||currentGuideFilter!=="all"?"没有找到匹配的攻略":"还没有攻略")+'</div><div class="es-sub">'+(search||currentGuideFilter!=="all"?"试试其他关键词或分类":"点击右上角新建你的第一篇攻略")+'</div></div>';
+    html='<div class="empty-state"><div class="es-icon">📖</div><div class="es-title">'+(search||currentGuideFilter!=="all"?"没有找到匹配的攻略":"还没有攻略")+'</div><div class="es-sub">'+(search||currentGuideFilter!=="all"?"试试其他关键词或分类":"在旅行详情中填写攻略/感受，或新建独立攻略")+'</div></div>';
   }else{
     filtered.forEach(function(g){
       var date=new Date(g.createdAt||0).toLocaleDateString("zh-CN");
-      html+='<div class="guide-card" onclick="viewGuide(\''+g.id+'\')">'+
-        '<div class="guide-title">'+escapeHTML(g.title||"未命名攻略")+'</div>'+
-        (g.category?'<div class="guide-category">'+escapeHTML(g.category)+'</div>':'')+
+      var clickAction=g.type==="trip"?'viewTrip(\''+g.id+'\')':'viewGuide(\''+g.id+'\')';
+      var badge=g.type==="trip"?'<span style="display:inline-flex;align-items:center;gap:3px;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">🧳 来自旅行</span>':'';
+      html+='<div class="guide-card" onclick="'+clickAction+'">'+
+        '<div class="guide-title">'+escapeHTML(g.title)+' '+badge+'</div>'+
+        (g.category?'<div class="guide-category">'+escapeHTML(g.category)+(g.source?' · '+escapeHTML(g.source):'')+'</div>':'')+
         '<div class="guide-preview">'+escapeHTML((g.content||"").substring(0,200))+'</div>'+
         '<div class="guide-date">'+date+'</div>'+
       '</div>';
