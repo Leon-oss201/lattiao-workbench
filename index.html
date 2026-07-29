@@ -136,6 +136,46 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
 .meet-banner .mb-spark.s1 { top:12px; right:14px; }
 .meet-banner .mb-spark.s2 { bottom:14px; right:24px; }
 
+/* Leon meets Lris floating heart tag (mobile only) */
+.love-float { display:none; position:fixed; right:16px; bottom:calc(78px + env(safe-area-inset-bottom)); z-index:90; align-items:flex-end; flex-direction:column; gap:10px; pointer-events:none; }
+.love-float * { pointer-events:auto; }
+.love-float-btn {
+  width:52px; height:52px; border-radius:50%; background:var(--gradient); display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 18px rgba(124,58,237,.35); cursor:pointer; border:none; color:#fff; font-size:24px;
+  transition:transform .2s,box-shadow .2s; position:relative; animation:lovePulse 2.2s ease-in-out infinite;
+}
+.love-float-btn:active { transform:scale(.92); }
+.love-float-btn::before {
+  content:""; position:absolute; inset:-4px; border-radius:50%; background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(236,72,153,.25));
+  z-index:-1; animation:loveRing 2.2s ease-in-out infinite;
+}
+@keyframes lovePulse {
+  0%,100% { transform:scale(1); }
+  50% { transform:scale(1.06); }
+}
+@keyframes loveRing {
+  0%,100% { transform:scale(1); opacity:.6; }
+  50% { transform:scale(1.15); opacity:.2; }
+}
+.love-float-card {
+  width:220px; border-radius:18px; background:linear-gradient(135deg,#7C3AED 0%,#9333EA 40%,#EC4899 100%);
+  padding:18px 16px; position:relative; overflow:hidden; box-shadow:0 8px 28px rgba(124,58,237,.28);
+  transform-origin:bottom right; transform:scale(0); opacity:0; transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s; pointer-events:auto;
+}
+.love-float-card.show { transform:scale(1); opacity:1; }
+.love-float-card::before { content:""; position:absolute; top:-30px; right:-30px; width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,.08); }
+.love-float-card::after { content:""; position:absolute; bottom:-20px; left:-20px; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.06); }
+.love-float-card .lf-spark { position:absolute; font-size:10px; opacity:.3; color:#fff; }
+.love-float-card .lf-spark.s1 { top:10px; right:12px; }
+.love-float-card .lf-spark.s2 { bottom:12px; right:20px; }
+.love-float-card .lf-hearts { font-size:24px; margin-bottom:6px; }
+.love-float-card .lf-title { font-size:15px; font-weight:700; color:#fff; letter-spacing:.5px; }
+.love-float-card .lf-sub { font-size:11px; color:rgba(255,255,255,.75); margin-top:3px; }
+.love-float-card .lf-line { width:26px; height:2px; background:rgba(255,255,255,.4); border-radius:1px; margin:9px 0 7px; }
+.love-float-card .lf-names { display:flex; align-items:center; gap:6px; }
+.love-float-card .lf-name { font-size:12px; font-weight:600; color:rgba(255,255,255,.95); }
+.love-float-card .lf-amp { font-size:13px; color:rgba(255,255,255,.55); }
+
 .main { flex:1; margin-left:220px; min-height:100vh; display:flex; flex-direction:column; }
 .topbar { height:60px; background:rgba(255,255,255,.85); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; position:sticky; top:0; z-index:40; }
 .topbar-title { font-size:18px; font-weight:700; }
@@ -331,6 +371,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
   .detail-cover { height:180px; }
   .detail-photos { grid-template-columns:repeat(3,1fr); }
   .meet-banner { display:block; }
+  .love-float { display:flex; }
 }
 @media (max-width:380px) {
   .stat-grid { grid-template-columns:1fr 1fr; }
@@ -500,6 +541,24 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Mi
     <div class="mobile-nav-item" data-view="photos"><span class="mn-icon">📷</span><span>照片</span></div>
     <div class="mobile-nav-item" data-view="settings"><span class="mn-icon">⚙️</span><span>设置</span></div>
   </div>
+</div>
+
+<!-- Leon meets Lris floating heart tag (mobile only) -->
+<div class="love-float" id="love-float">
+  <div class="love-float-card" id="love-float-card">
+    <span class="lf-spark s1">✦</span>
+    <span class="lf-spark s2">✦</span>
+    <div class="lf-hearts">💜</div>
+    <div class="lf-title">Leon meets Lris</div>
+    <div class="lf-sub">Every journey is ours</div>
+    <div class="lf-line"></div>
+    <div class="lf-names">
+      <span class="lf-name">Leon</span>
+      <span class="lf-amp">&amp;</span>
+      <span class="lf-name">Lris</span>
+    </div>
+  </div>
+  <button class="love-float-btn" id="love-float-btn" aria-label="Leon meets Lris">💜</button>
 </div>
 
 <!-- Trip Modal -->
@@ -1184,6 +1243,18 @@ function showToast(msg){
   window._toastTimer=setTimeout(function(){t.classList.remove("show");},2500);
 }
 
+// ============ Love Float (mobile) ============
+function initLoveFloat(){
+  var btn=document.getElementById("love-float-btn");
+  var card=document.getElementById("love-float-card");
+  if(!btn||!card)return;
+  var hideTimer=null;
+  function showCard(){ card.classList.add("show"); clearTimeout(hideTimer); hideTimer=setTimeout(function(){card.classList.remove("show");},4000); }
+  btn.addEventListener("click",function(e){ e.stopPropagation(); card.classList.toggle("show"); if(card.classList.contains("show")){ clearTimeout(hideTimer); hideTimer=setTimeout(function(){card.classList.remove("show");},4000); } });
+  card.addEventListener("click",function(e){ e.stopPropagation(); });
+  document.addEventListener("click",function(){ card.classList.remove("show"); });
+}
+
 // ============ Init ============
 function init(){
   initData();
@@ -1203,6 +1274,8 @@ function init(){
   document.getElementById("photo-viewer").addEventListener("click",function(e){if(e.target===this)closePhotoViewer();});
   // Reset guide footer when opening
   var guideModalBtn=document.querySelector('[onclick="openGuideModal()"]');
+  // Love float
+  initLoveFloat();
   // Render
   renderDashboard();
 }
