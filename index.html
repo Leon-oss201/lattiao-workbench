@@ -453,7 +453,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull()">⚡离线</div>
       <div class="hero-decor">✨</div>
       <div class="home-hero-text">
-        <h1 id="hero-title" class="editable-title" onclick="editHeroTitle()" title="点击修改">杭州旅行计划</h1>
+        <h1 id="hero-title">杭州旅行计划</h1>
         <div class="sub-slogan" id="hero-slogan">让每一次出行都值得期待</div>
       </div>
     </div>
@@ -548,11 +548,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <div class="cal-legend-item active" data-type="all" onclick="setCalFilter('all')" style="grid-column:span 2;"><div class="cli">🔍</div>显示全部</div>
       </div>
     </div>
-    <div class="home-section" style="padding-top:6px;">
+    <div class="home-section" style="padding-top:6px;padding-bottom:24px;">
       <div class="section-head"><h2 id="cal-list-title">本月地点</h2><span class="more" onclick="setCalFilter('all')">全部</span></div>
       <div id="cal-locations"></div>
     </div>
-    <div class="cal-upcoming" id="cal-upcoming"></div>
   </section>
 
   <!-- ====== TRIPS ====== -->
@@ -608,19 +607,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="td-section">
       <h3>📖 攻略笔记</h3>
-      <div id="td-guide" class="editable-block" contenteditable="true" data-placeholder="暂无攻略笔记，点击输入..."></div>
+      <div id="td-guide"></div>
     </div>
     <div class="td-section">
       <h3>✨ 旅行感受</h3>
-      <div id="td-feeling" class="editable-block" contenteditable="true" data-placeholder="还没有写旅行感受，点击输入..."></div>
+      <div id="td-feeling"></div>
     </div>
     <div class="td-section">
       <div class="td-toolbar">
         <h3 style="margin:0;">📷 旅行照片 <span id="td-photo-count" style="color:var(--text-light);font-weight:400;"></span></h3>
-        <button class="btn btn-ghost btn-sm" onclick="addTripPhotos()">＋ 上传</button>
       </div>
       <div class="td-photos" id="td-photos"></div>
-      <input type="file" id="td-photo-input" accept="image/*" multiple style="display:none;">
     </div>
     <div class="td-section">
       <h3>💰 预算明细</h3>
@@ -825,6 +822,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <input class="form-input" id="lm-duration" type="number" placeholder="60">
       </div>
     </div>
+    <div class="form-row">
+      <label class="form-label">📖 攻略笔记</label>
+      <textarea class="form-textarea" id="lm-guide" placeholder="记录这个地点的攻略、注意事项..."></textarea>
+    </div>
+    <div class="form-row">
+      <label class="form-label">✨ 旅行感受</label>
+      <textarea class="form-textarea" id="lm-feeling" placeholder="写下你在这里的感受..."></textarea>
+    </div>
+    <div class="form-row">
+      <label class="form-label">📷 旅行照片</label>
+      <div class="photo-upload-area" onclick="document.getElementById('lm-photo-input').click()">
+        <div class="pu-icon">📷</div>
+        <div style="font-size:12px;">点击上传照片</div>
+        <input type="file" id="lm-photo-input" accept="image/*" multiple style="display:none;" onchange="handleLocationPhotoUpload(event)">
+      </div>
+      <div class="photo-grid" id="lm-photo-grid"></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">💰 预算明细</label>
+      <div id="lm-budget-list"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <select class="form-select" id="lm-bcat" style="flex:0 0 90px;">
+          <option value="transport">🚇 交通</option>
+          <option value="stay">🏨 住宿</option>
+          <option value="food">🍜 餐饮</option>
+          <option value="ticket">🎫 门票</option>
+          <option value="shop">🛍 购物</option>
+          <option value="other">📦 其他</option>
+        </select>
+        <input class="form-input" id="lm-bnote" placeholder="备注" style="flex:1;">
+        <input class="form-input" id="lm-bamt" type="number" step="0.01" placeholder="金额" style="flex:0 0 90px;">
+        <button class="btn btn-ghost btn-sm" onclick="addLocationBudgetItem()" style="flex:0 0 auto;">＋</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('location-modal')">取消</button>
       <button class="btn btn-primary" onclick="saveLocation()">添加</button>
@@ -898,38 +929,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   </div>
 </div>
 
-<div class="modal-overlay" id="spend-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">记一笔账</div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">分类</label>
-        <select class="form-select" id="sm-cat">
-          <option value="transport">🚇 交通</option>
-          <option value="stay">🏨 住宿</option>
-          <option value="food">🍜 餐饮</option>
-          <option value="ticket">🎫 门票</option>
-          <option value="shop">🛍 购物</option>
-          <option value="other">📦 其他</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">金额 (¥)</label>
-        <input class="form-input" id="sm-amt" type="number" step="0.01" placeholder="0.00">
-      </div>
-    </div>
-    <div class="form-row">
-      <label class="form-label">备注</label>
-      <input class="form-input" id="sm-note" placeholder="可选">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('spend-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveSpend()">保存</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -944,11 +943,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="form-row">
       <label class="form-label">默认城市</label>
-      <input class="form-input" id="set-city" placeholder="杭州">
-    </div>
-    <div class="form-row">
-      <label class="form-label">首页标题</label>
-      <input class="form-input" id="set-hero" placeholder="我的旅行计划">
+      <input class="form-input" id="set-city" placeholder="城市">
     </div>
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
@@ -980,6 +975,8 @@ var currentTripId=null;
 var currentEditingTripId=null;
 var currentTripDay=0;
 var currentEditingGuideId=null;
+var lmPhotos=[];
+var lmBudgetItems=[];
 
 function loadData(){
   try{
@@ -1181,16 +1178,17 @@ document.querySelectorAll('.bn-item').forEach(function(b){
 
 // ============ City & Weather ============
 function getCityFromHero(){
+  var city=(data.settings.city||'').trim();
+  if(city && city!=='城市')return city;
+  // fallback for legacy data
   var title=(data.settings.heroTitle||'').trim();
-  if(!title)return data.settings.city||'杭州';
-  // strip common suffixes
-  var suffixes=['旅行计划','出行计划','行程规划','行程预算','旅行攻略','旅行手账','旅行','行程','计划','攻略','手账'];
-  var city=title;
-  suffixes.forEach(function(s){
-    if(city.endsWith(s))city=city.slice(0,city.length-s.length);
-  });
-  city=city.trim();
-  return city||data.settings.city||'杭州';
+  if(title){
+    var suffixes=['旅行计划','出行计划','行程规划','行程预算','旅行攻略','旅行手账','旅行','行程','计划','攻略','手账'];
+    suffixes.forEach(function(s){if(title.endsWith(s))title=title.slice(0,title.length-s.length);});
+    title=title.trim();
+    if(title)return title;
+  }
+  return '杭州';
 }
 function getWeatherCache(city){
   try{
@@ -1257,7 +1255,7 @@ function renderHome(){
   var city=getCityFromHero();
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
-  document.getElementById('hero-title').textContent=(data.settings.heroTitle||'我的旅行计划');
+  document.getElementById('hero-title').textContent=city+'旅行计划';
   document.getElementById('hero-slogan').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   var days=['日','一','二','三','四','五','六'];
   var n=new Date();
@@ -1355,23 +1353,6 @@ function renderCal(){
   document.getElementById('cal-grid').innerHTML=html;
   // render locations list
   renderCalLocationList(monthLocs);
-  // upcoming
-  var now=new Date();now.setHours(0,0,0,0);
-  var ups=data.trips.filter(function(t){return t.startDate && new Date(t.startDate)>=now;}).slice(0,5);
-  var uhtml='';
-  if(ups.length===0)uhtml='<div class="empty" style="padding:30px 10px;"><div class="e-icon">📅</div><div class="e-title">近期没有行程</div></div>';
-  else{
-    ups.forEach(function(t){
-      var dt=t.startDate?new Date(t.startDate):new Date();
-      uhtml+='<div class="upcoming-card" onclick="openTrip(\''+t.id+'\')">'+
-        '<div class="uc-date"><div class="uc-d">'+dt.getDate()+'</div><div class="uc-m">'+(dt.getMonth()+1)+'月</div></div>'+
-        '<div class="uc-body">'+
-          '<div class="uc-name">📍 '+escapeHTML(t.destination||t.title)+'</div>'+
-          '<div class="uc-meta">'+escapeHTML(t.title)+' · '+fmtDateShort(t.startDate)+(t.endDate?' ~ '+fmtDateShort(t.endDate):'')+'</div>'+
-        '</div></div>';
-    });
-  }
-  document.getElementById('cal-upcoming').innerHTML=uhtml;
 }
 function setCalFilter(type){
   calFilterType=type;
@@ -1403,17 +1384,43 @@ function renderCalLocationList(monthLocs){
       '<div class="uc-body">';
     items.forEach(function(x){
       var l=x.loc;
-      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);" onclick="openTrip(\''+x.tripId+'\');selectTripDay('+x.dayIndex+');">'+
-        '<span style="font-size:16px;">'+(typeIcon[l.type]||'📍')+'</span>'+
-        '<div style="flex:1;">'+
-          '<div style="font-size:14px;font-weight:600;">'+escapeHTML(l.name||'未命名')+'</div>'+
-          '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+'</div>'+
+      html+='<div style="padding:6px 0;border-bottom:1px dashed var(--border);" onclick="openTrip(\''+x.tripId+'\');selectTripDay('+x.dayIndex+');">'+
+        '<div style="display:flex;align-items:center;gap:8px;">'+
+          '<span style="font-size:16px;">'+(typeIcon[l.type]||'📍')+'</span>'+
+          '<div style="flex:1;">'+
+            '<div style="font-size:14px;font-weight:600;">'+escapeHTML(l.name||'未命名')+'</div>'+
+            '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+'</div>'+
+          '</div>'+
         '</div>'+
+        renderCalLocationDetails(l)+
       '</div>';
     });
     html+='</div></div>';
   });
   container.innerHTML=html;
+}
+function renderCalLocationDetails(l){
+  var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+  var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
+  var html='';
+  var hasAny=l.guide||l.feeling||(l.photos&&l.photos.length)||(l.budget&&l.budget.items&&l.budget.items.length);
+  if(!hasAny)return'';
+  html+='<div style="margin-top:8px;padding:10px;background:#FAF5FF;border-radius:10px;font-size:12px;color:var(--text-sec);line-height:1.6;">';
+  if(l.guide)html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📖 攻略</b> '+escapeHTML(l.guide)+'</div>';
+  if(l.feeling)html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">✨ 感受</b> '+escapeHTML(l.feeling)+'</div>';
+  if(l.photos&&l.photos.length){
+    html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📷 照片</b></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">'+
+      l.photos.map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
+      '</div>';
+  }
+  if(l.budget&&l.budget.items&&l.budget.items.length){
+    html+='<div><b style="color:var(--primary-dark);">💰 预算</b> '+
+      l.budget.items.map(function(it){return catIcons[it.cat]+' '+(it.note||catNames[it.cat])+' ¥'+it.amt.toFixed(0);}).join(' · ')+
+    '</div>';
+  }
+  html+='</div>';
+  return html;
 }
 function calShift(d){calDate.setMonth(calDate.getMonth()+d);renderCal();}
 function calToday(){calDate=new Date();renderCal();}
@@ -1564,14 +1571,7 @@ function openTrip(id){
   document.getElementById('td-date-range').innerHTML=rng+'<small>'+(t.days&&t.days.length?' · '+t.days.length+' 天':'')+'</small>';
   renderDayPills();
   renderTimeline();
-  renderTripPhotos();
-  renderTripBudget();
-  var gEl=document.getElementById('td-guide');
-  gEl.innerText=t.guide||'';
-  gEl.onblur=function(){var v=gEl.innerText.trim();if(v!==t.guide){t.guide=v;saveData();showToast('攻略笔记已保存');}};
-  var fEl=document.getElementById('td-feeling');
-  fEl.innerText=t.feeling||'';
-  fEl.onblur=function(){var v=fEl.innerText.trim();if(v!==t.feeling){t.feeling=v;saveData();showToast('旅行感受已保存');}};
+  renderTripDetailExtras();
   // weather/aqi placeholder
   var weatherOpts=['晴 28°C','多云 24°C','小雨 22°C','阴 26°C'];
   document.getElementById('td-weather').textContent=weatherOpts[currentTripDay%weatherOpts.length];
@@ -1679,7 +1679,65 @@ function addLocationToCurrentDay(){
   document.getElementById('lm-name').value='';
   document.getElementById('lm-distance').value='';
   document.getElementById('lm-duration').value='';
+  document.getElementById('lm-guide').value='';
+  document.getElementById('lm-feeling').value='';
+  document.getElementById('lm-bcat').value='food';
+  document.getElementById('lm-bnote').value='';
+  document.getElementById('lm-bamt').value='';
+  lmPhotos=[];
+  lmBudgetItems=[];
+  renderLocationModalPhotos();
+  renderLocationModalBudget();
   document.getElementById('location-modal').classList.add('active');
+}
+function handleLocationPhotoUpload(e){
+  var files=Array.from(e.target.files||[]);
+  if(!files.length)return;
+  files.forEach(function(f){
+    compressImage(f,1200,0.7,function(d){lmPhotos.push(d);renderLocationModalPhotos();});
+  });
+  e.target.value='';
+}
+function renderLocationModalPhotos(){
+  var el=document.getElementById('lm-photo-grid');
+  if(!el)return;
+  if(lmPhotos.length===0){el.innerHTML=''; return;}
+  el.innerHTML=lmPhotos.map(function(src,i){
+    return '<div class="pg-item"><img src="'+src+'"><button class="pg-del" onclick="deleteLocationModalPhoto('+i+')">×</button></div>';
+  }).join('');
+}
+function deleteLocationModalPhoto(i){
+  lmPhotos.splice(i,1);
+  renderLocationModalPhotos();
+}
+function addLocationBudgetItem(){
+  var cat=document.getElementById('lm-bcat').value;
+  var note=document.getElementById('lm-bnote').value.trim();
+  var amt=parseFloat(document.getElementById('lm-bamt').value)||0;
+  if(amt<=0){showToast('请输入金额'); return;}
+  lmBudgetItems.push({cat:cat, note:note, amt:amt, time:Date.now()});
+  document.getElementById('lm-bnote').value='';
+  document.getElementById('lm-bamt').value='';
+  renderLocationModalBudget();
+}
+function renderLocationModalBudget(){
+  var el=document.getElementById('lm-budget-list');
+  if(!el)return;
+  var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+  var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
+  if(lmBudgetItems.length===0){el.innerHTML='<div style="font-size:12px;color:var(--text-light);padding:6px 0;">暂无预算明细</div>'; return;}
+  el.innerHTML=lmBudgetItems.map(function(it,i){
+    return '<div class="spend-row">'+
+      '<span class="sr-cat">'+catIcons[it.cat]+'</span>'+
+      '<span class="sr-label">'+(it.note||catNames[it.cat])+'</span>'+
+      '<span class="sr-amt">¥'+it.amt.toFixed(2)+'</span>'+
+      '<button class="sr-del" onclick="deleteLocationModalBudgetItem('+i+')">×</button>'+
+    '</div>';
+  }).join('');
+}
+function deleteLocationModalBudgetItem(i){
+  lmBudgetItems.splice(i,1);
+  renderLocationModalBudget();
 }
 function saveLocation(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -1687,130 +1745,106 @@ function saveLocation(){
   ensureTripDays(t);
   var day=t.days[currentTripDay];
   if(!day)return;
+  var name=document.getElementById('lm-name').value.trim();
+  if(!name){showToast('请填写地点名称'); return;}
   day.locations.push({
     id:uid(),
     time:document.getElementById('lm-time').value,
     type:document.getElementById('lm-type').value,
-    name:document.getElementById('lm-name').value.trim(),
+    name:name,
     distance:parseFloat(document.getElementById('lm-distance').value)||null,
-    duration:parseInt(document.getElementById('lm-duration').value)||null
+    duration:parseInt(document.getElementById('lm-duration').value)||null,
+    guide:document.getElementById('lm-guide').value.trim(),
+    feeling:document.getElementById('lm-feeling').value.trim(),
+    photos:lmPhotos.slice(),
+    budget:{total:lmBudgetItems.reduce(function(s,it){return s+it.amt;},0), items:lmBudgetItems.slice()}
   });
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
   saveData();
   closeModal('location-modal');
   renderTimeline();
   renderDayPills();
+  renderTripDetailExtras();
   showToast('已添加地点');
 }
-function renderTripPhotos(){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  var p=t.photos||[];
-  document.getElementById('td-photo-count').textContent='('+p.length+')';
-  var html='';
-  if(p.length===0)html='<div style="grid-column:span 3;text-align:center;padding:20px;color:var(--text-light);font-size:13px;">还没有照片</div>';
-  else p.forEach(function(src,i){
-    html+='<div class="td-photo" onclick="viewPhoto(\''+src+'\')"><img src="'+src+'"></div>';
+function getAllLocations(t){
+  if(!t||!t.days)return [];
+  var list=[];
+  t.days.forEach(function(d,dayIdx){
+    (d.locations||[]).forEach(function(l){list.push({dayIndex:dayIdx,loc:l});});
   });
-  document.getElementById('td-photos').innerHTML=html;
+  return list;
 }
-function addTripPhotos(){document.getElementById('td-photo-input').click();}
-document.getElementById('td-photo-input').addEventListener('change',function(e){
+function renderTripDetailExtras(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
-  t.photos=t.photos||[];
-  var files=Array.from(e.target.files||[]);
-  var done=0;
-  files.forEach(function(f){
-    compressImage(f,1200,0.7,function(d){t.photos.push(d);done++;if(done===files.length){saveData();renderTripPhotos();renderHome();showToast('已上传 '+files.length+' 张');}});
-  });
-  e.target.value='';
-});
-function renderTripBudget(){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  t.budget=t.budget||{total:0,items:[]};
-  var items=t.budget.items||[];
-  var total=items.reduce(function(s,it){return s+(parseFloat(it.amt)||0);},0);
+  var locs=getAllLocations(t);
   var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
   var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
+
+  // guide aggregate
+  var guides=locs.filter(function(x){return x.loc.guide;});
+  var gEl=document.getElementById('td-guide');
+  if(guides.length===0){gEl.innerHTML='<div style="font-size:13px;color:var(--text-light);padding:12px 0;">暂无攻略笔记，在添加地点时填写</div>';}
+  else{
+    gEl.innerHTML=guides.map(function(x){
+      return '<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border);">'+
+        '<div style="font-size:12px;color:var(--primary);font-weight:600;margin-bottom:6px;">📍 '+escapeHTML(x.loc.name)+'</div>'+
+        '<div style="font-size:13px;color:var(--text-sec);line-height:1.7;white-space:pre-wrap;">'+escapeHTML(x.loc.guide)+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // feeling aggregate
+  var feels=locs.filter(function(x){return x.loc.feeling;});
+  var fEl=document.getElementById('td-feeling');
+  if(feels.length===0){fEl.innerHTML='<div style="font-size:13px;color:var(--text-light);padding:12px 0;">还没有旅行感受，在添加地点时填写</div>';}
+  else{
+    fEl.innerHTML=feels.map(function(x){
+      return '<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border);">'+
+        '<div style="font-size:12px;color:var(--primary);font-weight:600;margin-bottom:6px;">📍 '+escapeHTML(x.loc.name)+'</div>'+
+        '<div style="font-size:13px;color:var(--text-sec);line-height:1.7;white-space:pre-wrap;">'+escapeHTML(x.loc.feeling)+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // photos aggregate
+  var photos=[];
+  locs.forEach(function(x){(x.loc.photos||[]).forEach(function(p){photos.push({src:p, name:x.loc.name});});});
+  document.getElementById('td-photo-count').textContent='('+photos.length+')';
+  var pEl=document.getElementById('td-photos');
+  if(photos.length===0){pEl.innerHTML='<div style="grid-column:span 3;text-align:center;padding:20px;color:var(--text-light);font-size:13px;">还没有照片，在添加地点时上传</div>';}
+  else{
+    pEl.innerHTML=photos.map(function(p){
+      return '<div class="td-photo" onclick="viewPhoto(\''+p.src+'\')"><img src="'+p.src+'"></div>';
+    }).join('');
+  }
+
+  // budget aggregate
+  var items=[];
+  locs.forEach(function(x){(x.loc.budget&&x.loc.budget.items||[]).forEach(function(it){items.push({item:it, name:x.loc.name});});});
+  var total=items.reduce(function(s,x){return s+x.item.amt;},0);
+  var bEl=document.getElementById('td-budget');
   var html='';
-  html+='<div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">✎ 点击数字/下拉框可直接编辑，修改后自动保存</div>';
-  html+='<div class="bs-row"><span>计划总预算</span><input type="number" step="0.01" value="'+(t.budget.total||0).toFixed(2)+'" onblur="updateTripBudgetTotal(this)" onchange="updateTripBudgetTotal(this)" style="width:110px;text-align:right;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:14px;color:var(--primary-dark);font-weight:700;background:#FAF5FF;"></div>';
   html+='<div class="bs-row"><span>已支出</span><b style="color:var(--accent);">¥'+total.toFixed(2)+'</b></div>';
-  html+='<div class="bs-row"><span>剩余</span><b style="color:var(--primary);">¥'+((t.budget.total||0)-total).toFixed(2)+'</b></div>';
   if(items.length){
     html+='<div style="margin-top:12px;font-size:12px;color:var(--text-sec);margin-bottom:8px;font-weight:600;">明细</div>';
     html+='<div style="display:flex;flex-direction:column;gap:8px;">';
-    items.forEach(function(it,idx){
-      html+='<div class="spend-row" style="background:#fff;border:1px solid var(--border);padding:10px;">'
-        +'<select onchange="updateTripBudgetItem('+idx+',\'cat\',this.value)" style="border:none;background:transparent;font-size:13px;outline:none;width:80px;">'+
-        Object.keys(catNames).map(function(c){return '<option value="'+c+'" '+(it.cat===c?'selected':'')+'>'+catIcons[c]+' '+catNames[c]+'</option>';}).join('')
-        +'</select>'
-        +'<input type="text" value="'+(it.note||'')+'" placeholder="备注" onblur="updateTripBudgetItem('+idx+',\'note\',this.value)" onchange="updateTripBudgetItem('+idx+',\'note\',this.value)" style="flex:1;border:none;background:transparent;font-size:13px;outline:none;">'
-        +'<input type="number" step="0.01" value="'+(it.amt||0).toFixed(2)+'" placeholder="金额" onblur="updateTripBudgetItem('+idx+',\'amt\',this.value)" onchange="updateTripBudgetItem('+idx+',\'amt\',this.value)" style="width:80px;text-align:right;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--primary-dark);outline:none;">'
-        +'<button class="sr-del" onclick="deleteTripBudgetItem('+idx+')">×</button>'
-      +'</div>';
+    items.forEach(function(x){
+      html+='<div class="spend-row" style="background:#fff;border:1px solid var(--border);padding:10px;">'+
+        '<span class="sr-cat">'+catIcons[x.item.cat]+'</span>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(x.item.note||catNames[x.item.cat])+'</div>'+
+          '<div style="font-size:10px;color:var(--text-light);">📍 '+escapeHTML(x.name)+'</div>'+
+        '</div>'+
+        '<span class="sr-amt">¥'+x.item.amt.toFixed(2)+'</span>'+
+      '</div>';
     });
     html+='</div>';
+  }else{
+    html+='<div style="font-size:13px;color:var(--text-light);padding:12px 0;">暂无预算明细，在添加地点时填写</div>';
   }
-  html+='<button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="openSpendModal()">＋ 记一笔</button>';
-  document.getElementById('td-budget').innerHTML=html;
-}
-function updateTripBudgetTotal(el){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  t.budget.total=parseFloat(el.value)||0;
-  saveData();
-  renderTripBudget();
-  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
-}
-function updateTripBudgetItem(idx,field,value){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t||!t.budget||!t.budget.items[idx])return;
-  if(field==='amt')value=parseFloat(value)||0;
-  t.budget.items[idx][field]=value;
-  saveData();
-  renderTripBudget();
-  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
-}
-function deleteTripBudgetItem(idx){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t||!t.budget||!t.budget.items[idx])return;
-  if(!confirm('删除这条明细？'))return;
-  t.budget.items.splice(idx,1);
-  saveData();
-  renderTripBudget();
-  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
-  showToast('已删除');
-}
-function openSpendModal(){
-  document.getElementById('sm-cat').value='food';
-  document.getElementById('sm-amt').value='';
-  document.getElementById('sm-note').value='';
-  document.getElementById('spend-modal').classList.add('active');
-}
-function saveSpend(){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  t.budget=t.budget||{total:0,items:[]};
-  var amt=parseFloat(document.getElementById('sm-amt').value)||0;
-  if(amt<=0){showToast('请输入金额');return;}
-  t.budget.items.push({
-    cat:document.getElementById('sm-cat').value,
-    amt:amt,
-    note:document.getElementById('sm-note').value,
-    time:Date.now()
-  });
-  // update total
-  if(!t.budget.total||t.budget.total<t.budget.items.reduce(function(s,it){return s+it.amt;},0)){
-    t.budget.total=t.budget.items.reduce(function(s,it){return s+it.amt;},0);
-  }
-  saveData();
-  closeModal('spend-modal');
-  renderTripBudget();
-  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
-  showToast('已记账');
+  bEl.innerHTML=html;
 }
 function editCurrentTrip(){if(currentTripId)openTripModal(currentTripId);}
 function deleteCurrentTrip(){
@@ -1921,19 +1955,24 @@ function renderBudget(){
     document.getElementById('budget-cat-grid').innerHTML='';
     return;
   }
-  // sum all budgets
+  // sum all location budgets
   var catTotals={transport:0,stay:0,food:0,ticket:0,shop:0,other:0};
-  var total=0,paid=0,plan=0;
+  var paid=0;
   all.forEach(function(t){
-    t.budget=t.budget||{total:0,items:[]};
-    plan+=t.budget.total||0;
-    (t.budget.items||[]).forEach(function(it){catTotals[it.cat]=(catTotals[it.cat]||0)+it.amt;paid+=it.amt;});
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        (l.budget&&l.budget.items||[]).forEach(function(it){
+          catTotals[it.cat]=(catTotals[it.cat]||0)+it.amt;
+          paid+=it.amt;
+        });
+      });
+    });
   });
-  total=catTotals.transport+catTotals.stay+catTotals.food+catTotals.ticket+catTotals.shop+catTotals.other;
+  var total=paid;
   document.getElementById('budget-total').textContent='¥'+total.toFixed(0);
   document.getElementById('stat-spent').textContent='¥'+paid.toFixed(0);
-  document.getElementById('stat-left').textContent='¥'+(plan-paid).toFixed(0);
-  document.getElementById('stat-plan').textContent='¥'+plan.toFixed(0);
+  document.getElementById('stat-left').textContent='¥0';
+  document.getElementById('stat-plan').textContent='¥'+total.toFixed(0);
   // donut
   var C=2*Math.PI*48;
   var cum=0;
@@ -1959,13 +1998,19 @@ function renderBudget(){
   var html='';
   all.forEach(function(t){
     if(!t.startDate)return;
+    var tripTotal=0;
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        tripTotal+=(l.budget&&l.budget.items||[]).reduce(function(s,it){return s+it.amt;},0);
+      });
+    });
     var d=new Date(t.startDate);
     var dur=t.endDate?Math.round((new Date(t.endDate)-d)/(24*3600*1000))+1:1;
     html+='<div class="budget-trip">'+
       '<div class="budget-trip-head" onclick="openTrip(\''+t.id+'\')" style="cursor:pointer;">'+
         '<div class="bth-date"><b>'+d.getDate()+'</b><div>'+(d.getMonth()+1)+'月</div></div>'+
         '<div class="bth-title">'+escapeHTML(t.title)+'</div>'+
-        '<div class="bth-dur">'+dur+'天</div>'+
+        '<div class="bth-dur">¥'+tripTotal.toFixed(0)+' · '+dur+'天</div>'+
       '</div></div>';
   });
   if(!html)html='<div class="empty"><div class="e-icon">💰</div><div class="e-title">还没有预算记录</div></div>';
@@ -2098,7 +2143,11 @@ function delFav(id){
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
   var photoCount=0;
-  data.trips.forEach(function(t){photoCount+=(t.photos||[]).length;});
+  data.trips.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){photoCount+=(l.photos||[]).length;});
+    });
+  });
   var uniqueDest={};
   data.trips.forEach(function(t){if(t.destination)uniqueDest[t.destination]=1;});
   var km=Math.max(0,(Object.keys(uniqueDest).length*187));
@@ -2112,36 +2161,47 @@ function openSettings(){
   document.getElementById('set-name').value=data.settings.name||'Iris';
   document.getElementById('set-slogan').value=data.settings.slogan||'';
   document.getElementById('set-city').value=data.settings.city||'';
-  document.getElementById('set-hero').value=data.settings.heroTitle||'';
   document.getElementById('set-token').value=ghToken()||'';
   document.getElementById('settings-modal').classList.add('active');
 }
 function saveSettings(){
-  data.settings.name=document.getElementById('set-name').value.trim()||'Iris';
-  data.settings.slogan=document.getElementById('set-slogan').value.trim();
-  data.settings.city=document.getElementById('set-city').value.trim();
-  data.settings.heroTitle=(document.getElementById('set-hero').value.trim()||'我的旅行计划');
+  var name=document.getElementById('set-name').value.trim()||'Iris';
+  var slogan=document.getElementById('set-slogan').value.trim();
+  var city=document.getElementById('set-city').value.trim();
   var newTok=document.getElementById('set-token').value.trim();
   var oldTok=ghToken();
-  ghSetToken(newTok);
-  saveData();
-  closeModal('settings-modal');
-  renderProfile();
-  renderAll();
-  if(newTok&&!oldTok){syncStart();showToast('已配置，开始同步');}
-  else if(!newTok&&oldTok){if(GH.syncTimer)clearInterval(GH.syncTimer);setSyncStatus('offline');showToast('已保存');}
-  else{showToast('已保存');}
-}
-function editHeroTitle(){
-  var el=document.getElementById('hero-title');
-  var cur=data.settings.heroTitle||el.textContent;
-  var v=prompt('修改首页标题',cur);
-  if(v===null) return;
-  v=v.trim()||'我的旅行计划';
-  data.settings.heroTitle=v;
-  el.textContent=v;
-  saveData();
-  showToast('已更新');
+
+  if(!city || city==='城市'){
+    showToast('请填写正确的城市名'); return;
+  }
+
+  function applySave(msg){
+    data.settings.name=name;
+    data.settings.slogan=slogan;
+    data.settings.city=city;
+    data.settings.heroTitle=city+'旅行计划';
+    ghSetToken(newTok);
+    saveData();
+    closeModal('settings-modal');
+    renderProfile();
+    renderAll();
+    loadWeather(city);
+    if(newTok&&!oldTok){syncStart();showToast(msg||'已配置，开始同步');}
+    else if(!newTok&&oldTok){if(GH.syncTimer)clearInterval(GH.syncTimer);setSyncStatus('offline');showToast(msg||'已保存');}
+    else{showToast(msg||'已保存');}
+  }
+
+  fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
+    .then(function(r){return r.json();})
+    .then(function(geo){
+      if(!geo.results||!geo.results.length){showToast('请填写正确的城市名'); return;}
+      applySave();
+    })
+    .catch(function(e){
+      console.error('city validate',e);
+      // network error: still save with warning
+      applySave('已保存（城市未联网校验）');
+    });
 }
 function clearAll(){
   if(!confirm('⚠️ 清空后将无法恢复，确定吗？'))return;
