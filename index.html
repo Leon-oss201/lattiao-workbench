@@ -223,7 +223,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .td-weather{padding:10px 18px;background:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
 .td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;}
-.td-weather .right{font-size:11px;color:var(--text-sec);}
+.td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;}
+.weather-alert{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;}
+.weather-alert.rain{background:#E0F2FE;color:#0369A1;}
+.weather-alert.uv{background:#FEF3C7;color:#B45309;}
+.weather-alert.hot{background:#FEE2E2;color:#B91C1C;}
 
 .td-section{padding:14px 18px;}
 .td-section h3{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
@@ -594,8 +598,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="td-day-pills" id="td-day-pills"></div>
     <div class="td-weather">
-      <div class="left">☀️ 今日天气：<span id="td-weather">多云 28°C</span></div>
-      <div class="right">🌿 空气质量：<span id="td-aqi">优</span></div>
+      <div class="left">☀️ 今日天气：<span id="td-weather">加载中...</span></div>
+      <div class="right" id="td-weather-alert" style="display:none;"></div>
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
       <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点</span>
@@ -1011,20 +1015,47 @@ function repairTrips(){
   if(!Array.isArray(data.trips))data.trips=[];
   var seen={};
   data.trips=data.trips.filter(function(t){
-    if(!t||!t.id)return false;
-    if(seen[t.id])return false;
+    if(!t||!t.id){console.warn('[repair] drop invalid trip');return false;}
+    if(seen[t.id]){console.warn('[repair] drop duplicate trip id',t.id);return false;}
     seen[t.id]=true;
+    // Normalize dates to YYYY-MM-DD
+    t.startDate=sanitizeDateStr(t.startDate);
+    t.endDate=sanitizeDateStr(t.endDate);
     t.days=t.days||[];
     if(!Array.isArray(t.days))t.days=[];
+    // Remove null days and ensure arrays
+    t.days=t.days.filter(function(d){return d&&typeof d==='object';});
+    // Collect all existing locations before resyncing days (so we don't lose data from corrupted dates)
+    var allLocs=[];
+    var locIds={};
     t.days.forEach(function(d){
-      if(!d)return;
+      d.date=sanitizeDateStr(d.date);
       if(!Array.isArray(d.locations))d.locations=[];
+      // Deep clone locations to eliminate any cross-trip reference sharing from corrupted data
+      d.locations=d.locations.map(function(l){
+        if(!l||typeof l!=='object')return {id:uid(),time:'09:00',type:'other',name:'未命名地点'};
+        return JSON.parse(JSON.stringify(l));
+      });
+      d.locations.forEach(function(l){
+        if(!l.id)l.id=uid();
+        if(!locIds[l.id]){allLocs.push(l);locIds[l.id]=true;}
+      });
     });
     t.photos=Array.isArray(t.photos)?t.photos:[];
     t.guide=t.guide||'';
     t.feeling=t.feeling||'';
     if(!t.budget||typeof t.budget!=='object')t.budget={total:0,items:[]};
     if(!Array.isArray(t.budget.items))t.budget.items=[];
+    // Ensure days align with start/end dates
+    ensureTripDays(t);
+    // Place any orphaned locations into the first day so user data isn't silently dropped
+    var placedIds={};
+    t.days.forEach(function(d){(d.locations||[]).forEach(function(l){placedIds[l.id]=true;});});
+    if(t.days.length&&allLocs.length){
+      allLocs.forEach(function(l){
+        if(!placedIds[l.id]){t.days[0].locations.push(l);placedIds[l.id]=true;}
+      });
+    }
     return true;
   });
 }
@@ -1084,6 +1115,19 @@ function ghReadShared(shareId){
   });
 }
 
+function preserveLocalPhotos(remoteTrip,localTrip){
+  // Remote payload strips location photos to save space; restore them from local when remote wins
+  if(localTrip.photos&&localTrip.photos.length)remoteTrip.photos=localTrip.photos.slice();
+  (remoteTrip.days||[]).forEach(function(rd){
+    if(!rd||!rd.date)return;
+    var ld=(localTrip.days||[]).find(function(d){return d&&d.date===rd.date;});
+    if(!ld)return;
+    var photoMap={};
+    (ld.locations||[]).forEach(function(l){if(l.id&&l.photos&&l.photos.length)photoMap[l.id]=l.photos.slice();});
+    (rd.locations||[]).forEach(function(l){if(l.id&&photoMap[l.id])l.photos=photoMap[l.id];});
+  });
+  return remoteTrip;
+}
 function mergeTrips(localTrips,remoteTrips){
   if(!remoteTrips)return localTrips;
   var byId={};
@@ -1093,7 +1137,7 @@ function mergeTrips(localTrips,remoteTrips){
   remoteTrips.forEach(function(t){
     var rts=t.updatedAt||0;
     if(!byId[t.id]){byId[t.id]={trip:t,ts:rts};}
-    else if(rts>byId[t.id].ts){byId[t.id].trip=t;byId[t.id].ts=rts;}
+    else if(rts>byId[t.id].ts){byId[t.id].trip=preserveLocalPhotos(JSON.parse(JSON.stringify(t)),byId[t.id].trip);byId[t.id].ts=rts;}
     else{
       var local=byId[t.id].trip;
       if(local.photos&&local.photos.length){t.photos=local.photos;}
@@ -1128,6 +1172,12 @@ function syncPush(){
       var c=JSON.parse(JSON.stringify(t));
       c._photoCount=(c.photos||[]).length;
       c.photos=[];
+      // Strip location photos from sync payload to keep repo small (photos stay local)
+      (c.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}
+        });
+      });
       remoteData.trips.push(c);
     });
     ghGetSha('data/trips.json').then(function(sha){
@@ -1166,15 +1216,46 @@ function renderAll(){
 
 function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
 
+// Date helpers: treat date strings as YYYY-MM-DD in local time, avoid timezone skew
+function sanitizeDateStr(str){
+  if(!str)return '';
+  if(typeof str!=='string')str=String(str);
+  // Accept YYYY-MM-DD directly
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str))return str;
+  // Convert ISO / other date strings to YYYY-MM-DD in local time
+  var dt=new Date(str);
+  if(isNaN(dt.getTime()))return '';
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+function parseDateStr(str){
+  str=sanitizeDateStr(str);
+  if(!str)return null;
+  var p=str.split('-');
+  return new Date(+p[0],+p[1]-1,+p[2]);
+}
+function dateKey(dt){
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+function addDaysStr(str,n){
+  var d=parseDateStr(str);if(!d)return sanitizeDateStr(str)||str;
+  d.setDate(d.getDate()+n);
+  return dateKey(d);
+}
+function daysBetween(a,b){
+  var da=parseDateStr(a),db=parseDateStr(b);
+  if(!da||!db)return 0;
+  return Math.round((db-da)/(24*3600*1000));
+}
+
 function fmtDate(d){
-  if(!d)return'';
-  var dt=new Date(d);
-  return dt.getFullYear()+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+String(dt.getDate()).padStart(2,'0');
+  var str=sanitizeDateStr(d);if(!str)return'';
+  var p=str.split('-');
+  return p[0]+'.'+p[1]+'.'+p[2];
 }
 function fmtDateShort(d){
-  if(!d)return'';
-  var dt=new Date(d);
-  return String(dt.getMonth()+1).padStart(2,'0')+'.'+String(dt.getDate()).padStart(2,'0');
+  var str=sanitizeDateStr(d);if(!str)return'';
+  var p=str.split('-');
+  return p[1]+'.'+p[2];
 }
 function escapeHTML(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
@@ -1299,6 +1380,88 @@ function loadWeather(city){
     });
 }
 
+// Trip detail weather (per day)
+function getTripDayWeatherCache(city,date){
+  try{
+    var raw=localStorage.getItem('lattiao_trip_weather');
+    if(!raw)return null;
+    var d=JSON.parse(raw);
+    if(!d)return null;
+    if(Date.now()-(d.ts||0)>3600000)return null;
+    return (d[city]||{})[date]||null;
+  }catch(e){return null;}
+}
+function setTripDayWeatherCache(city,date,w){
+  try{
+    var raw=localStorage.getItem('lattiao_trip_weather')||'{}';
+    var d=JSON.parse(raw);
+    d.ts=Date.now();
+    d[city]=d[city]||{};
+    d[city][date]=w;
+    localStorage.setItem('lattiao_trip_weather',JSON.stringify(d));
+  }catch(e){}
+}
+function loadTripDayWeather(city,date){
+  var cached=getTripDayWeatherCache(city,date);
+  if(cached){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
+  return fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
+    .then(function(r){return r.json();})
+    .then(function(geo){
+      if(!geo.results||!geo.results.length)throw new Error('no geo for '+city);
+      var lat=geo.results[0].latitude,lon=geo.results[0].longitude;
+      var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=auto';
+      return fetch(url).then(function(r){return r.json();});
+    })
+    .then(function(d){
+      var daily=d.daily||{};
+      var idx=(daily.time||[]).indexOf(date);
+      if(idx<0)throw new Error('date not in forecast');
+      var code=(daily.weathercode||[])[idx];
+      var max=(daily.temperature_2m_max||[])[idx];
+      var min=(daily.temperature_2m_min||[])[idx];
+      var rain=(daily.precipitation_probability_max||[])[idx]||0;
+      var uv=(daily.uv_index_max||[])[idx]||0;
+      var m=mapWeather(code);
+      var w={date:date,city:city,text:m.text,icon:m.icon,tempMax:max,tempMin:min,rainProb:rain,uv:uv};
+      setTripDayWeatherCache(city,date,w);
+      updateTripDayWeatherUI(w);
+      return w;
+    })
+    .catch(function(e){
+      console.error('trip weather',e);
+      var w={date:date,city:city,text:'晴',icon:'☀️',tempMax:28,tempMin:20,rainProb:0,uv:0};
+      updateTripDayWeatherUI(w);
+      return w;
+    });
+}
+function updateTripDayWeatherUI(w){
+  var el=document.getElementById('td-weather');
+  var alertEl=document.getElementById('td-weather-alert');
+  if(el)el.textContent=(w.icon||'☀️')+' '+w.text+' '+Math.round(w.tempMin||w.temp||20)+'~'+Math.round(w.tempMax||w.temp||28)+'°C';
+  if(!alertEl)return;
+  var alerts=[];
+  if(w.rainProb>=30)alerts.push({cls:'rain',icon:'☂️',text:'降雨概率 '+Math.round(w.rainProb)+'%，建议带伞'});
+  if(w.uv>=6)alerts.push({cls:'uv',icon:'🧴',text:'紫外线强，注意防晒'});
+  if(w.tempMax>=35)alerts.push({cls:'hot',icon:'🥵',text:'高温 '+Math.round(w.tempMax)+'°C，注意防暑'});
+  if(alerts.length){
+    alertEl.style.display='flex';
+    alertEl.innerHTML=alerts.map(function(a){return '<span class="weather-alert '+a.cls+'">'+a.icon+' '+a.text+'</span>';}).join('');
+  }else{
+    alertEl.style.display='none';
+    alertEl.innerHTML='';
+  }
+}
+function refreshTripDayWeather(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  var day=t.days[currentTripDay]||t.days[0];
+  if(!day||!day.date)return;
+  var city=(t.destination||t.title||'').trim()||getCityFromHero();
+  document.getElementById('td-weather').textContent='加载中...';
+  document.getElementById('td-weather-alert').style.display='none';
+  loadTripDayWeather(city,day.date);
+}
+
 // ============ Home ============
 function renderHome(){
   var city=getCityFromHero();
@@ -1313,9 +1476,9 @@ function renderHome(){
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
-  var ups=data.trips.filter(function(t){return t.status!=='done' && t.startDate && new Date(t.startDate)>=now;}).slice(0,3);
+  var ups=data.trips.filter(function(t){return t.status!=='done' && t.startDate && parseDateStr(t.startDate)>=now;}).slice(0,3);
   if(ups.length===0){
-    ups=data.trips.slice().sort(function(a,b){return new Date(b.startDate||0)-new Date(a.startDate||0);}).slice(0,2);
+    ups=data.trips.slice().sort(function(a,b){return (parseDateStr(b.startDate)||0)-(parseDateStr(a.startDate)||0);}).slice(0,2);
   }
   if(ups.length===0){
     html='<div class="empty" style="padding:30px 10px;"><div class="e-icon">🧳</div><div class="e-title">还没有行程</div><div class="e-desc">点击下方按钮开始规划</div></div>';
@@ -1356,12 +1519,12 @@ function renderCal(){
   data.trips.forEach(function(t){
     if(!t.startDate)return;
     ensureTripDays(t);
-    var sd=new Date(t.startDate),ed=t.endDate?new Date(t.endDate):sd;
+    var sd=parseDateStr(t.startDate),ed=t.endDate?parseDateStr(t.endDate):new Date(sd);
     var cur=new Date(sd);
     while(cur<=ed){
-      var key=cur.getFullYear()+'-'+(cur.getMonth()+1)+'-'+cur.getDate();
+      var key=dateKey(cur);
       eventMap[key]=eventMap[key]||{attraction:0,food:0,transport:0};
-      var dayIdx=Math.floor((cur-sd)/(24*3600*1000));
+      var dayIdx=daysBetween(t.startDate,key);
       var day=t.days[dayIdx];
       if(day){
         (day.locations||[]).forEach(function(l){
@@ -1496,7 +1659,7 @@ function renderTrips(){
     show.forEach(function(t){
       var cover=t.cover?('<img src="'+t.cover+'">'):(Math.abs(hashCode(t.id))%3===0?'🗻':Math.abs(hashCode(t.id))%3===1?'🏯':'🌊');
       var dur='';
-      if(t.startDate&&t.endDate){var s=new Date(t.startDate),e=new Date(t.endDate);var days=Math.round((e-s)/(24*3600*1000))+1;dur=fmtDateShort(t.startDate)+' ~ '+fmtDateShort(t.endDate)+' · '+days+'天'+ (days>1?Math.floor(days/2)+'晚':'');}
+      if(t.startDate&&t.endDate){var days=daysBetween(t.startDate,t.endDate)+1;dur=fmtDateShort(t.startDate)+' ~ '+fmtDateShort(t.endDate)+' · '+days+'天'+ (days>1?Math.floor(days/2)+'晚':'');}
       else if(t.startDate)dur=fmtDate(t.startDate);
       html+='<div class="trip-card" onclick="openTrip(\''+t.id+'\')">'+
         '<div class="tc-cover">'+cover+'</div>'+
@@ -1560,12 +1723,13 @@ function saveTrip(){
   };
   if(!t.cover)t.cover='';
   // days
-  if(t.startDate&&t.endDate){
-    var s=new Date(t.startDate),e=new Date(t.endDate);
-    var n=Math.round((e-s)/(24*3600*1000))+1;
-    for(var i=0;i<n;i++)t.days.push({date:new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10),weather:'',locations:[]});
-  }else if(t.startDate){
-    t.days.push({date:t.startDate,weather:'',locations:[]});
+  if(t.startDate){
+    var s=parseDateStr(t.startDate);
+    if(s){
+      var e=t.endDate?parseDateStr(t.endDate):new Date(s);
+      var n=Math.max(1,daysBetween(dateKey(s),dateKey(e))+1);
+      for(var i=0;i<n;i++)t.days.push({date:addDaysStr(dateKey(s),i),weather:'',locations:[]});
+    }
   }
   if(currentEditingTripId){
     var orig=data.trips.find(function(x){return x.id===currentEditingTripId;});
@@ -1575,17 +1739,17 @@ function saveTrip(){
       var oldDays={};
       (orig.days||[]).forEach(function(d){if(d&&d.date)oldDays[d.date]={weather:d.weather||'',locations:(d.locations||[]).slice()};});
       t.days=[];
-      if(t.startDate&&t.endDate){
-        var s=new Date(t.startDate),e=new Date(t.endDate);
-        var n=Math.round((e-s)/(24*3600*1000))+1;
-        for(var i=0;i<n;i++){
-          var d=new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10);
-          var old=oldDays[d]||{weather:'',locations:[]};
-          t.days.push({date:d,weather:old.weather,locations:old.locations.slice()});
+      if(t.startDate){
+        var s=parseDateStr(t.startDate);
+        if(s){
+          var e=t.endDate?parseDateStr(t.endDate):new Date(s);
+          var n=Math.max(1,daysBetween(dateKey(s),dateKey(e))+1);
+          for(var i=0;i<n;i++){
+            var d=addDaysStr(dateKey(s),i);
+            var old=oldDays[d]||{weather:'',locations:[]};
+            t.days.push({date:d,weather:old.weather,locations:old.locations.slice()});
+          }
         }
-      }else if(t.startDate){
-        var old=oldDays[t.startDate]||{weather:'',locations:[]};
-        t.days.push({date:t.startDate,weather:old.weather,locations:old.locations.slice()});
       }
       t.photos=(orig.photos||[]).slice();
       t.guide=orig.guide||'';
@@ -1603,19 +1767,21 @@ function saveTrip(){
   closeModal('trip-modal');
   showToast('已保存');
   if(currentEditingTripId){openTrip(currentEditingTripId);}
-  else{currentTripId=t.id;showPage('trips');}
+  else{openTrip(t.id);}
 }
 function ensureTripDays(t){
   if(!t)return;
   t.days=t.days||[];
   if(!t.startDate)return;
-  var s=new Date(t.startDate),e=t.endDate?new Date(t.endDate):new Date(s);
-  var n=Math.max(1,Math.round((e-s)/(24*3600*1000))+1);
+  var s=parseDateStr(t.startDate);
+  if(!s)return;
+  var e=t.endDate?parseDateStr(t.endDate):new Date(s);
+  var n=Math.max(1,daysBetween(dateKey(s),dateKey(e))+1);
   var existing={};
   t.days.forEach(function(d){if(d&&d.date)existing[d.date]={weather:d.weather||'',locations:(d.locations||[]).slice()};});
   t.days=[];
   for(var i=0;i<n;i++){
-    var d=new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10);
+    var d=addDaysStr(dateKey(s),i);
     var orig=existing[d]||{weather:'',locations:[]};
     t.days.push({date:d,weather:orig.weather,locations:orig.locations.slice()});
   }
@@ -1640,11 +1806,7 @@ function openTrip(id){
   renderDayPills();
   renderTimeline();
   renderTripDetailExtras();
-  // weather/aqi placeholder
-  var weatherOpts=['晴 28°C','多云 24°C','小雨 22°C','阴 26°C'];
-  document.getElementById('td-weather').textContent=weatherOpts[currentTripDay%weatherOpts.length];
-  var aqiOpts=['优','良','优','优'];
-  document.getElementById('td-aqi').textContent=aqiOpts[currentTripDay%aqiOpts.length];
+  refreshTripDayWeather();
 }
 var viewTrip=openTrip;
 function renderDayPills(){
@@ -1662,7 +1824,7 @@ function renderDayPills(){
   }
   document.getElementById('td-day-pills').innerHTML=html;
 }
-function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();}
+function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();refreshTripDayWeather();}
 function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
@@ -1815,6 +1977,16 @@ function saveLocation(){
   if(!day)return;
   var name=document.getElementById('lm-name').value.trim();
   if(!name){showToast('请填写地点名称'); return;}
+  // Auto-add pending budget input if user typed amount but didn't click +
+  var pendingAmt=parseFloat(document.getElementById('lm-bamt').value)||0;
+  if(pendingAmt>0){
+    lmBudgetItems.push({
+      cat:document.getElementById('lm-bcat').value,
+      note:document.getElementById('lm-bnote').value.trim(),
+      amt:pendingAmt,
+      time:Date.now()
+    });
+  }
   day.locations.push({
     id:uid(),
     time:document.getElementById('lm-time').value,
@@ -1833,6 +2005,8 @@ function saveLocation(){
   renderTimeline();
   renderDayPills();
   renderTripDetailExtras();
+  renderCal();
+  renderBudget();
   showToast('已添加地点');
 }
 function getAllLocations(t){
@@ -2108,8 +2282,8 @@ function renderBudget(){
     var tripTotal=getTripSpent(t);
     var tripPlan=t.budget&&t.budget.total||0;
     var tripLeft=tripPlan-tripTotal;
-    var d=new Date(t.startDate);
-    var dur=t.endDate?Math.round((new Date(t.endDate)-d)/(24*3600*1000))+1:1;
+    var d=parseDateStr(t.startDate);
+    var dur=t.endDate?daysBetween(t.startDate,t.endDate)+1:1;
     html+='<div class="budget-trip">'+
       '<div class="budget-trip-head" onclick="openTrip(\''+t.id+'\')" style="cursor:pointer;">'+
         '<div class="bth-date"><b>'+d.getDate()+'</b><div>'+(d.getMonth()+1)+'月</div></div>'+
