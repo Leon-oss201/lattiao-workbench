@@ -152,7 +152,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cal-legend{background:#fff;margin:18px;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);}
 .cal-legend-title{font-size:12px;color:var(--text-sec);margin-bottom:10px;text-align:center;}
 .cal-legend-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
-.cal-legend-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--text-sec);}
+.cal-legend-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--text-sec);cursor:pointer;padding:6px;border-radius:10px;transition:background .15s;}
+.cal-legend-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
 .cal-legend-item .cli{font-size:18px;}
 
 .cal-upcoming{padding:0 18px 18px;}
@@ -478,7 +479,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="cta-arrow">→</div>
     </div>
 
-    <div class="quick-grid">
+    <!-- quick-grid hidden per user request -->
+    <div class="quick-grid" style="display:none;">
       <div class="quick-card" onclick="showPage('trips')">
         <div class="q-icon">📋</div>
         <div class="q-name">行程清单</div>
@@ -530,22 +532,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="cal-weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-legend">
-      <div class="cal-legend-title">— 行程标注 —</div>
+      <div class="cal-legend-title">— 行程标注（点击筛选）—</div>
       <div class="cal-legend-grid">
-        <div class="cal-legend-item"><div class="cli">🏞</div>景点</div>
-        <div class="cal-legend-item"><div class="cli">🍜</div>美食</div>
-        <div class="cal-legend-item"><div class="cli">🚇</div>交通</div>
-        <div class="cal-legend-item"><div class="cli">✈️</div>出行</div>
-        <div class="cal-legend-item"><div class="cli">🚗</div>自驾</div>
+        <div class="cal-legend-item" data-type="attraction" onclick="setCalFilter('attraction')"><div class="cli">🏞</div>景点</div>
+        <div class="cal-legend-item" data-type="food" onclick="setCalFilter('food')"><div class="cli">🍜</div>美食</div>
+        <div class="cal-legend-item" data-type="transport" onclick="setCalFilter('transport')"><div class="cli">🚇</div>交通</div>
+        <div class="cal-legend-item" data-type="departure" onclick="setCalFilter('departure')"><div class="cli">✈️</div>出行</div>
+        <div class="cal-legend-item" data-type="checkin" onclick="setCalFilter('checkin')"><div class="cli">📷</div>打卡</div>
       </div>
       <div style="height:8px;"></div>
       <div class="cal-legend-grid">
-        <div class="cal-legend-item"><div class="cli">✈️</div>飞机</div>
-        <div class="cal-legend-item"><div class="cli">🚄</div>高铁/火车</div>
-        <div class="cal-legend-item"><div class="cli">📷</div>拍照打卡</div>
-        <div class="cal-legend-item"><div class="cli">🚖</div>景点</div>
-        <div class="cal-legend-item"><div class="cli">🏯</div>景点</div>
+        <div class="cal-legend-item" data-type="return" onclick="setCalFilter('return')"><div class="cli">🏠</div>返程</div>
+        <div class="cal-legend-item" data-type="stay" onclick="setCalFilter('stay')"><div class="cli">🏨</div>住宿</div>
+        <div class="cal-legend-item" data-type="other" onclick="setCalFilter('other')"><div class="cli">✨</div>其他</div>
+        <div class="cal-legend-item active" data-type="all" onclick="setCalFilter('all')" style="grid-column:span 2;"><div class="cli">🔍</div>显示全部</div>
       </div>
+    </div>
+    <div class="home-section" style="padding-top:6px;">
+      <div class="section-head"><h2 id="cal-list-title">本月地点</h2><span class="more" onclick="setCalFilter('all')">全部</span></div>
+      <div id="cal-locations"></div>
     </div>
     <div class="cal-upcoming" id="cal-upcoming"></div>
   </section>
@@ -589,7 +594,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
       <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点</span>
-      <span style="display:flex;gap:10px;"><span style="color:var(--primary);">⚡ 智能排序 1</span><span>🧩 手动调整 1</span></span>
+      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">⚡ 智能排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span></span>
     </div>
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
@@ -626,8 +631,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <!-- ====== BUDGET ====== -->
   <section class="page page-budget" id="page-budget">
     <div class="budget-hero">
-      <h1>杭州行程预算</h1>
-      <div class="sub">计划每一段美好旅程</div>
+      <h1 id="budget-hero-title">杭州行程预算</h1>
+      <div class="sub" id="budget-hero-sub">计划每一段美好旅程</div>
     </div>
     <div class="budget-summary">
       <div class="donut">
@@ -776,6 +781,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       </div>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-danger" id="tm-del-btn" style="display:none;" onclick="deleteCurrentTrip()">删除</button>
       <button class="btn btn-ghost" onclick="closeModal('trip-modal')">取消</button>
       <button class="btn btn-primary" onclick="saveTrip()">保存</button>
     </div>
@@ -969,6 +975,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
+var calFilterType='all';
 var currentTripId=null;
 var currentEditingTripId=null;
 var currentTripDay=0;
@@ -1298,21 +1305,27 @@ function renderCal(){
   var isCurMonth=(today.getFullYear()===y && today.getMonth()===m);
   // build event map by date
   var eventMap={};
+  var monthLocs=[];
   data.trips.forEach(function(t){
     if(!t.startDate)return;
+    ensureTripDays(t);
     var sd=new Date(t.startDate),ed=t.endDate?new Date(t.endDate):sd;
     var cur=new Date(sd);
     while(cur<=ed){
       var key=cur.getFullYear()+'-'+(cur.getMonth()+1)+'-'+cur.getDate();
       eventMap[key]=eventMap[key]||{attraction:0,food:0,transport:0};
-      // pull locations per day (rough estimate: locations from day index)
       var dayIdx=Math.floor((cur-sd)/(24*3600*1000));
-      var day=t.days&&t.days[dayIdx];
+      var day=t.days[dayIdx];
       if(day){
         (day.locations||[]).forEach(function(l){
-          if(l.type==='attraction'||l.type==='checkin'||l.type==='stay')eventMap[key].attraction++;
+          var isAttr=l.type==='attraction'||l.type==='checkin'||l.type==='stay';
+          var isTrans=l.type==='transport'||l.type==='departure'||l.type==='return';
+          if(isAttr)eventMap[key].attraction++;
           else if(l.type==='food')eventMap[key].food++;
-          else if(l.type==='transport'||l.type==='departure'||l.type==='return')eventMap[key].transport++;
+          else if(isTrans)eventMap[key].transport++;
+          if(cur.getFullYear()===y && cur.getMonth()===m){
+            monthLocs.push({tripId:t.id,tripTitle:t.title,date:key,dateObj:new Date(cur),dayIndex:dayIdx,loc:l});
+          }
         });
       }
       cur.setDate(cur.getDate()+1);
@@ -1340,6 +1353,8 @@ function renderCal(){
   var rem=7-((startDay+last.getDate())%7);
   if(rem<7)for(var i=0;i<rem;i++){var nx=new Date(y,m+1,i+1);html+='<div class="cal-day muted"><div class="cal-day-num">'+nx.getDate()+'</div></div>';}
   document.getElementById('cal-grid').innerHTML=html;
+  // render locations list
+  renderCalLocationList(monthLocs);
   // upcoming
   var now=new Date();now.setHours(0,0,0,0);
   var ups=data.trips.filter(function(t){return t.startDate && new Date(t.startDate)>=now;}).slice(0,5);
@@ -1358,9 +1373,51 @@ function renderCal(){
   }
   document.getElementById('cal-upcoming').innerHTML=uhtml;
 }
+function setCalFilter(type){
+  calFilterType=type;
+  document.querySelectorAll('.cal-legend-item').forEach(function(el){el.classList.toggle('active',el.dataset.type===type);});
+  renderCal();
+}
+function renderCalLocationList(monthLocs){
+  var container=document.getElementById('cal-locations');
+  if(!container)return;
+  var typeIcon={attraction:'🏞',food:'🍜',transport:'🚇',checkin:'📷',departure:'✈️',return:'🏠',stay:'🏨',other:'✨'};
+  var typeName={attraction:'景点',food:'美食',transport:'交通',checkin:'打卡',departure:'出发',return:'返程',stay:'住宿',other:'其他'};
+  var filtered=monthLocs;
+  if(calFilterType!=='all')filtered=monthLocs.filter(function(x){return x.loc.type===calFilterType;});
+  document.getElementById('cal-list-title').textContent=(calFilterType==='all'?'本月地点':typeName[calFilterType]||calFilterType)+' · '+filtered.length+' 个';
+  if(filtered.length===0){container.innerHTML='<div style="text-align:center;padding:24px 10px;color:var(--text-light);font-size:13px;">本月没有'+(calFilterType==='all'?'地点':typeName[calFilterType])+'</div>';return;}
+  // group by date
+  var groups={};
+  filtered.forEach(function(x){
+    groups[x.date]=groups[x.date]||[];
+    groups[x.date].push(x);
+  });
+  var sortedDates=Object.keys(groups).sort();
+  var html='';
+  sortedDates.forEach(function(key){
+    var items=groups[key];
+    var d=items[0].dateObj;
+    html+='<div class="upcoming-card" style="margin-bottom:10px;align-items:flex-start;">'+
+      '<div class="uc-date" style="padding-top:4px;"><div class="uc-d">'+d.getDate()+'</div><div class="uc-m">'+(d.getMonth()+1)+'月</div></div>'+
+      '<div class="uc-body">';
+    items.forEach(function(x){
+      var l=x.loc;
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);" onclick="openTrip(\''+x.tripId+'\');selectTripDay('+x.dayIndex+');">'+
+        '<span style="font-size:16px;">'+(typeIcon[l.type]||'📍')+'</span>'+
+        '<div style="flex:1;">'+
+          '<div style="font-size:14px;font-weight:600;">'+escapeHTML(l.name||'未命名')+'</div>'+
+          '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+'</div>'+
+        '</div>'+
+      '</div>';
+    });
+    html+='</div></div>';
+  });
+  container.innerHTML=html;
+}
 function calShift(d){calDate.setMonth(calDate.getMonth()+d);renderCal();}
 function calToday(){calDate=new Date();renderCal();}
-function calDayClick(y,m,d){calDate=new Date(y,m-1,d);}
+function calDayClick(y,m,d){calDate=new Date(y,m-1,d);renderCal();}
 
 // ============ Trips ============
 var tripsTabFilter='upcoming';
@@ -1406,6 +1463,7 @@ function tripsTab(el,f){document.querySelectorAll('#page-trips .trips-tabs div')
 function openTripModal(id){
   currentEditingTripId=id||null;
   document.getElementById('trip-modal-title').textContent=id?'编辑行程':'新建行程';
+  document.getElementById('tm-del-btn').style.display=id?'inline-flex':'none';
   document.getElementById('tm-cover-preview').style.display='none';
   document.getElementById('tm-cover-img').src='';
   if(id){
@@ -1473,15 +1531,31 @@ function saveTrip(){
   if(currentEditingTripId){openTrip(currentEditingTripId);}
   else{currentTripId=t.id;showPage('trips');}
 }
+function ensureTripDays(t){
+  if(!t)return;
+  t.days=t.days||[];
+  if(!t.startDate)return;
+  var s=new Date(t.startDate),e=t.endDate?new Date(t.endDate):new Date(s);
+  var n=Math.max(1,Math.round((e-s)/(24*3600*1000))+1);
+  var existing=t.days.slice();
+  t.days=[];
+  for(var i=0;i<n;i++){
+    var d=new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10);
+    var orig=existing[i]||{};
+    t.days.push({date:d,weather:orig.weather||'',locations:orig.locations||[]});
+  }
+}
 function openTrip(id){
   currentTripId=id;currentTripDay=0;
   var t=data.trips.find(function(x){return x.id===id;});
   if(!t)return;
+  ensureTripDays(t);
   showPage('trip-detail');
+  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions"><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享">↗</button><button class="btn-icon" onclick="deleteCurrentTrip()" title="删除" style="background:rgba(255,255,255,.85);color:var(--danger);">🗑</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions"><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享">↗</button><button class="btn-icon" onclick="deleteCurrentTrip()" title="删除" style="background:rgba(255,255,255,.85);color:var(--danger);">🗑</button></div><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }
   document.getElementById('td-title').textContent=t.title;
   document.getElementById('td-sub').textContent='📍 '+(t.destination||'未设置目的地');
@@ -1504,13 +1578,15 @@ function openTrip(id){
   var aqiOpts=['优','良','优','优'];
   document.getElementById('td-aqi').textContent=aqiOpts[currentTripDay%aqiOpts.length];
 }
+var viewTrip=openTrip;
 function renderDayPills(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
+  ensureTripDays(t);
   var days=t.days||[];
   var html='';
   if(days.length===0){
-    html='<div class="pill" style="flex:1;">Day 1 · <span class="pill-d">'+fmtDateShort(t.startDate||new Date().toISOString().slice(0,10))+'</span></div>';
+    html='<div class="pill active" style="flex:1;" onclick="selectTripDay(0)">Day 1 · <span class="pill-d">'+fmtDateShort(t.startDate||new Date().toISOString().slice(0,10))+'</span></div>';
   }else{
     days.forEach(function(d,i){
       html+='<div class="pill'+(i===currentTripDay?' active':'')+'" onclick="selectTripDay('+i+')">D'+(i+1)+'<span class="pill-d">'+fmtDateShort(d.date)+'</span></div>';
@@ -1522,7 +1598,8 @@ function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();}
 function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
-  var day=(t.days&&t.days[currentTripDay])||{locations:[]};
+  ensureTripDays(t);
+  var day=t.days[currentTripDay]||t.days[0]||{locations:[]};
   var locs=day.locations||[];
   document.getElementById('td-loc-count').textContent=locs.length;
   if(locs.length===0){
@@ -1533,7 +1610,7 @@ function renderTimeline(){
   locs.forEach(function(l,idx){
     var typeIcon={attraction:'🏞',food:'🍜',transport:'🚇',checkin:'📷',departure:'✈️',return:'🏠',stay:'🏨',other:'✨'}[l.type]||'📍';
     var dotClass=(l.type==='food'?'food':l.type==='transport'||l.type==='departure'||l.type==='return'?'transport':'');
-    html+='<div class="tl-item">'+
+    html+='<div class="tl-item" data-idx="'+idx+'">'+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
       '<div class="tl-card">'+
@@ -1541,23 +1618,62 @@ function renderTimeline(){
         '<div class="tl-meta">'+
           (l.distance?('<span>📏 '+l.distance+' km</span>'):'')+
           (l.duration?('<span>⏱ '+l.duration+' 分钟</span>'):'')+
+          '<span style="margin-left:auto;display:flex;gap:6px;">'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="moveLocation('+idx+',-1)">↑</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="moveLocation('+idx+',1)">↓</span>'+
+            '<span style="cursor:pointer;color:var(--danger);" onclick="deleteLocation('+idx+')">✕</span>'+
+          '</span>'+
         '</div>'+
       '</div></div>';
   });
   document.getElementById('td-timeline').innerHTML=html;
 }
+function sortLocations(mode){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  ensureTripDays(t);
+  var day=t.days[currentTripDay]||t.days[0];
+  if(!day||!day.locations)return;
+  if(mode==='smart'){
+    day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+    saveData();
+    renderTimeline();
+    showToast('已按时间智能排序');
+  }else{
+    showToast('点击地点卡片上的 ↑ ↓ 手动调整顺序');
+  }
+}
+function moveLocation(idx,dir){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  ensureTripDays(t);
+  var day=t.days[currentTripDay]||t.days[0];
+  if(!day||!day.locations)return;
+  var arr=day.locations;
+  var next=idx+dir;
+  if(next<0||next>=arr.length)return;
+  var tmp=arr[idx];arr[idx]=arr[next];arr[next]=tmp;
+  saveData();
+  renderTimeline();
+}
+function deleteLocation(idx){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  ensureTripDays(t);
+  var day=t.days[currentTripDay]||t.days[0];
+  if(!day||!day.locations||!day.locations[idx])return;
+  if(!confirm('删除这个地点？'))return;
+  day.locations.splice(idx,1);
+  saveData();
+  renderTimeline();
+  renderDayPills();
+  showToast('已删除');
+}
 function addLocationToCurrentDay(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
-  if(!t.days||t.days.length===0){
-    t.days=t.days||[];
-    if(t.startDate){
-      t.days.push({date:t.startDate,weather:'',locations:[]});
-    }else{
-      t.days.push({date:new Date().toISOString().slice(0,10),weather:'',locations:[]});
-    }
-    currentTripDay=t.days.length-1;
-  }
+  ensureTripDays(t);
+  if(currentTripDay>=t.days.length)currentTripDay=0;
   document.getElementById('lm-time').value='09:00';
   document.getElementById('lm-type').value='attraction';
   document.getElementById('lm-name').value='';
@@ -1568,9 +1684,11 @@ function addLocationToCurrentDay(){
 function saveLocation(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
+  ensureTripDays(t);
   var day=t.days[currentTripDay];
   if(!day)return;
   day.locations.push({
+    id:uid(),
     time:document.getElementById('lm-time').value,
     type:document.getElementById('lm-type').value,
     name:document.getElementById('lm-name').value.trim(),
@@ -1617,21 +1735,22 @@ function renderTripBudget(){
   var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
   var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
   var html='';
-  html+='<div class="bs-row"><span>计划总预算</span><input type="number" step="0.01" value="'+(t.budget.total||0).toFixed(2)+'" onchange="updateTripBudgetTotal(this)" style="width:100px;text-align:right;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:13px;color:var(--primary-dark);font-weight:700;"></div>';
+  html+='<div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">✎ 点击数字/下拉框可直接编辑，修改后自动保存</div>';
+  html+='<div class="bs-row"><span>计划总预算</span><input type="number" step="0.01" value="'+(t.budget.total||0).toFixed(2)+'" onblur="updateTripBudgetTotal(this)" onchange="updateTripBudgetTotal(this)" style="width:110px;text-align:right;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:14px;color:var(--primary-dark);font-weight:700;background:#FAF5FF;"></div>';
   html+='<div class="bs-row"><span>已支出</span><b style="color:var(--accent);">¥'+total.toFixed(2)+'</b></div>';
   html+='<div class="bs-row"><span>剩余</span><b style="color:var(--primary);">¥'+((t.budget.total||0)-total).toFixed(2)+'</b></div>';
   if(items.length){
-    html+='<div style="margin-top:10px;font-size:12px;color:var(--text-light);margin-bottom:6px;">明细（可编辑）</div>';
+    html+='<div style="margin-top:12px;font-size:12px;color:var(--text-sec);margin-bottom:8px;font-weight:600;">明细</div>';
     html+='<div style="display:flex;flex-direction:column;gap:8px;">';
     items.forEach(function(it,idx){
-      html+='<div class="spend-row" style="background:#fff;border:1px solid var(--border);">'+
-        '<select onchange="updateTripBudgetItem('+idx+',\'cat\',this.value)" style="border:none;background:transparent;font-size:13px;outline:none;width:70px;">'+
-        Object.keys(catNames).map(function(c){return '<option value="'+c+'" '+(it.cat===c?'selected':'')+'>'+catIcons[c]+' '+catNames[c]+'</option>';}).join('')+
-        '</select>'+
-        '<input type="text" value="'+(it.note||'')+'" placeholder="备注" onchange="updateTripBudgetItem('+idx+',\'note\',this.value)" style="flex:1;border:none;background:transparent;font-size:13px;outline:none;">'+
-        '<input type="number" step="0.01" value="'+(it.amt||0).toFixed(2)+'" placeholder="金额" onchange="updateTripBudgetItem('+idx+',\'amt\',this.value)" style="width:70px;text-align:right;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--primary-dark);outline:none;">'+
-        '<button class="sr-del" onclick="deleteTripBudgetItem('+idx+')">×</button>'+
-      '</div>';
+      html+='<div class="spend-row" style="background:#fff;border:1px solid var(--border);padding:10px;">'
+        +'<select onchange="updateTripBudgetItem('+idx+',\'cat\',this.value)" style="border:none;background:transparent;font-size:13px;outline:none;width:80px;">'+
+        Object.keys(catNames).map(function(c){return '<option value="'+c+'" '+(it.cat===c?'selected':'')+'>'+catIcons[c]+' '+catNames[c]+'</option>';}).join('')
+        +'</select>'
+        +'<input type="text" value="'+(it.note||'')+'" placeholder="备注" onblur="updateTripBudgetItem('+idx+',\'note\',this.value)" onchange="updateTripBudgetItem('+idx+',\'note\',this.value)" style="flex:1;border:none;background:transparent;font-size:13px;outline:none;">'
+        +'<input type="number" step="0.01" value="'+(it.amt||0).toFixed(2)+'" placeholder="金额" onblur="updateTripBudgetItem('+idx+',\'amt\',this.value)" onchange="updateTripBudgetItem('+idx+',\'amt\',this.value)" style="width:80px;text-align:right;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--primary-dark);outline:none;">'
+        +'<button class="sr-del" onclick="deleteTripBudgetItem('+idx+')">×</button>'
+      +'</div>';
     });
     html+='</div>';
   }
@@ -2008,7 +2127,7 @@ function saveSettings(){
   saveData();
   closeModal('settings-modal');
   renderProfile();
-  renderHome();
+  renderAll();
   if(newTok&&!oldTok){syncStart();showToast('已配置，开始同步');}
   else if(!newTok&&oldTok){if(GH.syncTimer)clearInterval(GH.syncTimer);setSyncStatus('offline');showToast('已保存');}
   else{showToast('已保存');}
