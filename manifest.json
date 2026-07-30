@@ -4,8 +4,8 @@
   "description": "记录每一段旅程 - 目的地、攻略、照片、记账",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#F4F9F4",
-  "theme_color": "#5A9A6E",
+  "background_color": "#F5F3FF",
+  "theme_color": "#7C3AED",
   "orientation": "portrait-primary",
   "icons": [
     {
