@@ -284,6 +284,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-stat .bs-amt.plan{color:var(--accent2);}
 .budget-stat .bs-lab{font-size:10px;color:var(--text-light);margin-top:2px;}
 
+.budget-filter{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;}
+.budget-filter-menu{background:#fff;border-radius:12px;box-shadow:var(--shadow-lg);margin-top:6px;overflow:hidden;}
+.budget-filter-item{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.budget-filter-item:last-child{border-bottom:none;}
+.budget-filter-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+.budget-filter-item .bf-status{font-size:11px;color:var(--text-light);font-weight:400;}
 .budget-trip-list{padding:0 18px;}
 .budget-trip{margin-bottom:18px;}
 .budget-trip-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -631,6 +637,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <h1 id="budget-hero-title">杭州行程预算</h1>
       <div class="sub" id="budget-hero-sub">计划每一段美好旅程</div>
     </div>
+    <div style="padding:0 18px 10px;">
+      <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()">
+        <span id="budget-filter-label">📊 全部行程</span>
+        <span style="color:var(--primary);">▼</span>
+      </div>
+      <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;"></div>
+    </div>
     <div class="budget-summary">
       <div class="donut">
         <svg width="120" height="120" viewBox="0 0 120 120">
@@ -764,6 +777,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div>
         <label class="form-label">结束日期</label>
         <input class="form-input" id="tm-end" type="date">
+      </div>
+    </div>
+    <div class="form-row form-row-flex">
+      <div>
+        <label class="form-label">可用预算 (¥)</label>
+        <input class="form-input" id="tm-budget" type="number" step="0.01" placeholder="0.00">
       </div>
     </div>
     <div class="form-row">
@@ -977,6 +996,7 @@ var currentTripDay=0;
 var currentEditingGuideId=null;
 var lmPhotos=[];
 var lmBudgetItems=[];
+var budgetFilterTripId='all';
 
 function loadData(){
   try{
@@ -984,9 +1004,38 @@ function loadData(){
     if(raw){var d=JSON.parse(raw);if(d)Object.assign(data,d);}
     if(!data.settings) data.settings={};
     if(typeof data.settings.heroTitle==='undefined') data.settings.heroTitle='杭州旅行计划';
+    repairTrips();
   }catch(e){console.error(e);}
 }
-function saveDataLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}}
+function repairTrips(){
+  if(!Array.isArray(data.trips))data.trips=[];
+  var seen={};
+  data.trips=data.trips.filter(function(t){
+    if(!t||!t.id)return false;
+    if(seen[t.id])return false;
+    seen[t.id]=true;
+    t.days=t.days||[];
+    if(!Array.isArray(t.days))t.days=[];
+    t.days.forEach(function(d){
+      if(!d)return;
+      if(!Array.isArray(d.locations))d.locations=[];
+    });
+    t.photos=Array.isArray(t.photos)?t.photos:[];
+    t.guide=t.guide||'';
+    t.feeling=t.feeling||'';
+    if(!t.budget||typeof t.budget!=='object')t.budget={total:0,items:[]};
+    if(!Array.isArray(t.budget.items))t.budget.items=[];
+    return true;
+  });
+}
+function saveDataLocal(){
+  try{
+    var now=new Date().toISOString();
+    data.updatedAt=now;
+    data.trips.forEach(function(t){t.updatedAt=now;});
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
 
 // ============ GitHub Sync ============
 var GH={
@@ -1481,10 +1530,11 @@ function openTripModal(id){
       document.getElementById('tm-status').value=t.status||'upcoming';
       document.getElementById('tm-start').value=t.startDate||'';
       document.getElementById('tm-end').value=t.endDate||'';
+      document.getElementById('tm-budget').value=(t.budget&&t.budget.total)?t.budget.total.toFixed(2):'';
       if(t.cover){document.getElementById('tm-cover-img').src=t.cover;document.getElementById('tm-cover-preview').style.display='block';}
     }
   }else{
-    ['tm-title','tm-destination','tm-start','tm-end'].forEach(function(i){document.getElementById(i).value='';});
+    ['tm-title','tm-destination','tm-start','tm-end','tm-budget'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('tm-status').value='upcoming';
   }
   document.getElementById('trip-modal').classList.add('active');
@@ -1494,6 +1544,7 @@ function handleCoverUpload(e){
   compressImage(f,1200,0.7,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});
 }
 function saveTrip(){
+  var tripBudget=parseFloat(document.getElementById('tm-budget').value)||0;
   var t={
     title:document.getElementById('tm-title').value.trim()||'未命名行程',
     destination:document.getElementById('tm-destination').value.trim(),
@@ -1505,7 +1556,7 @@ function saveTrip(){
     photos:[],
     guide:'',
     feeling:'',
-    budget:{total:0,items:[]}
+    budget:{total:tripBudget,items:[]}
   };
   if(!t.cover)t.cover='';
   // days
@@ -1520,11 +1571,27 @@ function saveTrip(){
     var orig=data.trips.find(function(x){return x.id===currentEditingTripId;});
     if(orig){
       t.id=currentEditingTripId;
-      t.days=orig.days||t.days;
-      t.photos=orig.photos||[];
+      // rebuild days based on new dates, keeping existing locations by date
+      var oldDays={};
+      (orig.days||[]).forEach(function(d){if(d&&d.date)oldDays[d.date]={weather:d.weather||'',locations:(d.locations||[]).slice()};});
+      t.days=[];
+      if(t.startDate&&t.endDate){
+        var s=new Date(t.startDate),e=new Date(t.endDate);
+        var n=Math.round((e-s)/(24*3600*1000))+1;
+        for(var i=0;i<n;i++){
+          var d=new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10);
+          var old=oldDays[d]||{weather:'',locations:[]};
+          t.days.push({date:d,weather:old.weather,locations:old.locations.slice()});
+        }
+      }else if(t.startDate){
+        var old=oldDays[t.startDate]||{weather:'',locations:[]};
+        t.days.push({date:t.startDate,weather:old.weather,locations:old.locations.slice()});
+      }
+      t.photos=(orig.photos||[]).slice();
       t.guide=orig.guide||'';
       t.feeling=orig.feeling||'';
-      t.budget=orig.budget||t.budget;
+      t.budget=orig.budget?JSON.parse(JSON.stringify(orig.budget)):{total:0,items:[]};
+      t.budget.total=tripBudget;
       if(!t.cover&&orig.cover)t.cover=orig.cover;
       Object.assign(orig,t);
     }
@@ -1544,12 +1611,13 @@ function ensureTripDays(t){
   if(!t.startDate)return;
   var s=new Date(t.startDate),e=t.endDate?new Date(t.endDate):new Date(s);
   var n=Math.max(1,Math.round((e-s)/(24*3600*1000))+1);
-  var existing=t.days.slice();
+  var existing={};
+  t.days.forEach(function(d){if(d&&d.date)existing[d.date]={weather:d.weather||'',locations:(d.locations||[]).slice()};});
   t.days=[];
   for(var i=0;i<n;i++){
     var d=new Date(s.getTime()+i*24*3600*1000).toISOString().slice(0,10);
-    var orig=existing[i]||{};
-    t.days.push({date:d,weather:orig.weather||'',locations:orig.locations||[]});
+    var orig=existing[d]||{weather:'',locations:[]};
+    t.days.push({date:d,weather:orig.weather,locations:orig.locations.slice()});
   }
 }
 function openTrip(id){
@@ -1939,12 +2007,45 @@ function joinWithToken(tripId){
 }
 
 // ============ Budget Page ============
+function toggleBudgetFilter(){
+  var el=document.getElementById('budget-filter-menu');
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+function setBudgetFilter(id){
+  budgetFilterTripId=id||'all';
+  document.getElementById('budget-filter-menu').style.display='none';
+  renderBudget();
+}
+function getTripSpent(t){
+  var spent=0;
+  (t.days||[]).forEach(function(d){
+    (d.locations||[]).forEach(function(l){
+      (l.budget&&l.budget.items||[]).forEach(function(it){spent+=it.amt||0;});
+    });
+  });
+  return spent;
+}
 function renderBudget(){
   var city=getCityFromHero();
   document.getElementById('budget-hero-title').textContent=city+'行程预算';
   document.getElementById('budget-hero-sub').textContent='计划每一段美好旅程';
   var all=data.trips;
-  if(all.length===0){
+  // filter menu
+  var menuHtml='<div class="budget-filter-item '+(budgetFilterTripId==='all'?'active':'')+'" onclick="setBudgetFilter(\'all\')">📊 全部行程</div>';
+  all.forEach(function(t){
+    var spent=getTripSpent(t);
+    var plan=t.budget&&t.budget.total||0;
+    var left=plan-spent;
+    menuHtml+='<div class="budget-filter-item '+(budgetFilterTripId===t.id?'active':'')+'" onclick="setBudgetFilter(\''+t.id+'\')">'+
+      '<span>'+escapeHTML(t.title)+'</span>'+
+      '<span class="bf-status">'+(left>=0?'剩余 ¥'+left.toFixed(0):'<span style="color:var(--danger);">超支 ¥'+Math.abs(left).toFixed(0)+'</span>')+'</span>'+
+    '</div>';
+  });
+  document.getElementById('budget-filter-menu').innerHTML=menuHtml;
+  document.getElementById('budget-filter-label').innerHTML=budgetFilterTripId==='all'?'📊 全部行程':escapeHTML((all.find(function(x){return x.id===budgetFilterTripId;})||{}).title||'未知行程');
+
+  var trips=budgetFilterTripId==='all'?all.slice():all.filter(function(t){return t.id===budgetFilterTripId;});
+  if(trips.length===0){
     document.getElementById('budget-total').textContent='¥0';
     document.getElementById('budget-meta').innerHTML='<div style="font-size:12px;color:var(--text-light);">还没有行程</div>';
     document.getElementById('budget-trip-list').innerHTML='<div class="empty"><div class="e-icon">💰</div><div class="e-title">还没有预算记录</div></div>';
@@ -1955,10 +2056,11 @@ function renderBudget(){
     document.getElementById('budget-cat-grid').innerHTML='';
     return;
   }
-  // sum all location budgets
+  // sum
   var catTotals={transport:0,stay:0,food:0,ticket:0,shop:0,other:0};
-  var paid=0;
-  all.forEach(function(t){
+  var paid=0,plan=0;
+  trips.forEach(function(t){
+    plan+=t.budget&&t.budget.total||0;
     (t.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
         (l.budget&&l.budget.items||[]).forEach(function(it){
@@ -1968,25 +2070,30 @@ function renderBudget(){
       });
     });
   });
-  var total=paid;
-  document.getElementById('budget-total').textContent='¥'+total.toFixed(0);
+  var total=plan;
+  var left=plan-paid;
+  var over=left<0;
+  document.getElementById('budget-total').textContent='¥'+plan.toFixed(0);
+  document.getElementById('budget-total').style.color=over?'var(--danger)':'var(--primary-dark)';
   document.getElementById('stat-spent').textContent='¥'+paid.toFixed(0);
-  document.getElementById('stat-left').textContent='¥0';
-  document.getElementById('stat-plan').textContent='¥'+total.toFixed(0);
-  // donut
+  document.getElementById('stat-left').textContent='¥'+left.toFixed(0);
+  document.getElementById('stat-left').style.color=over?'var(--danger)':(left<=plan*0.2?'var(--accent)':'var(--primary)');
+  document.getElementById('stat-plan').textContent='¥'+plan.toFixed(0);
+  // donut (based on plan)
   var C=2*Math.PI*48;
   var cum=0;
-  function set(id,val){var c=document.getElementById(id);var len=total?(val/total)*C:0;c.setAttribute('stroke-dasharray',len+' '+C);c.setAttribute('stroke-dashoffset',-cum);cum+=len;}
+  function set(id,val){var c=document.getElementById(id);var len=plan?(val/plan)*C:0;c.setAttribute('stroke-dasharray',len+' '+C);c.setAttribute('stroke-dashoffset',-cum);cum+=len;}
   document.getElementById('donut-transport').setAttribute('stroke-dasharray','0 '+C);
   set('donut-transport',catTotals.transport);set('donut-stay',catTotals.stay);set('donut-food',catTotals.food);set('donut-ticket',catTotals.ticket);set('donut-shop',catTotals.shop);
   // meta
-  function pct(val){return total?Math.round((val/total)*100):0;}
+  function pct(val){return plan?Math.round((val/plan)*100):0;}
   document.getElementById('budget-meta').innerHTML=
     '<div class="bs-meta-row"><span><span class="dot" style="background:#5BC0DE;"></span>交通</span><b>'+pct(catTotals.transport)+'%</b></div>'+
     '<div class="bs-meta-row"><span><span class="dot" style="background:#A78BFA;"></span>住宿</span><b>'+pct(catTotals.stay)+'%</b></div>'+
     '<div class="bs-meta-row"><span><span class="dot" style="background:#FF8C42;"></span>餐饮</span><b>'+pct(catTotals.food)+'%</b></div>'+
     '<div class="bs-meta-row"><span><span class="dot" style="background:#B07AB8;"></span>购物</span><b>'+pct(catTotals.shop)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+pct(catTotals.ticket)+'%</b></div>';
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+pct(catTotals.ticket)+'%</b></div>'+
+    (over?'<div class="bs-meta-row" style="color:var(--danger);"><span>⚠️ 已超支</span><b>¥'+Math.abs(left).toFixed(0)+'</b></div>':'<div class="bs-meta-row" style="color:var(--primary);"><span>✅ 剩余预算</span><b>¥'+left.toFixed(0)+'</b></div>');
   // cats
   var catHtml='';
   var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
@@ -1994,24 +2101,50 @@ function renderBudget(){
     catHtml+='<div class="budget-cat"><div class="bc-icon">'+icons[c]+'</div><div class="bc-amt">¥'+(catTotals[c]||0).toFixed(0)+'</div><div class="bc-lab">'+({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物'}[c])+'</div></div>';
   });
   document.getElementById('budget-cat-grid').innerHTML=catHtml;
-  // trip list
+  // trip list with budget detail
   var html='';
-  all.forEach(function(t){
+  trips.forEach(function(t){
     if(!t.startDate)return;
-    var tripTotal=0;
-    (t.days||[]).forEach(function(d){
-      (d.locations||[]).forEach(function(l){
-        tripTotal+=(l.budget&&l.budget.items||[]).reduce(function(s,it){return s+it.amt;},0);
-      });
-    });
+    var tripTotal=getTripSpent(t);
+    var tripPlan=t.budget&&t.budget.total||0;
+    var tripLeft=tripPlan-tripTotal;
     var d=new Date(t.startDate);
     var dur=t.endDate?Math.round((new Date(t.endDate)-d)/(24*3600*1000))+1:1;
     html+='<div class="budget-trip">'+
       '<div class="budget-trip-head" onclick="openTrip(\''+t.id+'\')" style="cursor:pointer;">'+
         '<div class="bth-date"><b>'+d.getDate()+'</b><div>'+(d.getMonth()+1)+'月</div></div>'+
         '<div class="bth-title">'+escapeHTML(t.title)+'</div>'+
-        '<div class="bth-dur">¥'+tripTotal.toFixed(0)+' · '+dur+'天</div>'+
-      '</div></div>';
+        '<div class="bth-dur">'+(tripLeft>=0?'剩余 ¥'+tripLeft.toFixed(0):'<span style="color:var(--danger);">超支 ¥'+Math.abs(tripLeft).toFixed(0)+'</span>')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
+        '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">可用预算</div><div style="font-size:14px;font-weight:700;color:var(--primary-dark);">¥'+tripPlan.toFixed(0)+'</div></div>'+
+        '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">已花费</div><div style="font-size:14px;font-weight:700;color:var(--accent);">¥'+tripTotal.toFixed(0)+'</div></div>'+
+        '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">剩余</div><div style="font-size:14px;font-weight:700;color:'+(tripLeft<0?'var(--danger)':(tripLeft<=tripPlan*0.2?'var(--accent)':'var(--primary)'))+';">¥'+tripLeft.toFixed(0)+'</div></div>'+
+      '</div>';
+    // per trip detail items
+    var tripItems=[];
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        (l.budget&&l.budget.items||[]).forEach(function(it){
+          tripItems.push({loc:l,item:it});
+        });
+      });
+    });
+    if(tripItems.length){
+      html+='<div style="background:#fff;border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:10px;">';
+      tripItems.forEach(function(x){
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--border);">'+
+          '<span style="font-size:14px;">'+(icons[x.item.cat]||'📦')+'</span>'+
+          '<div style="flex:1;min-width:0;">'+
+            '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(x.item.note||({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'}[x.item.cat]))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-light);">📍 '+escapeHTML(x.loc.name)+'</div>'+
+          '</div>'+
+          '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);">¥'+(x.item.amt||0).toFixed(2)+'</div>'+
+        '</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
   });
   if(!html)html='<div class="empty"><div class="e-icon">💰</div><div class="e-title">还没有预算记录</div></div>';
   document.getElementById('budget-trip-list').innerHTML=html;
