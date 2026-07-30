@@ -1,11 +1,11 @@
 {
-  "name": "辣条旅行手账",
+  "name": "薄荷旅行手账",
   "short_name": "旅行手账",
-  "description": "记录每一段旅程 - 攻略、路线、照片、感受",
+  "description": "记录每一段旅程 - 目的地、攻略、照片、记账",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#F9F7FC",
-  "theme_color": "#7C3AED",
+  "background_color": "#F4F9F4",
+  "theme_color": "#5A9A6E",
   "orientation": "portrait-primary",
   "icons": [
     {
