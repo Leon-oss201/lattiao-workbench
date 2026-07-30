@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#5A9A6E">
+<meta name="theme-color" content="#7C3AED">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="薄荷旅行手账">
@@ -15,14 +15,14 @@
 <title>薄荷旅行手账</title>
 <style>
 :root{
-  --primary:#5A9A6E;--primary-dark:#3F7A53;--primary-light:#E8F2EA;--primary-lighter:#F2F8F3;
+  --primary:#7C3AED;--primary-dark:#5B21B6;--primary-light:#F3E8FF;--primary-lighter:#FAF5FF;
   --accent:#FF8C42;--accent-soft:#FFEEDD;--accent2:#5BC0DE;
-  --bg:#F4F9F4;--card:#FFFFFF;
-  --text:#1F2D21;--text-sec:#6B7A6D;--text-light:#9AA89B;
-  --border:#E5EFE6;
-  --shadow:0 4px 16px rgba(90,154,110,.08);
-  --shadow-md:0 6px 24px rgba(90,154,110,.12);
-  --shadow-lg:0 10px 36px rgba(90,154,110,.16);
+  --bg:#F5F3FF;--card:#FFFFFF;
+  --text:#1F182E;--text-sec:#6B5F7D;--text-light:#9A8FB5;
+  --border:#E9D5FF;
+  --shadow:0 4px 16px rgba(124,58,237,.08);
+  --shadow-md:0 6px 24px rgba(124,58,237,.12);
+  --shadow-lg:0 10px 36px rgba(124,58,237,.16);
   --radius:18px;--radius-sm:12px;--radius-xs:8px;
   --warn:#F4A940;--danger:#E25C5C;--success:#52B788;
 }
@@ -40,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .btn:active{transform:scale(.97);}
-.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(90,154,110,.35);}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
 .btn-primary:hover{background:var(--primary-dark);}
 .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(255,140,66,.3);}
 .btn-ghost{background:var(--primary-light);color:var(--primary-dark);}
@@ -61,22 +61,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .page-title{font-size:18px;font-weight:700;letter-spacing:.5px;}
 
 /* ==== HOME ==== */
-.home-hero{position:relative;height:300px;background:linear-gradient(180deg,#EAF3E4 0%,#DCEDD8 100%);overflow:hidden;border-bottom-left-radius:28px;border-bottom-right-radius:28px;}
+.home-hero{position:relative;height:300px;background:linear-gradient(180deg,#EDE9FE 0%,#DDD6FE 100%);overflow:hidden;border-bottom-left-radius:28px;border-bottom-right-radius:28px;}
 .home-hero svg.hero-bg{position:absolute;inset:0;width:100%;height:100%;}
 .home-hero .corner-btn{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:2;}
 .sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
 .sync-syncing{animation:pulse 1.2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
-.sync-synced{color:#3F7A53;}
+.sync-synced{color:#5B21B6;}
 .sync-error{color:#E25C5C;}
-.sync-offline{color:#9AA89B;}
+.sync-offline{color:#9A8FB5;}
 .home-hero-text{position:absolute;top:36px;left:22px;z-index:2;}
-.home-hero h1{font-size:32px;font-weight:700;color:#2E5C3D;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;}
+.home-hero h1{font-size:32px;font-weight:700;color:#4C1D95;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;}
 .home-hero h1.editable-title{cursor:pointer;border-radius:8px;padding:2px 6px;margin:-2px -6px;transition:background .2s;}
 .home-hero h1.editable-title:hover{background:rgba(255,255,255,.55);}
-.home-hero h1.editable-title::after{content:"✎";font-size:14px;color:#5A9A6E;opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
+.home-hero h1.editable-title::after{content:"✎";font-size:14px;color:#7C3AED;opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
 .home-hero h1.editable-title:hover::after{opacity:.7;}
-.home-hero .sub-slogan{font-size:13px;color:#5C8068;margin-top:6px;}
+.home-hero .sub-slogan{font-size:13px;color:#7C3AED;margin-top:6px;}
 .home-hero .hero-decor{position:absolute;top:30px;right:60px;font-size:24px;animation:sparkle 2.5s ease-in-out infinite;z-index:1;}
 @keyframes sparkle{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.15);}}
 
@@ -90,7 +90,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .weather-pill .w-temp{font-size:18px;font-weight:700;}
 .weather-pill .w-lab{font-size:10px;color:var(--text-sec);}
 
-.cta-card{margin:16px 18px;background:linear-gradient(135deg,#7CB585,#5A9A6E);border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 8px 24px rgba(90,154,110,.3);position:relative;overflow:hidden;}
+.cta-card{margin:16px 18px;background:linear-gradient(135deg,#A78BFA,#7C3AED);border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.3);position:relative;overflow:hidden;}
 .cta-card::before{content:"";position:absolute;top:-30px;right:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12);}
 .cta-card .cta-text{flex:1;}
 .cta-card .cta-title{font-size:18px;font-weight:700;margin-bottom:2px;}
@@ -111,7 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .trip-row-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:flex;gap:12px;margin-bottom:12px;cursor:pointer;}
 .trip-row-card:active{transform:scale(.99);}
-.trip-row-card .trc-cover{width:90px;height:72px;border-radius:12px;background:linear-gradient(135deg,#A8C8A0,#7CB585);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;}
+.trip-row-card .trc-cover{width:90px;height:72px;border-radius:12px;background:linear-gradient(135deg,#C4B5FD,#A78BFA);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;}
 .trip-row-card .trc-cover img{width:100%;height:100%;object-fit:cover;}
 .trip-row-card .trc-body{flex:1;min-width:0;}
 .trip-row-card .trc-name{font-size:15px;font-weight:700;margin-bottom:4px;}
@@ -123,8 +123,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .fab:active{transform:scale(.92);}
 
 /* ==== CALENDAR ==== */
-.cal-hero{position:relative;padding:18px 18px 14px;background:linear-gradient(135deg,#EAF3E4,#DCEDD8);overflow:hidden;}
-.cal-hero h1{font-size:24px;font-weight:700;color:#2E5C3D;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.cal-hero{position:relative;padding:18px 18px 14px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);overflow:hidden;}
+.cal-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .cal-hero .cal-sub{font-size:11px;color:var(--text-sec);margin-top:4px;}
 .cal-hero svg.willow{position:absolute;right:0;top:0;height:100%;width:60px;opacity:.35;}
 
@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cal-day.today .cal-day-num{font-weight:700;}
 .cal-dots{display:flex;gap:2px;margin-top:2px;height:5px;align-items:center;}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);}
-.cal-dot.attraction{background:#7CB585;}
+.cal-dot.attraction{background:#A78BFA;}
 .cal-dot.food{background:#FF8C42;}
 .cal-dot.transport{background:#5BC0DE;}
 
@@ -165,8 +165,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .upcoming-card .uc-meta{font-size:11px;color:var(--text-sec);}
 
 /* ==== TRIPS ==== */
-.trips-hero{padding:18px;background:linear-gradient(135deg,#EAF3E4,#DCEDD8);position:relative;overflow:hidden;}
-.trips-hero h1{font-size:24px;font-weight:700;color:#2E5C3D;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.trips-hero{padding:18px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);position:relative;overflow:hidden;}
+.trips-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .trips-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
 .trips-hero svg.deco{position:absolute;right:-20px;bottom:-10px;height:140px;opacity:.4;}
 
@@ -176,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .trip-list{padding:14px 18px;}
 .trip-big{position:relative;border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);cursor:pointer;}
-.trip-big-cover{height:140px;background:linear-gradient(135deg,#A8C8A0,#7CB585);display:flex;align-items:center;justify-content:center;font-size:54px;color:#fff;}
+.trip-big-cover{height:140px;background:linear-gradient(135deg,#C4B5FD,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:54px;color:#fff;}
 .trip-big-cover img{width:100%;height:100%;object-fit:cover;}
 .trip-big-body{padding:12px 14px;background:#fff;}
 .trip-big-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;}
@@ -185,7 +185,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-big-status{display:inline-block;padding:3px 9px;background:var(--primary-light);color:var(--primary-dark);font-size:10px;border-radius:10px;font-weight:600;margin-left:auto;}
 
 .trip-card{border-radius:var(--radius);overflow:hidden;background:#fff;margin-bottom:14px;box-shadow:var(--shadow);cursor:pointer;}
-.trip-card .tc-cover{height:96px;background:linear-gradient(135deg,#A8C8A0,#7CB585);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;position:relative;}
+.trip-card .tc-cover{height:96px;background:linear-gradient(135deg,#C4B5FD,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;position:relative;}
 .trip-card .tc-cover img{width:100%;height:100%;object-fit:cover;}
 .trip-card .tc-body{padding:12px 14px;}
 .trip-card .tc-title{font-size:15px;font-weight:700;}
@@ -202,7 +202,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .empty .btn{margin-top:18px;}
 
 /* ==== TRIP DETAIL ==== */
-.td-hero{position:relative;height:180px;background:linear-gradient(135deg,#A8C8A0,#5A9A6E);overflow:hidden;}
+.td-hero{position:relative;height:180px;background:linear-gradient(135deg,#C4B5FD,#7C3AED);overflow:hidden;}
 .td-hero img{width:100%;height:100%;object-fit:cover;}
 .td-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.5) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:18px;color:#fff;}
 .td-hero h1{font-size:22px;font-weight:700;font-family:"Songti SC","STSong",serif;}
@@ -241,7 +241,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-card .tl-meta{font-size:11px;color:var(--text-sec);display:flex;gap:8px;flex-wrap:wrap;}
 .tl-card .tl-meta span{display:inline-flex;align-items:center;gap:3px;}
 
-.td-map{margin:14px 18px;border-radius:var(--radius);overflow:hidden;background:linear-gradient(135deg,#E8F0DC,#F2E9D9);height:200px;position:relative;}
+.td-map{margin:14px 18px;border-radius:var(--radius);overflow:hidden;background:linear-gradient(135deg,#F5F3FF,#F2E9D9);height:200px;position:relative;}
 .td-map .map-svg{position:absolute;inset:0;width:100%;height:100%;}
 .td-map .map-label{position:absolute;top:10px;left:14px;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;color:var(--primary-dark);}
 
@@ -259,8 +259,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-budget-summary .bs-row b{color:var(--primary-dark);font-weight:700;}
 
 /* ==== BUDGET ==== */
-.budget-hero{padding:20px 18px;background:linear-gradient(135deg,#EAF3E4,#DCEDD8);position:relative;}
-.budget-hero h1{font-size:24px;font-weight:700;color:#2E5C3D;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.budget-hero{padding:20px 18px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);position:relative;}
+.budget-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .budget-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
 
 .budget-summary{margin:-30px 18px 14px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-md);padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
@@ -300,9 +300,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tip-banner{margin:14px 18px;background:linear-gradient(135deg,#FFF8E5,#FFEDD9);border-radius:14px;padding:12px 14px;font-size:12px;color:#A66014;text-align:center;}
 
 /* ==== PROFILE ==== */
-.profile-hero{padding:24px 18px;background:linear-gradient(135deg,#EAF3E4,#DCEDD8);display:flex;align-items:center;gap:14px;}
+.profile-hero{padding:24px 18px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);display:flex;align-items:center;gap:14px;}
 .profile-avatar{width:60px;height:60px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:var(--shadow);}
-.profile-info .p-name{font-size:18px;font-weight:700;color:#2E5C3D;}
+.profile-info .p-name{font-size:18px;font-weight:700;color:#4C1D95;}
 .profile-info .p-sub{font-size:11px;color:var(--text-sec);margin-top:2px;}
 .profile-info .p-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
 .profile-info .p-tag{font-size:10px;background:rgba(255,255,255,.6);padding:3px 8px;border-radius:8px;color:var(--primary-dark);}
@@ -315,17 +315,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .menu-card{margin:14px 18px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .menu-row{display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--border);gap:12px;cursor:pointer;}
 .menu-row:last-child{border-bottom:none;}
-.menu-row:active{background:#FAFCFA;}
+.menu-row:active{background:#FAF5FF;}
 .menu-row .mr-icon{width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:16px;}
 .menu-row .mr-label{flex:1;font-size:14px;}
 .menu-row .mr-arrow{color:var(--text-light);font-size:16px;}
-.meet-row{background:linear-gradient(135deg,#7CB585 0%,#5A9A6E 50%,#B07AB8 100%);}
+.meet-row{background:linear-gradient(135deg,#A78BFA 0%,#7C3AED 50%,#B07AB8 100%);}
 .meet-row .mr-icon{background:rgba(255,255,255,.25);}
 .meet-row .mr-label{color:#fff;font-weight:700;}
 .meet-row .mr-arrow{color:rgba(255,255,255,.8);}
 
 /* ==== GENERIC ==== */
 .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin:0 18px 12px;}
+.editable-block{font-size:13px;line-height:1.7;color:var(--text-sec);white-space:pre-wrap;background:#fff;padding:12px;border-radius:12px;min-height:60px;outline:none;border:1px solid transparent;transition:border-color .2s;}
+.editable-block:focus{border-color:var(--primary);background:#fff;}
+.editable-block:empty:before{content:attr(data-placeholder);color:var(--text-light);}
+.editable-hint{font-size:11px;color:var(--text-light);margin-top:6px;text-align:right;}
 
 .tag{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;background:var(--primary-light);color:var(--primary-dark);}
 .tag.accent{background:var(--accent-soft);color:#B65C16;}
@@ -341,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .form-row{margin-bottom:14px;}
 .form-label{display:block;font-size:12px;color:var(--text-sec);margin-bottom:6px;font-weight:600;}
-.form-input,.form-textarea,.form-select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:#FAFCF9;outline:none;transition:border-color .15s;font-family:inherit;}
+.form-input,.form-textarea,.form-select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:#FAF5FF;outline:none;transition:border-color .15s;font-family:inherit;}
 .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);}
 .form-textarea{min-height:80px;resize:vertical;}
 .form-row-flex{display:flex;gap:10px;}
@@ -352,13 +356,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .day-tabs .dt.active{background:var(--primary);color:#fff;}
 
 .loc-list{display:flex;flex-direction:column;gap:8px;}
-.loc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAFCF9;border-radius:12px;}
+.loc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAF5FF;border-radius:12px;}
 .loc-row .lr-time{font-size:11px;color:var(--text-sec);width:60px;flex-shrink:0;}
 .loc-row .lr-type{font-size:18px;width:24px;flex-shrink:0;text-align:center;}
 .loc-row .lr-name{flex:1;font-size:14px;font-weight:500;}
 .loc-row .lr-del{width:28px;height:28px;border-radius:8px;background:#FBEBEB;color:var(--danger);border:none;cursor:pointer;font-size:14px;}
 
-.photo-upload-area{border:2px dashed var(--border);border-radius:14px;padding:18px;text-align:center;color:var(--text-light);cursor:pointer;background:#FAFCF9;}
+.photo-upload-area{border:2px dashed var(--border);border-radius:14px;padding:18px;text-align:center;color:var(--text-light);cursor:pointer;background:#FAF5FF;}
 .photo-upload-area:hover{border-color:var(--primary);}
 .photo-upload-area .pu-icon{font-size:28px;margin-bottom:6px;}
 .photo-upload-area input{display:none;}
@@ -368,7 +372,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .photo-grid .pg-item img{width:100%;height:100%;object-fit:cover;}
 .photo-grid .pg-item .pg-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
 
-.spend-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAFCF9;border-radius:12px;margin-bottom:8px;}
+.spend-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAF5FF;border-radius:12px;margin-bottom:8px;}
 .spend-row .sr-cat{font-size:18px;width:30px;flex-shrink:0;}
 .spend-row .sr-label{flex:1;font-size:13px;}
 .spend-row .sr-amt{font-size:14px;font-weight:700;color:var(--primary-dark);width:80px;text-align:right;border:none;background:transparent;outline:none;font-family:inherit;}
@@ -387,7 +391,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .toast{position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(31,45,33,.92);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-.fav-fab{position:fixed;right:20px;bottom:160px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#B07AB8,#7CB585);color:#fff;border:none;font-size:20px;box-shadow:var(--shadow);cursor:pointer;z-index:50;display:none;align-items:center;justify-content:center;}
+.fav-fab{position:fixed;right:20px;bottom:160px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#B07AB8,#A78BFA);color:#fff;border:none;font-size:20px;box-shadow:var(--shadow);cursor:pointer;z-index:50;display:none;align-items:center;justify-content:center;}
 
 /* Decorative leaf svg use */
 .leaf-deco{position:absolute;opacity:.15;pointer-events:none;}
@@ -413,27 +417,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <rect width="480" height="320" fill="url(#sky1)"/>
         <circle cx="400" cy="70" r="80" fill="url(#sun1)"/>
         <!-- distant mountains -->
-        <path d="M0 200 L60 165 L120 180 L180 150 L260 175 L340 155 L420 175 L480 160 L480 220 L0 220 Z" fill="#B5CFA8" opacity=".5"/>
-        <path d="M0 215 L80 185 L160 200 L240 175 L320 195 L400 180 L480 200 L480 240 L0 240 Z" fill="#A2C396" opacity=".7"/>
+        <path d="M0 200 L60 165 L120 180 L180 150 L260 175 L340 155 L420 175 L480 160 L480 220 L0 220 Z" fill="#D8B4FE" opacity=".5"/>
+        <path d="M0 215 L80 185 L160 200 L240 175 L320 195 L400 180 L480 200 L480 240 L0 240 Z" fill="#C4B5FD" opacity=".7"/>
         <!-- Pagoda -->
         <g transform="translate(80,150)">
-          <rect x="22" y="50" width="20" height="60" fill="#3F7A53"/>
-          <polygon points="0,50 64,50 56,38 8,38" fill="#5A9A6E"/>
-          <polygon points="6,38 58,38 50,28 14,28" fill="#7CB585"/>
-          <polygon points="12,28 52,28 44,18 20,18" fill="#5A9A6E"/>
-          <polygon points="18,18 46,18 38,8 26,8" fill="#7CB585"/>
-          <rect x="29" y="0" width="6" height="8" fill="#3F7A53"/>
+          <rect x="22" y="50" width="20" height="60" fill="#5B21B6"/>
+          <polygon points="0,50 64,50 56,38 8,38" fill="#7C3AED"/>
+          <polygon points="6,38 58,38 50,28 14,28" fill="#A78BFA"/>
+          <polygon points="12,28 52,28 44,18 20,18" fill="#7C3AED"/>
+          <polygon points="18,18 46,18 38,8 26,8" fill="#A78BFA"/>
+          <rect x="29" y="0" width="6" height="8" fill="#5B21B6"/>
           <rect x="30" y="60" width="4" height="46" fill="#FAFAF0"/>
           <rect x="28" y="78" width="8" height="6" fill="#FF8C42" opacity=".7"/>
         </g>
         <!-- Bridge arch -->
         <g transform="translate(220,210)">
-          <path d="M0 30 Q60 -20 120 30" stroke="#3F7A53" stroke-width="3" fill="none"/>
-          <path d="M5 30 Q60 -15 115 30" stroke="#5A9A6E" stroke-width="2" fill="none" opacity=".6"/>
-          <rect x="-3" y="30" width="126" height="4" fill="#3F7A53"/>
+          <path d="M0 30 Q60 -20 120 30" stroke="#5B21B6" stroke-width="3" fill="none"/>
+          <path d="M5 30 Q60 -15 115 30" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".6"/>
+          <rect x="-3" y="30" width="126" height="4" fill="#5B21B6"/>
         </g>
         <!-- Willow right -->
-        <g transform="translate(360,100)" stroke="#5A9A6E" stroke-width="1.5" fill="none" opacity=".6">
+        <g transform="translate(360,100)" stroke="#7C3AED" stroke-width="1.5" fill="none" opacity=".6">
           <path d="M0 0 Q-2 30 -8 60"/>
           <path d="M10 0 Q12 35 6 70"/>
           <path d="M22 0 Q26 40 20 80"/>
@@ -441,8 +445,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
           <path d="M35 0 Q40 30 32 60"/>
         </g>
         <!-- water reflection -->
-        <path d="M0 240 Q120 235 240 240 T480 240 L480 320 L0 320 Z" fill="#C8DDC0" opacity=".4"/>
-        <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#9FBE94" opacity=".4"/>
+        <path d="M0 240 Q120 235 240 240 T480 240 L480 320 L0 320 Z" fill="#E9D5FF" opacity=".4"/>
+        <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4"/>
       </svg>
       <button class="corner-btn" onclick="openSettings()">⚙️</button>
       <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull()">⚡离线</div>
@@ -457,12 +461,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="greeting-left">
         <div class="hi" id="greet-hi">Hi, 杭州 👋</div>
         <div class="greet-desc" id="greet-msg">西湖的风，等你来遇见</div>
-        <div class="greet-meta" id="greet-date">今天 · <b>晴 27°C</b></div>
+        <div class="greet-meta" id="greet-date">今天 · <b id="home-weather-line">--</b></div>
       </div>
       <div class="weather-pill">
-        <div class="w-icon">⛅</div>
-        <div class="w-temp">27°C</div>
-        <div class="w-lab">多云转晴</div>
+        <div class="w-icon" id="home-weather-icon">⛅</div>
+        <div class="w-temp" id="home-weather-temp">--°C</div>
+        <div class="w-lab" id="home-weather-text">加载中</div>
       </div>
     </div>
 
@@ -504,7 +508,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <section class="page page-calendar" id="page-calendar">
     <div class="cal-hero">
       <svg class="willow" viewBox="0 0 60 200" preserveAspectRatio="xMidYMid slice">
-        <g stroke="#5A9A6E" stroke-width="1.2" fill="none" opacity=".7">
+        <g stroke="#7C3AED" stroke-width="1.2" fill="none" opacity=".7">
           <path d="M30 0 Q26 50 22 100 Q20 150 18 200"/>
           <path d="M30 10 Q24 30 16 50"/>
           <path d="M30 30 Q22 50 14 70"/>
@@ -512,8 +516,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
           <path d="M30 70 Q22 90 12 110"/>
         </g>
       </svg>
-      <h1>杭州出行计划</h1>
-      <div class="cal-sub">安排你的行程，遇见更美的杭州</div>
+      <h1 id="cal-hero-title">杭州出行计划</h1>
+      <div class="cal-sub" id="cal-hero-sub">安排你的行程，遇见更美的杭州</div>
     </div>
     <div class="cal-bar">
       <div class="cal-nav">
@@ -549,7 +553,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <!-- ====== TRIPS ====== -->
   <section class="page page-trips" id="page-trips">
     <div class="trips-hero">
-      <svg class="deco" viewBox="0 0 200 200"><path d="M10 180 Q50 100 100 130 T190 100" stroke="#5A9A6E" stroke-width="2" fill="none" opacity=".5"/><polygon points="80,120 95,90 110,120" fill="#7CB585" opacity=".4"/><polygon points="120,135 135,105 150,135" fill="#7CB585" opacity=".3"/></svg>
+      <svg class="deco" viewBox="0 0 200 200"><path d="M10 180 Q50 100 100 130 T190 100" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".5"/><polygon points="80,120 95,90 110,120" fill="#A78BFA" opacity=".4"/><polygon points="120,135 135,105 150,135" fill="#A78BFA" opacity=".3"/></svg>
       <h1 id="trips-hero-title">杭州行程规划</h1>
       <div class="sub" id="trips-hero-sub">遇见西湖的温柔时光 🍃</div>
     </div>
@@ -590,20 +594,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
       <svg class="map-svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
-        <rect width="400" height="200" fill="#E8F0DC"/>
-        <path d="M0 100 Q100 70 200 90 T400 80 L400 200 L0 200 Z" fill="#C8DDC0" opacity=".5"/>
-        <path d="M0 130 Q100 110 200 120 T400 110 L400 200 L0 200 Z" fill="#A8C8A0" opacity=".4"/>
-        <path d="M50 50 L150 30 L250 60 L350 40" stroke="#9FBE94" stroke-width="2" fill="none" stroke-dasharray="4 3" opacity=".5"/>
+        <rect width="400" height="200" fill="#F5F3FF"/>
+        <path d="M0 100 Q100 70 200 90 T400 80 L400 200 L0 200 Z" fill="#E9D5FF" opacity=".5"/>
+        <path d="M0 130 Q100 110 200 120 T400 110 L400 200 L0 200 Z" fill="#C4B5FD" opacity=".4"/>
+        <path d="M50 50 L150 30 L250 60 L350 40" stroke="#D8B4FE" stroke-width="2" fill="none" stroke-dasharray="4 3" opacity=".5"/>
       </svg>
       <div class="map-label">🗺️ 路线示意</div>
     </div>
     <div class="td-section">
       <h3>📖 攻略笔记</h3>
-      <div id="td-guide" style="font-size:13px;line-height:1.7;color:var(--text-sec);white-space:pre-wrap;background:#fff;padding:12px;border-radius:12px;"></div>
+      <div id="td-guide" class="editable-block" contenteditable="true" data-placeholder="暂无攻略笔记，点击输入..."></div>
     </div>
     <div class="td-section">
       <h3>✨ 旅行感受</h3>
-      <div id="td-feeling" style="font-size:13px;line-height:1.7;color:var(--text-sec);white-space:pre-wrap;background:#fff;padding:12px;border-radius:12px;"></div>
+      <div id="td-feeling" class="editable-block" contenteditable="true" data-placeholder="还没有写旅行感受，点击输入..."></div>
     </div>
     <div class="td-section">
       <div class="td-toolbar">
@@ -628,9 +632,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="budget-summary">
       <div class="donut">
         <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="48" fill="none" stroke="#F0F7F0" stroke-width="14"/>
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#F3E8FF" stroke-width="14"/>
           <circle id="donut-transport" cx="60" cy="60" r="48" fill="none" stroke="#5BC0DE" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
-          <circle id="donut-stay" cx="60" cy="60" r="48" fill="none" stroke="#7CB585" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
+          <circle id="donut-stay" cx="60" cy="60" r="48" fill="none" stroke="#A78BFA" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
           <circle id="donut-food" cx="60" cy="60" r="48" fill="none" stroke="#FF8C42" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
           <circle id="donut-ticket" cx="60" cy="60" r="48" fill="none" stroke="#B07AB8" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
           <circle id="donut-shop" cx="60" cy="60" r="48" fill="none" stroke="#F4A940" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0"/>
@@ -658,7 +662,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <!-- ====== GUIDES ====== -->
   <section class="page page-trips" id="page-guides">
     <div class="trips-hero">
-      <svg class="deco" viewBox="0 0 200 200"><circle cx="100" cy="100" r="40" fill="#7CB585" opacity=".2"/><circle cx="100" cy="100" r="60" fill="#7CB585" opacity=".15"/></svg>
+      <svg class="deco" viewBox="0 0 200 200"><circle cx="100" cy="100" r="40" fill="#A78BFA" opacity=".2"/><circle cx="100" cy="100" r="60" fill="#A78BFA" opacity=".15"/></svg>
       <h1>攻略 & 备忘</h1>
       <div class="sub">记录旅途中的点点灵感</div>
     </div>
@@ -691,7 +695,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="profile-hero">
       <div class="profile-avatar">🌿</div>
       <div class="profile-info">
-        <div class="p-name" id="profile-name">Lris</div>
+        <div class="p-name" id="profile-name">Iris</div>
         <div class="p-sub">热爱旅行 · 记录生活</div>
         <div class="p-tags">
           <span class="p-tag">🧳 已走过 0 城</span>
@@ -710,7 +714,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
       <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
       <div class="menu-row" onclick="showAbout()"><div class="mr-icon">ℹ️</div><div class="mr-label">关于</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Lris</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>
     </div>
     <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;">薄荷旅行手账 v4.0 · 记录每一段旅程 ✨</div>
   </section>
@@ -926,7 +930,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="modal-title">偏好设置</div>
     <div class="form-row">
       <label class="form-label">显示名称</label>
-      <input class="form-input" id="set-name" placeholder="Lris">
+      <input class="form-input" id="set-name" placeholder="Iris">
     </div>
     <div class="form-row">
       <label class="form-label">签名</label>
@@ -963,7 +967,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <script>
 // ============ Data ============
 var STORAGE_KEY='lattiao_v4_data';
-var data={trips:[],guides:[],favorites:[],settings:{name:'Lris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
+var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
 var currentTripId=null;
 var currentEditingTripId=null;
@@ -1168,16 +1172,90 @@ document.querySelectorAll('.bn-item').forEach(function(b){
   b.addEventListener('click',function(){showPage(b.dataset.page);});
 });
 
+// ============ City & Weather ============
+function getCityFromHero(){
+  var title=(data.settings.heroTitle||'').trim();
+  if(!title)return data.settings.city||'杭州';
+  // strip common suffixes
+  var suffixes=['旅行计划','出行计划','行程规划','行程预算','旅行攻略','旅行手账','旅行','行程','计划','攻略','手账'];
+  var city=title;
+  suffixes.forEach(function(s){
+    if(city.endsWith(s))city=city.slice(0,city.length-s.length);
+  });
+  city=city.trim();
+  return city||data.settings.city||'杭州';
+}
+function getWeatherCache(city){
+  try{
+    var raw=localStorage.getItem('lattiao_weather');
+    if(!raw)return null;
+    var d=JSON.parse(raw);
+    if(d.city!==city)return null;
+    if(Date.now()-d.ts>3600000)return null;
+    return d;
+  }catch(e){return null;}
+}
+function setWeatherCache(city,w){
+  try{localStorage.setItem('lattiao_weather',JSON.stringify({city:city,ts:Date.now(),...w}));}catch(e){}
+}
+function mapWeather(code){
+  if(code===0)return {text:'晴',icon:'☀️'};
+  if(code<=3)return {text:'多云',icon:'⛅'};
+  if(code===45||code===48)return {text:'雾',icon:'🌫️'};
+  if(code>=51&&code<=55)return {text:'毛毛雨',icon:'🌦️'};
+  if(code>=61&&code<=67)return {text:'雨',icon:'🌧️'};
+  if(code>=71&&code<=77)return {text:'雪',icon:'🌨️'};
+  if(code>=80&&code<=82)return {text:'阵雨',icon:'🌦️'};
+  if(code>=95)return {text:'雷雨',icon:'⛈️'};
+  return {text:'多云',icon:'⛅'};
+}
+function updateWeatherUI(w){
+  var line=document.getElementById('home-weather-line');
+  var icon=document.getElementById('home-weather-icon');
+  var temp=document.getElementById('home-weather-temp');
+  var text=document.getElementById('home-weather-text');
+  if(line)line.textContent=(w.icon||'⛅')+' '+w.text+' '+Math.round(w.temp)+'°C';
+  if(icon)icon.textContent=w.icon||'⛅';
+  if(temp)temp.textContent=Math.round(w.temp)+'°C';
+  if(text)text.textContent=w.text;
+}
+function loadWeather(city){
+  if(!city)return;
+  var cached=getWeatherCache(city);
+  if(cached){updateWeatherUI(cached);return;}
+  // geocode
+  fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
+    .then(function(r){return r.json();})
+    .then(function(geo){
+      if(!geo.results||!geo.results.length){throw new Error('no geo');}
+      var lat=geo.results[0].latitude,lon=geo.results[0].longitude;
+      return fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var cw=d.current_weather||{};
+      var m=mapWeather(cw.weathercode);
+      var w={temp:cw.temperature,text:m.text,icon:m.icon};
+      setWeatherCache(city,w);
+      updateWeatherUI(w);
+    })
+    .catch(function(e){
+      console.error('weather',e);
+      updateWeatherUI({temp:25,text:'晴',icon:'☀️'});
+    });
+}
+
 // ============ Home ============
 function renderHome(){
-  var hr=data.settings.city||'杭州';
-  document.getElementById('greet-hi').textContent='Hi, '+hr+' 👋';
+  var city=getCityFromHero();
+  document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   document.getElementById('hero-title').textContent=(data.settings.heroTitle||'我的旅行计划');
   document.getElementById('hero-slogan').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   var days=['日','一','二','三','四','五','六'];
   var n=new Date();
-  document.getElementById('greet-date').textContent=fmtDate(n)+' 周'+days[n.getDay()]+' · <b>晴 27°C</b>';
+  document.getElementById('greet-date').innerHTML=fmtDate(n)+' 周'+days[n.getDay()]+' · <b id="home-weather-line">--</b>';
+  loadWeather(city);
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
@@ -1188,6 +1266,7 @@ function renderHome(){
   if(ups.length===0){
     html='<div class="empty" style="padding:30px 10px;"><div class="e-icon">🧳</div><div class="e-title">还没有行程</div><div class="e-desc">点击下方按钮开始规划</div></div>';
   }else{
+    var city=getCityFromHero();
     ups.forEach(function(t){
       var cover=t.cover?('<img src="'+t.cover+'">'):'🧳';
       var dur='';
@@ -1198,7 +1277,7 @@ function renderHome(){
         '<div class="trc-body">'+
           '<div class="trc-name">'+escapeHTML(t.title)+'</div>'+
           '<div class="trc-dates">📅 '+dur+'</div>'+
-          '<div class="trc-loc">📍 '+(t.destination?'杭州·'+escapeHTML(t.destination):'未设置目的地')+'</div>'+
+          '<div class="trc-loc">📍 '+(t.destination?city+'·'+escapeHTML(t.destination):'未设置目的地')+'</div>'+
         '</div></div>';
     });
   }
@@ -1207,6 +1286,9 @@ function renderHome(){
 
 // ============ Calendar ============
 function renderCal(){
+  var city=getCityFromHero();
+  document.getElementById('cal-hero-title').textContent=city+'出行计划';
+  document.getElementById('cal-hero-sub').textContent='安排你的行程，遇见更美的'+city;
   var y=calDate.getFullYear(),m=calDate.getMonth();
   document.getElementById('cal-month-label').textContent=y+'年'+(m+1)+'月';
   var first=new Date(y,m,1);
@@ -1283,6 +1365,9 @@ function calDayClick(y,m,d){calDate=new Date(y,m-1,d);}
 // ============ Trips ============
 var tripsTabFilter='upcoming';
 function renderTrips(){
+  var city=getCityFromHero();
+  document.getElementById('trips-hero-title').textContent=city+'行程规划';
+  document.getElementById('trips-hero-sub').textContent='遇见'+city+'的温柔时光 🍃';
   var list=data.trips;
   var now=new Date();now.setHours(0,0,0,0);
   var show=[];
@@ -1407,16 +1492,17 @@ function openTrip(id){
   renderTimeline();
   renderTripPhotos();
   renderTripBudget();
-  document.getElementById('td-guide').textContent=t.guide||'暂无攻略笔记，点击编辑或直接在行程中记录';
-  document.getElementById('td-feeling').textContent=t.feeling||'还没有写旅行感受...';
+  var gEl=document.getElementById('td-guide');
+  gEl.innerText=t.guide||'';
+  gEl.onblur=function(){var v=gEl.innerText.trim();if(v!==t.guide){t.guide=v;saveData();showToast('攻略笔记已保存');}};
+  var fEl=document.getElementById('td-feeling');
+  fEl.innerText=t.feeling||'';
+  fEl.onblur=function(){var v=fEl.innerText.trim();if(v!==t.feeling){t.feeling=v;saveData();showToast('旅行感受已保存');}};
   // weather/aqi placeholder
   var weatherOpts=['晴 28°C','多云 24°C','小雨 22°C','阴 26°C'];
   document.getElementById('td-weather').textContent=weatherOpts[currentTripDay%weatherOpts.length];
   var aqiOpts=['优','良','优','优'];
   document.getElementById('td-aqi').textContent=aqiOpts[currentTripDay%aqiOpts.length];
-  // guide & feeling editing
-  document.getElementById('td-guide').ondblclick=function(){var v=prompt('编辑攻略笔记',t.guide||'');if(v!==null){t.guide=v;saveData();document.getElementById('td-guide').textContent=v;}};
-  document.getElementById('td-feeling').ondblclick=function(){var v=prompt('编辑旅行感受',t.feeling||'');if(v!==null){t.feeling=v;saveData();document.getElementById('td-feeling').textContent=v;}};
 }
 function renderDayPills(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -1526,15 +1612,58 @@ function renderTripBudget(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   t.budget=t.budget||{total:0,items:[]};
+  var items=t.budget.items||[];
+  var total=items.reduce(function(s,it){return s+(parseFloat(it.amt)||0);},0);
+  var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+  var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
   var html='';
-  var cats={transport:0,stay:0,food:0,ticket:0,shop:0,other:0};
-  (t.budget.items||[]).forEach(function(it){cats[it.cat]=(cats[it.cat]||0)+it.amt;});
-  var total=(t.budget.items||[]).reduce(function(s,it){return s+it.amt;},0);
-  html+='<div class="bs-row"><span>计划总预算</span><b>¥'+(t.budget.total||0).toFixed(2)+'</b></div>';
+  html+='<div class="bs-row"><span>计划总预算</span><input type="number" step="0.01" value="'+(t.budget.total||0).toFixed(2)+'" onchange="updateTripBudgetTotal(this)" style="width:100px;text-align:right;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:13px;color:var(--primary-dark);font-weight:700;"></div>';
   html+='<div class="bs-row"><span>已支出</span><b style="color:var(--accent);">¥'+total.toFixed(2)+'</b></div>';
-  html+='<div class="bs-row"><span>剩余</span><b style="color:var(--primary);">¥'+(t.budget.total-total).toFixed(2)+'</b></div>';
-  html+='<button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="openSpendModal()">＋ 记一笔</button>';
+  html+='<div class="bs-row"><span>剩余</span><b style="color:var(--primary);">¥'+((t.budget.total||0)-total).toFixed(2)+'</b></div>';
+  if(items.length){
+    html+='<div style="margin-top:10px;font-size:12px;color:var(--text-light);margin-bottom:6px;">明细（可编辑）</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:8px;">';
+    items.forEach(function(it,idx){
+      html+='<div class="spend-row" style="background:#fff;border:1px solid var(--border);">'+
+        '<select onchange="updateTripBudgetItem('+idx+',\'cat\',this.value)" style="border:none;background:transparent;font-size:13px;outline:none;width:70px;">'+
+        Object.keys(catNames).map(function(c){return '<option value="'+c+'" '+(it.cat===c?'selected':'')+'>'+catIcons[c]+' '+catNames[c]+'</option>';}).join('')+
+        '</select>'+
+        '<input type="text" value="'+(it.note||'')+'" placeholder="备注" onchange="updateTripBudgetItem('+idx+',\'note\',this.value)" style="flex:1;border:none;background:transparent;font-size:13px;outline:none;">'+
+        '<input type="number" step="0.01" value="'+(it.amt||0).toFixed(2)+'" placeholder="金额" onchange="updateTripBudgetItem('+idx+',\'amt\',this.value)" style="width:70px;text-align:right;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--primary-dark);outline:none;">'+
+        '<button class="sr-del" onclick="deleteTripBudgetItem('+idx+')">×</button>'+
+      '</div>';
+    });
+    html+='</div>';
+  }
+  html+='<button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="openSpendModal()">＋ 记一笔</button>';
   document.getElementById('td-budget').innerHTML=html;
+}
+function updateTripBudgetTotal(el){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  t.budget.total=parseFloat(el.value)||0;
+  saveData();
+  renderTripBudget();
+  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
+}
+function updateTripBudgetItem(idx,field,value){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t||!t.budget||!t.budget.items[idx])return;
+  if(field==='amt')value=parseFloat(value)||0;
+  t.budget.items[idx][field]=value;
+  saveData();
+  renderTripBudget();
+  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
+}
+function deleteTripBudgetItem(idx){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t||!t.budget||!t.budget.items[idx])return;
+  if(!confirm('删除这条明细？'))return;
+  t.budget.items.splice(idx,1);
+  saveData();
+  renderTripBudget();
+  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
+  showToast('已删除');
 }
 function openSpendModal(){
   document.getElementById('sm-cat').value='food';
@@ -1561,6 +1690,7 @@ function saveSpend(){
   saveData();
   closeModal('spend-modal');
   renderTripBudget();
+  if(document.getElementById('page-budget').classList.contains('active'))renderBudget();
   showToast('已记账');
 }
 function editCurrentTrip(){if(currentTripId)openTripModal(currentTripId);}
@@ -1657,6 +1787,9 @@ function joinWithToken(tripId){
 
 // ============ Budget Page ============
 function renderBudget(){
+  var city=getCityFromHero();
+  document.getElementById('budget-hero-title').textContent=city+'行程预算';
+  document.getElementById('budget-hero-sub').textContent='计划每一段美好旅程';
   var all=data.trips;
   if(all.length===0){
     document.getElementById('budget-total').textContent='¥0';
@@ -1685,17 +1818,17 @@ function renderBudget(){
   // donut
   var C=2*Math.PI*48;
   var cum=0;
-  function set(id,val){var c=document.getElementById(id);var len=(val/total)*C;c.setAttribute('stroke-dasharray',len+' '+C);c.setAttribute('stroke-dashoffset',-cum);cum+=len;}
+  function set(id,val){var c=document.getElementById(id);var len=total?(val/total)*C:0;c.setAttribute('stroke-dasharray',len+' '+C);c.setAttribute('stroke-dashoffset',-cum);cum+=len;}
   document.getElementById('donut-transport').setAttribute('stroke-dasharray','0 '+C);
   set('donut-transport',catTotals.transport);set('donut-stay',catTotals.stay);set('donut-food',catTotals.food);set('donut-ticket',catTotals.ticket);set('donut-shop',catTotals.shop);
   // meta
-  var pct=total?Math.round((paid/total)*100):0;
+  function pct(val){return total?Math.round((val/total)*100):0;}
   document.getElementById('budget-meta').innerHTML=
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#5BC0DE;"></span>交通</span><b>'+Math.round(catTotals.transport/total*100)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#7CB585;"></span>住宿</span><b>'+Math.round(catTotals.stay/total*100)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#FF8C42;"></span>餐饮</span><b>'+Math.round(catTotals.food/total*100)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#B07AB8;"></span>购物</span><b>'+Math.round(catTotals.shop/total*100)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+Math.round(catTotals.ticket/total*100)+'%</b></div>';
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#5BC0DE;"></span>交通</span><b>'+pct(catTotals.transport)+'%</b></div>'+
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#A78BFA;"></span>住宿</span><b>'+pct(catTotals.stay)+'%</b></div>'+
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#FF8C42;"></span>餐饮</span><b>'+pct(catTotals.food)+'%</b></div>'+
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#B07AB8;"></span>购物</span><b>'+pct(catTotals.shop)+'%</b></div>'+
+    '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+pct(catTotals.ticket)+'%</b></div>';
   // cats
   var catHtml='';
   var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
@@ -1844,7 +1977,7 @@ function delFav(id){
 
 // ============ Profile ============
 function renderProfile(){
-  document.getElementById('profile-name').textContent=data.settings.name||'Lris';
+  document.getElementById('profile-name').textContent=data.settings.name||'Iris';
   var photoCount=0;
   data.trips.forEach(function(t){photoCount+=(t.photos||[]).length;});
   var uniqueDest={};
@@ -1857,7 +1990,7 @@ function renderProfile(){
 
 // ============ Settings / Love ============
 function openSettings(){
-  document.getElementById('set-name').value=data.settings.name||'Lris';
+  document.getElementById('set-name').value=data.settings.name||'Iris';
   document.getElementById('set-slogan').value=data.settings.slogan||'';
   document.getElementById('set-city').value=data.settings.city||'';
   document.getElementById('set-hero').value=data.settings.heroTitle||'';
@@ -1865,7 +1998,7 @@ function openSettings(){
   document.getElementById('settings-modal').classList.add('active');
 }
 function saveSettings(){
-  data.settings.name=document.getElementById('set-name').value.trim()||'Lris';
+  data.settings.name=document.getElementById('set-name').value.trim()||'Iris';
   data.settings.slogan=document.getElementById('set-slogan').value.trim();
   data.settings.city=document.getElementById('set-city').value.trim();
   data.settings.heroTitle=(document.getElementById('set-hero').value.trim()||'我的旅行计划');
@@ -1893,7 +2026,7 @@ function editHeroTitle(){
 }
 function clearAll(){
   if(!confirm('⚠️ 清空后将无法恢复，确定吗？'))return;
-  data={trips:[],guides:[],favorites:[],settings:{name:'Lris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
+  data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
   saveData();
   closeModal('settings-modal');
   showPage('home');
@@ -1932,7 +2065,7 @@ function showAbout(){
   alert('薄荷旅行手账 v4.0\n\n一站式记录旅行目的地、攻略、照片、记账 ✨');
 }
 function showLove(){
-  alert('💜 Leon meets Lris\n\nEvery journey is ours ✨');
+  alert('💜 Leon meets Iris\n\nEvery journey is ours ✨');
 }
 
 // ============ Photo Viewer ============
