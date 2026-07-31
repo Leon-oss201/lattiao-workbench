@@ -717,8 +717,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <div class="p-name" id="profile-name">Iris</div>
         <div class="p-sub">热爱旅行 · 记录生活</div>
         <div class="p-tags">
-          <span class="p-tag">🧳 已走过 0 城</span>
-          <span class="p-tag">📷 0 张照片</span>
+          <span class="p-tag" id="p-tag-cities">🧳 已走过 0 城</span>
+          <span class="p-tag" id="p-tag-photos">📷 0 张照片</span>
         </div>
       </div>
     </div>
@@ -973,6 +973,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <input class="form-input" id="set-token" type="password" placeholder="github_pat_ 开头">
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">填入后即可多人同步 & 分享行程。留空则只读模式。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--primary);">去生成</a></div>
     </div>
+    <div class="form-row" style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()">☁️ 立即推送本地</button>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-danger" onclick="clearAll()">清空所有</button>
       <button class="btn btn-ghost" onclick="closeModal('settings-modal')">取消</button>
@@ -1135,6 +1139,8 @@ function mergeTrips(localTrips,remoteTrips){
     byId[t.id]={trip:t,ts:t.updatedAt||0};
   });
   remoteTrips.forEach(function(t){
+    // Tombstoned trips must not be re-introduced by a remote pull
+    if(data.tombstones&&data.tombstones[t.id])return;
     var rts=t.updatedAt||0;
     if(!byId[t.id]){byId[t.id]={trip:t,ts:rts};}
     else if(rts>byId[t.id].ts){byId[t.id].trip=preserveLocalPhotos(JSON.parse(JSON.stringify(t)),byId[t.id].trip);byId[t.id].ts=rts;}
@@ -1149,10 +1155,21 @@ function mergeTrips(localTrips,remoteTrips){
 
 function syncPull(){
   if(GH.pulling)return Promise.resolve();
+  if(GH.pushing)return Promise.resolve(); // don't pull while pushing — avoids race with deletes
   GH.pulling=true;setSyncStatus('syncing');
   return ghReadTrips().then(function(remote){
     GH.pulling=false;
     if(!remote||!remote.trips){setSyncStatus('synced');return;}
+    // Absorb tombstones from remote (a delete pushed from another device)
+    if(remote.tombstones&&typeof remote.tombstones==='object'){
+      if(!data.tombstones)data.tombstones={};
+      Object.keys(remote.tombstones).forEach(function(k){
+        // Always take the newer tombstone timestamp
+        if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
+      });
+      // Drop tombstoned trips from local trips
+      data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
+    }
     var merged=mergeTrips(data.trips,remote.trips);
     var changed=JSON.stringify(merged)!==JSON.stringify(data.trips);
     if(changed){data.trips=merged;saveDataLocal();renderAll();}
@@ -1163,10 +1180,17 @@ function syncPull(){
 function syncPush(){
   if(!ghHasToken())return;
   if(GH.writeTimer)clearTimeout(GH.writeTimer);
-  GH.writeTimer=setTimeout(function(){
-    setSyncStatus('syncing');
+  GH.writeTimer=setTimeout(syncPushNow,3000);
+}
+function syncPushNow(){
+  if(!ghHasToken())return;
+  if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
+  if(GH.pushing)return Promise.resolve();
+  GH.pushing=true;
+  setSyncStatus('syncing');
+  return new Promise(function(resolve){
     var now=new Date().toISOString();
-    var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId()};
+    var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
     data.trips.forEach(function(t){
       t.updatedAt=now;
       var c=JSON.parse(JSON.stringify(t));
@@ -1182,9 +1206,20 @@ function syncPush(){
     });
     ghGetSha('data/trips.json').then(function(sha){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
-    }).then(function(){GH.lastSync=Date.now();setSyncStatus('synced');})
-    .catch(function(e){console.error('push err',e);setSyncStatus('error');if(String(e).indexOf('409')>=0)syncPull();});
-  },3000);
+    }).then(function(){
+      // Clean up tombstones for trips that have been confirmed pushed (i.e. remote no longer has them)
+      if(data.tombstones){
+        // Keep tombstones around for the next pull so it can drop the same trip from any other device
+        // (don't clear them here)
+      }
+      GH.pushing=false;GH.lastSync=Date.now();setSyncStatus('synced');
+      resolve();
+    }).catch(function(e){
+      GH.pushing=false;console.error('push err',e);setSyncStatus('error');
+      if(String(e).indexOf('409')>=0)syncPull();
+      resolve();
+    });
+  });
 }
 
 function syncStart(){
@@ -1404,6 +1439,11 @@ function setTripDayWeatherCache(city,date,w){
 function loadTripDayWeather(city,date){
   var cached=getTripDayWeatherCache(city,date);
   if(cached){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
+  // 6s timeout — if network is slow or blocked, fall back to default rather than showing 加载中 forever
+  var timeoutId=setTimeout(function(){
+    var w={date:date,city:city,text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0};
+    updateTripDayWeatherUI(w);
+  },6000);
   return fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
     .then(function(r){return r.json();})
     .then(function(geo){
@@ -1413,6 +1453,7 @@ function loadTripDayWeather(city,date){
       return fetch(url).then(function(r){return r.json();});
     })
     .then(function(d){
+      clearTimeout(timeoutId);
       var daily=d.daily||{};
       var idx=(daily.time||[]).indexOf(date);
       if(idx<0)throw new Error('date not in forecast');
@@ -1428,6 +1469,7 @@ function loadTripDayWeather(city,date){
       return w;
     })
     .catch(function(e){
+      clearTimeout(timeoutId);
       console.error('trip weather',e);
       var w={date:date,city:city,text:'晴',icon:'☀️',tempMax:28,tempMin:20,rainProb:0,uv:0};
       updateTripDayWeatherUI(w);
@@ -1789,9 +1831,38 @@ function ensureTripDays(t){
 function openTrip(id){
   currentTripId=id;currentTripDay=0;
   var t=data.trips.find(function(x){return x.id===id;});
-  if(!t)return;
+  if(!t){
+    // Trip not in local data — likely a fresh device / cleared cache. Pull from cloud and try again.
+    showToast('正在拉取最新数据…');
+    if(typeof syncPull==='function'){
+      syncPull().then(function(){
+        var t2=data.trips.find(function(x){return x.id===id;});
+        if(t2){openTrip(id);}else{showToast('找不到该行程，可能已被删除');showPage('trips');}
+      });
+    }
+    return;
+  }
   ensureTripDays(t);
   showPage('trip-detail');
+  renderOpenTripChrome(t);
+  renderDayPills();
+  renderTimeline();
+  renderTripDetailExtras();
+  refreshTripDayWeather();
+  // Always pull fresh data when opening a trip so a freshly-installed device sees the latest cloud copy
+  if(typeof syncPull==='function'){
+    syncPull().then(function(){
+      var t2=data.trips.find(function(x){return x.id===currentTripId;});
+      if(!t2)return;
+      ensureTripDays(t2);
+      renderDayPills();
+      renderTimeline();
+      renderTripDetailExtras();
+      refreshTripDayWeather();
+    });
+  }
+}
+function renderOpenTripChrome(t){
   var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
     document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
@@ -1803,10 +1874,6 @@ function openTrip(id){
   var rng=t.startDate?fmtDate(t.startDate):'—';
   if(t.endDate&&t.endDate!==t.startDate)rng+=' ~ '+fmtDate(t.endDate);
   document.getElementById('td-date-range').innerHTML=rng+'<small>'+(t.days&&t.days.length?' · '+t.days.length+' 天':'')+'</small>';
-  renderDayPills();
-  renderTimeline();
-  renderTripDetailExtras();
-  refreshTripDayWeather();
 }
 var viewTrip=openTrip;
 function renderDayPills(){
@@ -2092,8 +2159,15 @@ function editCurrentTrip(){if(currentTripId)openTripModal(currentTripId);}
 function deleteCurrentTrip(){
   if(!currentTripId)return;
   if(!confirm('确定删除此行程？'))return;
-  data.trips=data.trips.filter(function(t){return t.id!==currentTripId;});
-  saveData();
+  var delId=currentTripId;
+  data.trips=data.trips.filter(function(t){return t.id!==delId;});
+  // Tombstone: prevent this trip from being re-pulled until the deletion is pushed
+  if(!data.tombstones)data.tombstones={};
+  data.tombstones[delId]=new Date().toISOString();
+  saveDataLocal();
+  // Force an immediate push (skip 3s debounce) so the next syncPull won't bring the trip back
+  if(typeof syncPushNow==='function')syncPushNow();
+  else syncPush();
   currentTripId=null;
   showPage('trips');
   showToast('已删除');
@@ -2450,17 +2524,27 @@ function delFav(id){
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
   var photoCount=0;
+  var totalKm=0;
   data.trips.forEach(function(t){
     (t.days||[]).forEach(function(d){
-      (d.locations||[]).forEach(function(l){photoCount+=(l.photos||[]).length;});
+      (d.locations||[]).forEach(function(l){
+        photoCount+=(l.photos||[]).length;
+        var dn=parseFloat(l.distance);
+        if(!isNaN(dn)&&dn>0)totalKm+=dn;
+      });
     });
   });
   var uniqueDest={};
   data.trips.forEach(function(t){if(t.destination)uniqueDest[t.destination]=1;});
-  var km=Math.max(0,(Object.keys(uniqueDest).length*187));
+  var destCount=Object.keys(uniqueDest).length;
+  if(totalKm===0&&destCount>0)totalKm=destCount*200;
+  var citiesEl=document.getElementById('p-tag-cities');
+  if(citiesEl)citiesEl.textContent='🧳 已走过 '+destCount+' 城';
+  var ptagEl=document.getElementById('p-tag-photos');
+  if(ptagEl)ptagEl.textContent='📷 '+photoCount+' 张照片';
   document.getElementById('ps-trips').textContent=data.trips.length;
   document.getElementById('ps-photos').textContent=photoCount;
-  document.getElementById('ps-km').textContent=km;
+  document.getElementById('ps-km').textContent=Math.round(totalKm);
 }
 
 // ============ Settings / Love ============
@@ -2546,6 +2630,35 @@ function importData(e){
   };
   r.readAsText(f);
   e.target.value='';
+}
+function forceResync(){
+  if(!ghHasToken()){showToast('请先配置 Token');return;}
+  closeModal('settings-modal');
+  showToast('正在拉取云端…');
+  // Clear tombstones temporarily so a freshly-installed device can see cloud data
+  if(confirm('拉取会用云端数据覆盖本地（仅未删除的行程），确定吗？')){
+    if(data.tombstones){data.tombstones={};saveDataLocal();}
+    syncPull().then(function(){
+      repairTrips();
+      saveDataLocal();
+      renderAll();
+      if(currentTripId){
+        var t=data.trips.find(function(x){return x.id===currentTripId;});
+        if(t){openTrip(t.id);}
+      }
+      showToast('已从云端拉取');
+    });
+  }
+}
+function forcePush(){
+  if(!ghHasToken()){showToast('请先配置 Token');return;}
+  closeModal('settings-modal');
+  if(confirm('把当前本地所有数据推送到云端，会覆盖云端内容，确定吗？')){
+    showToast('正在推送…');
+    syncPushNow().then(function(){
+      showToast('已推送到云端');
+    });
+  }
 }
 function showAbout(){
   alert('薄荷旅行手账 v4.0\n\n一站式记录旅行目的地、攻略、照片、记账 ✨');
