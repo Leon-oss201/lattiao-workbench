@@ -977,6 +977,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
       <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()">☁️ 立即推送本地</button>
     </div>
+    <div class="form-row">
+      <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果文字乱码/数据异常，点这个按钮会清除手机上的本地数据缓存，然后从云端重新下载正确数据。已同步到云端的内容不会丢。</div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-danger" onclick="clearAll()">清空所有</button>
       <button class="btn btn-ghost" onclick="closeModal('settings-modal')">取消</button>
@@ -1185,6 +1189,18 @@ function preserveLocalPhotos(remoteTrip,localTrip){
   });
   return remoteTrip;
 }
+// Detect text that was corrupted by decoding UTF-8 bytes as Latin-1 (garbled Chinese).
+// Healthy Chinese text is almost entirely in CJK ranges; a corrupted string contains
+// a high fraction of U+0080-U+00FF characters.
+function isGarbled(s){
+  if(typeof s!=='string'||!s.length)return false;
+  var n=0;
+  for(var i=0;i<s.length;i++){
+    var c=s.charCodeAt(i);
+    if(c>=0x80&&c<=0xFF)n++;
+  }
+  return n>=2&&(n/s.length)>0.5;
+}
 function mergeTrips(localTrips,remoteTrips){
   if(!remoteTrips)return localTrips;
   var byId={};
@@ -1204,9 +1220,10 @@ function mergeTrips(localTrips,remoteTrips){
     var localCover=local.cover;
     var base=remoteTs>localTs?remote:local;   // newer wins for scalar fields
     var other=remoteTs>localTs?local:remote;
-    // Scalar trip fields: newer non-empty wins
-    local.title=base.title||other.title||local.title;
-    local.destination=base.destination||other.destination||local.destination;
+    // Scalar trip fields: newer non-empty wins; never let garbled text from a bad
+    // decode override healthy text from the other side.
+    local.title=isGarbled(base.title)&&!isGarbled(other.title)?(other.title||local.title):(base.title||other.title||local.title);
+    local.destination=isGarbled(base.destination)&&!isGarbled(other.destination)?(other.destination||local.destination):(base.destination||other.destination||local.destination);
     local.status=base.status||other.status||local.status;
     local.startDate=base.startDate||other.startDate||local.startDate;
     local.endDate=base.endDate||other.endDate||local.endDate;
@@ -1231,6 +1248,13 @@ function mergeTrips(localTrips,remoteTrips){
           var oldLoc=locMap[l.id];
           if((!mergedLoc.photos||!mergedLoc.photos.length)&&oldLoc.photos&&oldLoc.photos.length)mergedLoc.photos=oldLoc.photos.slice();
           locMap[l.id]=mergedLoc;
+        }else{
+          // Local is newer: keep local, but repair any garbled fields using the healthy remote copy
+          var keepLoc=locMap[l.id];
+          if(keepLoc&&isGarbled(keepLoc.name)&&!isGarbled(l.name))keepLoc.name=l.name;
+          if(keepLoc&&isGarbled(keepLoc.guide)&&!isGarbled(l.guide))keepLoc.guide=l.guide;
+          if(keepLoc&&isGarbled(keepLoc.feeling)&&!isGarbled(l.feeling))keepLoc.feeling=l.feeling;
+          locMap[l.id]=keepLoc;
         }
       });
       dayMap[d.date].locations=Object.keys(locMap).map(function(k){return locMap[k];});
@@ -1248,8 +1272,8 @@ function mergeTrips(localTrips,remoteTrips){
     (remote.photos||[]).forEach(function(p){ if(p)photoSet[p]=true; });
     local.photos=Object.keys(photoSet);
     // Merge guide / feeling: non-empty newer wins, but never overwrite local text with empty remote text
-    local.guide=base.guide||(other.guide&&!base.guide?other.guide:local.guide);
-    local.feeling=base.feeling||(other.feeling&&!base.feeling?other.feeling:local.feeling);
+    local.guide=isGarbled(base.guide)&&!isGarbled(other.guide)?(other.guide||local.guide):(base.guide||(other.guide&&!base.guide?other.guide:local.guide));
+    local.feeling=isGarbled(base.feeling)&&!isGarbled(other.feeling)?(other.feeling||local.feeling):(base.feeling||(other.feeling&&!base.feeling?other.feeling:local.feeling));
     // Merge budget items by timestamp
     if(!local.budget||typeof local.budget!=='object')local.budget={total:0,items:[]};
     if(!Array.isArray(local.budget.items))local.budget.items=[];
@@ -2948,6 +2972,34 @@ function forcePush(){
       showToast('已推送到云端');
     });
   }
+}
+function forceRescue(){
+  // Recovery from corrupted local cache (e.g. garbled Chinese after a bad decode):
+  // wipe local trip cache, then adopt the cloud copy directly.
+  if(!ghHasToken()){showToast('请先配置 Token');return;}
+  if(!confirm('将清除本机行程数据缓存（含乱码数据），并从云端重新下载。云端已有内容不会丢失。确定继续？'))return;
+  closeModal('settings-modal');
+  showToast('正在从云端恢复…');
+  ghReadTrips().then(function(remote){
+    if(!remote||!remote.trips){showToast('云端暂无数据，请检查 Token');return;}
+    // 1) wipe local caches that may hold corrupted data
+    try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
+    try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
+    GH.pullBackoff=0;
+    // 2) rebuild an empty state, keeping the user's settings
+    var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{}};
+    if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
+    // 3) adopt the healthy cloud copy directly (no merge)
+    data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
+    repairTrips();
+    saveDataLocal();
+    ghCacheWrite(remote);
+    renderAll();
+    showToast('已从云端恢复 '+data.trips.length+' 个行程');
+    if(currentTripId&&data.trips.find(function(t){return t.id===currentTripId;}))openTrip(currentTripId);
+    else if(data.trips.length)openTrip(data.trips[0].id);
+  }).catch(function(){showToast('恢复失败，请检查网络后重试');});
 }
 function showAbout(){
   alert('薄荷旅行手账 v4.0\n\n一站式记录旅行目的地、攻略、照片、记账 ✨');
