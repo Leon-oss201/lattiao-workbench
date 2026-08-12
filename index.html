@@ -1950,8 +1950,9 @@ function moveLocation(idx,dir){
   var next=idx+dir;
   if(next<0||next>=arr.length)return;
   var tmp=arr[idx];arr[idx]=arr[next];arr[next]=tmp;
-  saveData();
-  renderTimeline();
+  saveDataLocal();renderTimeline();
+  if(typeof window.syncPushNow==='function')window.syncPushNow();
+  else if(typeof window.syncPush==='function')window.syncPush();
 }
 function deleteLocation(idx){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -1961,9 +1962,9 @@ function deleteLocation(idx){
   if(!day||!day.locations||!day.locations[idx])return;
   if(!confirm('删除这个地点？'))return;
   day.locations.splice(idx,1);
-  saveData();
-  renderTimeline();
-  renderDayPills();
+  saveDataLocal();renderTimeline();renderDayPills();
+  if(typeof window.syncPushNow==='function')window.syncPushNow();
+  else if(typeof window.syncPush==='function')window.syncPush();
   showToast('已删除');
 }
 function addLocationToCurrentDay(){
@@ -2067,7 +2068,7 @@ function saveLocation(){
     budget:{total:lmBudgetItems.reduce(function(s,it){return s+it.amt;},0), items:lmBudgetItems.slice()}
   });
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
-  saveData();
+  saveDataLocal();
   closeModal('location-modal');
   renderTimeline();
   renderDayPills();
@@ -2075,6 +2076,11 @@ function saveLocation(){
   renderCal();
   renderBudget();
   showToast('已添加地点');
+  // CRITICAL: push immediately, do NOT debounce. If the user quits the app
+  // within seconds of adding a location, the 3s debounce would silently drop
+  // the change on devices that read from cloud first.
+  if(typeof window.syncPushNow==='function')window.syncPushNow();
+  else if(typeof window.syncPush==='function')window.syncPush();
 }
 function getAllLocations(t){
   if(!t||!t.days)return [];
@@ -2154,6 +2160,57 @@ function renderTripDetailExtras(){
     html+='<div style="font-size:13px;color:var(--text-light);padding:12px 0;">暂无预算明细，在添加地点时填写</div>';
   }
   bEl.innerHTML=html;
+
+  // route map — render a real path through the day's locations (not the placeholder bg)
+  var mEl=document.getElementById('td-map');
+  if(mEl){
+    var day=t.days[currentTripDay]||t.days[0];
+    var dlocs=(day&&day.locations)||[];
+    if(dlocs.length===0){
+      mEl.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;background:linear-gradient(135deg,#F5F3FF,#F2E9D9);">'+
+        '<div style="font-size:38px;opacity:.45;margin-bottom:6px;">🗺️</div>'+
+        '<div>这一天还没有地点，添加后会自动绘制路线</div>'+
+        '</div><div class="map-label">🗺 路线示意</div>';
+    }else{
+      // Build a polyline path that flows through locations left-to-right
+      var W=400,H=200,PAD=40;
+      var n=dlocs.length;
+      var pts=[];
+      for(var k=0;k<n;k++){
+        var x=PAD+(W-2*PAD)*(n===1?0.5:k/(n-1));
+        // gentle sin wave so it doesn't feel flat
+        var y=H*0.5+Math.sin((k/n)*Math.PI*2)*18+(k%2===0?-8:8);
+        pts.push({x:x,y:y,loc:dlocs[k],idx:k});
+      }
+      var pathD='M'+pts[0].x+' '+pts[0].y;
+      for(var k=1;k<pts.length;k++){
+        var mx=(pts[k-1].x+pts[k].x)/2;
+        var my=(pts[k-1].y+pts[k].y)/2-22;
+        pathD+=' Q'+mx+' '+my+' '+pts[k].x+' '+pts[k].y;
+      }
+      var typeColor={attraction:'#7C3AED',food:'#FF8C42',transport:'#5BC0DE',checkin:'#EC4899',departure:'#10B981',return:'#6366F1',stay:'#A78BFA',other:'#9CA3AF'};
+      var nodesSvg=pts.map(function(p){
+        var c=typeColor[p.loc.type]||'#7C3AED';
+        return '<g>'+
+          '<circle cx="'+p.x+'" cy="'+p.y+'" r="11" fill="#fff" stroke="'+c+'" stroke-width="3"/>'+
+          '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="'+c+'">'+(p.idx+1)+'</text>'+
+          '<text x="'+p.x+'" y="'+(p.y+25)+'" text-anchor="middle" font-size="10" fill="#4C1D95" font-weight="600">'+(p.loc.time||'--')+'</text>'+
+          '<text x="'+p.x+'" y="'+(p.y+38)+'" text-anchor="middle" font-size="10" fill="#6B7280">'+
+            (p.loc.name&&p.loc.name.length>6?escapeHTML(p.loc.name.slice(0,6))+'…':escapeHTML(p.loc.name||''))+
+          '</text>'+
+          '</g>';
+      }).join('');
+      mEl.innerHTML=
+        '<svg class="map-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice">'+
+          '<rect width="'+W+'" height="'+H+'" fill="#F5F3FF"/>'+
+          '<path d="M0 '+H+' Q100 '+(H-30)+' 200 '+H+' T400 '+(H-10)+' L400 '+H+' Z" fill="#E9D5FF" opacity=".4"/>'+
+          '<path d="M50 '+H+' Q150 '+(H-50)+' 250 '+(H-20)+' T400 '+(H-30)+' L400 '+H+' Z" fill="#C4B5FD" opacity=".3"/>'+
+          '<path d="'+pathD+'" stroke="#7C3AED" stroke-width="2.5" fill="none" stroke-dasharray="5 4" opacity=".7"/>'+
+          nodesSvg+
+        '</svg>'+
+        '<div class="map-label">🗺 路线 · '+dlocs.length+' 站</div>';
+    }
+  }
 }
 function editCurrentTrip(){if(currentTripId)openTripModal(currentTripId);}
 function deleteCurrentTrip(){
