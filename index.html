@@ -460,7 +460,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4"/>
       </svg>
       <button class="corner-btn" onclick="openSettings()">⚙️</button>
-      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull()">⚡离线</div>
+      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true)" title="点击立即同步">📴 离线</div>
       <div class="hero-decor">✨</div>
       <div class="home-hero-text">
         <h1 id="hero-title">杭州旅行计划</h1>
@@ -1075,13 +1075,17 @@ function saveDataLocal(){
 // ============ GitHub Sync ============
 var GH={
   rawBase:'https://raw.githubusercontent.com/Leon-oss201/lattiao-workbench/main/',
+  cdnBase:'https://cdn.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/',
   apiBase:'https://api.github.com/repos/Leon-oss201/lattiao-workbench',
   branch:'main',
   status:'offline',
   lastSync:0,
   syncTimer:null,
   writeTimer:null,
-  pulling:false
+  pulling:false,
+  nextPullAt:0,      // throttle: earliest allowed next pull (ms)
+  pullBackoff:0,     // exponential backoff after failures
+  shaCache:null      // cached sha of data/trips.json to avoid a round-trip on every push
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -1093,16 +1097,60 @@ function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
 function ghHasToken(){return !!ghToken();}
 function ghB64(str){return btoa(unescape(encodeURIComponent(str)));}
 
-function ghReadTrips(){
-  return fetch(GH.rawBase+'data/trips.json?t='+Date.now()).then(function(r){
-    if(r.status===404)return null;
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
+// fetch with a hard timeout so a flaky network never leaves the UI stuck on "syncing"
+function ghFetchTimeout(url,opts,ms){
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=ctrl?setTimeout(function(){ctrl.abort();},ms||10000):null;
+  opts=opts||{};
+  if(ctrl)opts.signal=ctrl.signal;
+  return fetch(url,opts).then(function(r){
+    if(timer)clearTimeout(timer);
+    return r;
+  },function(e){
+    if(timer)clearTimeout(timer);
+    throw e;
   });
+}
+
+// Last-known-good remote data, used as a fallback when the network is down
+function ghCacheRead(){
+  try{return JSON.parse(localStorage.getItem('lattiao_gh_cache')||'null')||null;}
+  catch(e){return null;}
+}
+function ghCacheWrite(remote){
+  try{localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:remote}));}
+  catch(e){}
+}
+
+// Cheap change-detection fingerprint: id + updatedAt per trip, no full JSON compare
+function tripsFingerprint(trips){
+  if(!trips)return '';
+  return trips.map(function(t){return t.id+'|'+(t.updatedAt||0);}).sort().join(',');
+}
+
+function ghReadTrips(){
+  return ghFetchTimeout(GH.rawBase+'data/trips.json?t='+Date.now(),null,8000)
+    .then(function(r){
+      if(r.status===404)return null;
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .catch(function(e){
+      // Only fall back to the CDN mirror on network errors (timeout / DNS / connection refused),
+      // not on HTTP errors. jsDelivr is fast and stable in mainland China; may lag a few minutes.
+      var isNetErr=(e instanceof TypeError)||(e&&e.name==='AbortError');
+      if(!isNetErr)throw e;
+      return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,8000)
+        .then(function(r){
+          if(r.status===404)return null;
+          if(!r.ok)throw new Error('HTTP '+r.status);
+          return r.json();
+        });
+    });
 }
 function ghGetSha(path){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-  return fetch(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}})
+  return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},15000)
     .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('sha '+r.status);return r.json();})
     .then(function(m){return m?m.sha:null;});
 }
@@ -1110,7 +1158,7 @@ function ghWriteFile(path,content,msg,sha){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
   var body={message:msg||'update',branch:GH.branch,content:ghB64(JSON.stringify(content))};
   if(sha)body.sha=sha;
-  return fetch(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)})
+  return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},15000)
     .then(function(r){if(!r.ok)throw new Error('put '+r.status);return r.json();});
 }
 function ghReadShared(shareId){
@@ -1120,8 +1168,9 @@ function ghReadShared(shareId){
 }
 
 function preserveLocalPhotos(remoteTrip,localTrip){
-  // Remote payload strips location photos to save space; restore them from local when remote wins
+  // Remote payload strips location photos AND covers to save space; restore them from local when remote wins
   if(localTrip.photos&&localTrip.photos.length)remoteTrip.photos=localTrip.photos.slice();
+  if(localTrip.cover&&!remoteTrip.cover)remoteTrip.cover=localTrip.cover;
   (remoteTrip.days||[]).forEach(function(rd){
     if(!rd||!rd.date)return;
     var ld=(localTrip.days||[]).find(function(d){return d&&d.date===rd.date;});
@@ -1153,13 +1202,21 @@ function mergeTrips(localTrips,remoteTrips){
   return Object.keys(byId).map(function(k){return byId[k].trip;});
 }
 
-function syncPull(){
+function syncPull(force){
   if(GH.pulling)return Promise.resolve();
   if(GH.pushing)return Promise.resolve(); // don't pull while pushing — avoids race with deletes
+  var now=Date.now();
+  if(!force){
+    // Throttle: never pull more than once per 20s, and back off exponentially after failures
+    if(GH.nextPullAt&&now<GH.nextPullAt)return Promise.resolve();
+  }
+  GH.nextPullAt=now+20000;
   GH.pulling=true;setSyncStatus('syncing');
   return ghReadTrips().then(function(remote){
     GH.pulling=false;
+    GH.pullBackoff=0;
     if(!remote||!remote.trips){setSyncStatus('synced');return;}
+    ghCacheWrite(remote); // remember last-good copy for offline fallback
     // Absorb tombstones from remote (a delete pushed from another device)
     if(remote.tombstones&&typeof remote.tombstones==='object'){
       if(!data.tombstones)data.tombstones={};
@@ -1171,10 +1228,26 @@ function syncPull(){
       data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
     }
     var merged=mergeTrips(data.trips,remote.trips);
-    var changed=JSON.stringify(merged)!==JSON.stringify(data.trips);
+    var changed=tripsFingerprint(merged)!==tripsFingerprint(data.trips);
     if(changed){data.trips=merged;saveDataLocal();renderAll();}
     GH.lastSync=Date.now();setSyncStatus('synced');
-  }).catch(function(e){GH.pulling=false;console.error('pull err',e);setSyncStatus('error');});
+  }).catch(function(e){
+    GH.pulling=false;
+    console.error('pull err',e);
+    // Exponential backoff: 30s → 1m → 2m → 4m → ... max 5m, reset on success
+    GH.pullBackoff=GH.pullBackoff?Math.min(GH.pullBackoff*2,300000):30000;
+    GH.nextPullAt=Date.now()+GH.pullBackoff;
+    // Fall back to the last-known-good remote copy so the app stays usable offline
+    var cache=ghCacheRead();
+    if(cache&&cache.data&&cache.data.trips){
+      var merged=mergeTrips(data.trips,cache.data.trips);
+      var changed=tripsFingerprint(merged)!==tripsFingerprint(data.trips);
+      if(changed){data.trips=merged;saveDataLocal();renderAll();}
+      setSyncStatus('offline');
+    }else{
+      setSyncStatus('error');
+    }
+  });
 }
 
 function syncPush(){
@@ -1182,57 +1255,78 @@ function syncPush(){
   if(GH.writeTimer)clearTimeout(GH.writeTimer);
   GH.writeTimer=setTimeout(syncPushNow,3000);
 }
+// Build the cloud payload: strips covers & photos (they live only on the device) and
+// marks counts. Kept as a separate pure function so it is unit-testable.
+function buildSyncPayload(){
+  var now=new Date().toISOString();
+  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
+  data.trips.forEach(function(t){
+    t.updatedAt=now;
+    var c=JSON.parse(JSON.stringify(t));
+    c._photoCount=(c.photos||[]).length;
+    c.photos=[];
+    // Strip covers & location photos from the sync payload — they live only on the device.
+    // This is what keeps trips.json small and sync fast (a base64 cover can be 500KB+).
+    if(c.cover){c._hasCover=1;c.cover='';}
+    (c.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}
+      });
+    });
+    remoteData.trips.push(c);
+  });
+  return remoteData;
+}
 function syncPushNow(){
-  if(!ghHasToken())return;
+  if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
   if(GH.pushing)return Promise.resolve();
   GH.pushing=true;
   setSyncStatus('syncing');
-  return new Promise(function(resolve){
-    var now=new Date().toISOString();
-    var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
-    data.trips.forEach(function(t){
-      t.updatedAt=now;
-      var c=JSON.parse(JSON.stringify(t));
-      c._photoCount=(c.photos||[]).length;
-      c.photos=[];
-      // Strip location photos from sync payload to keep repo small (photos stay local)
-      (c.days||[]).forEach(function(d){
-        (d.locations||[]).forEach(function(l){
-          if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}
-        });
-      });
-      remoteData.trips.push(c);
-    });
-    ghGetSha('data/trips.json').then(function(sha){
+  var remoteData=buildSyncPayload();
+  var attempt=function(tried){
+    // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
+    var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
+    return shaPromise.then(function(sha){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
-    }).then(function(){
-      // Clean up tombstones for trips that have been confirmed pushed (i.e. remote no longer has them)
-      if(data.tombstones){
-        // Keep tombstones around for the next pull so it can drop the same trip from any other device
-        // (don't clear them here)
-      }
-      GH.pushing=false;GH.lastSync=Date.now();setSyncStatus('synced');
-      resolve();
+    }).then(function(res){
+      if(res&&res.content&&res.content.sha)GH.shaCache=res.content.sha;
+      GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
+      setSyncStatus('synced');
     }).catch(function(e){
+      // Stale sha → refetch once and retry
+      if(String(e).indexOf('409')>=0&&!tried){
+        GH.shaCache=null;
+        return attempt(true);
+      }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
-      if(String(e).indexOf('409')>=0)syncPull();
-      resolve();
+      if(String(e).indexOf('409')>=0)syncPull(true);
     });
-  });
+  };
+  return attempt(false);
 }
 
 function syncStart(){
   syncPull();
   if(GH.syncTimer)clearInterval(GH.syncTimer);
-  GH.syncTimer=setInterval(syncPull,60000);
+  // 2min interval (was 60s): each pull is cheap now, and this keeps us under GitHub rate limits
+  GH.syncTimer=setInterval(function(){syncPull();},120000);
+  // Mobile browsers suspend timers in the background — pull as soon as the app is visible again
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')syncPull();
+  });
+  // If the user closes the app with a pending debounced write, flush it immediately
+  window.addEventListener('pagehide',function(){
+    if(ghHasToken()&&GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;syncPushNow();}
+  });
 }
 function setSyncStatus(s){
   GH.status=s;
   var el=document.getElementById('sync-indicator');
   if(el){
-    var map={offline:'\u26A1\u79BB\u7EBF',syncing:'\u23F3\u540C\u6B65\u4E2D',synced:'\u2705\u5DF2\u540C\u6B65',error:'\u26A0\uFE0F\u540C\u6B65\u5931\u8D25'};
+    var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败'};
     el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
+    el.title='点击立即同步';
   }
 }
 
@@ -1835,7 +1929,7 @@ function openTrip(id){
     // Trip not in local data — likely a fresh device / cleared cache. Pull from cloud and try again.
     showToast('正在拉取最新数据…');
     if(typeof syncPull==='function'){
-      syncPull().then(function(){
+      syncPull(true).then(function(){
         var t2=data.trips.find(function(x){return x.id===id;});
         if(t2){openTrip(id);}else{showToast('找不到该行程，可能已被删除');showPage('trips');}
       });
@@ -1851,7 +1945,7 @@ function openTrip(id){
   refreshTripDayWeather();
   // Always pull fresh data when opening a trip so a freshly-installed device sees the latest cloud copy
   if(typeof syncPull==='function'){
-    syncPull().then(function(){
+    syncPull(true).then(function(){
       var t2=data.trips.find(function(x){return x.id===currentTripId;});
       if(!t2)return;
       ensureTripDays(t2);
