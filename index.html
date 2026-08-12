@@ -1140,7 +1140,7 @@ function ghReadTrips(){
     var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
     return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},15000)
       .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('api '+r.status);return r.json();})
-      .then(function(m){if(!m)return null;return JSON.parse(atob(m.content.replace(/\s/g,'')));});
+      .then(function(m){if(!m)return null;var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));return JSON.parse(json);});
   };
   var readRaw=function(){
     return ghFetchTimeout(GH.rawBase+'data/trips.json?t='+Date.now(),null,8000)
