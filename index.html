@@ -1067,7 +1067,10 @@ function saveDataLocal(){
   try{
     var now=new Date().toISOString();
     data.updatedAt=now;
-    data.trips.forEach(function(t){t.updatedAt=now;});
+    // Do NOT touch per-trip updatedAt here. Each trip's updatedAt should only
+    // change when that specific trip is actually modified. Updating all trips
+    // on every local save makes mergeTrips think the local copy is newer than
+    // a collaborator's recently-pushed changes, which silently drops them.
     localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
   }catch(e){}
 }
@@ -1184,22 +1187,59 @@ function preserveLocalPhotos(remoteTrip,localTrip){
 function mergeTrips(localTrips,remoteTrips){
   if(!remoteTrips)return localTrips;
   var byId={};
-  localTrips.forEach(function(t){
-    byId[t.id]={trip:t,ts:t.updatedAt||0};
-  });
+  // Start with a deep clone of local trips so we never mutate the originals during merge.
+  localTrips.forEach(function(t){ byId[t.id]={trip:JSON.parse(JSON.stringify(t))}; });
   remoteTrips.forEach(function(t){
     // Tombstoned trips must not be re-introduced by a remote pull
     if(data.tombstones&&data.tombstones[t.id])return;
-    var rts=t.updatedAt||0;
-    if(!byId[t.id]){byId[t.id]={trip:t,ts:rts};}
-    else if(rts>byId[t.id].ts){byId[t.id].trip=preserveLocalPhotos(JSON.parse(JSON.stringify(t)),byId[t.id].trip);byId[t.id].ts=rts;}
-    else{
-      var local=byId[t.id].trip;
-      if(local.photos&&local.photos.length){t.photos=local.photos;}
-      byId[t.id].trip=local;
-    }
+    var remote=JSON.parse(JSON.stringify(t));
+    if(!byId[t.id]){ byId[t.id]={trip:remote}; return; }
+    var local=byId[t.id].trip;
+    var localTs=local.updatedAt||0;
+    var remoteTs=remote.updatedAt||0;
+    var base=remoteTs>localTs?remote:local;   // newer wins for scalar fields
+    var other=remoteTs>localTs?local:remote;
+    // Scalar trip fields: newer non-empty wins
+    local.title=base.title||other.title||local.title;
+    local.destination=base.destination||other.destination||local.destination;
+    local.status=base.status||other.status||local.status;
+    local.startDate=base.startDate||other.startDate||local.startDate;
+    local.endDate=base.endDate||other.endDate||local.endDate;
+    // Cover: local always wins if present (remote payload strips covers)
+    if(!local.cover&&remote.cover)local.cover=remote.cover;
+    // Keep the most recent update timestamp
+    local.updatedAt=localTs>remoteTs?localTs:remoteTs;
+    // Merge days by date, then merge locations within each day by id
+    var dayMap={};
+    (local.days||[]).forEach(function(d){ if(d&&d.date){ dayMap[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))}; } });
+    (remote.days||[]).forEach(function(d){
+      if(!d||!d.date)return;
+      if(!dayMap[d.date]){ dayMap[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))}; return; }
+      var locIds={};
+      dayMap[d.date].locations.forEach(function(l){ if(l&&l.id)locIds[l.id]=true; });
+      (d.locations||[]).forEach(function(l){ if(l&&l.id&&!locIds[l.id]){ dayMap[d.date].locations.push(JSON.parse(JSON.stringify(l))); locIds[l.id]=true; } });
+      if(d.weather&&!dayMap[d.date].weather)dayMap[d.date].weather=d.weather;
+    });
+    local.days=Object.keys(dayMap).sort().map(function(k){ return dayMap[k]; });
+    // Merge top-level trip photos by URL
+    var photoSet={};
+    (local.photos||[]).forEach(function(p){ if(p)photoSet[p]=true; });
+    (remote.photos||[]).forEach(function(p){ if(p)photoSet[p]=true; });
+    local.photos=Object.keys(photoSet);
+    // Merge guide / feeling: non-empty newer wins, but never overwrite local text with empty remote text
+    local.guide=base.guide||(other.guide&&!base.guide?other.guide:local.guide);
+    local.feeling=base.feeling||(other.feeling&&!base.feeling?other.feeling:local.feeling);
+    // Merge budget items by timestamp
+    if(!local.budget||typeof local.budget!=='object')local.budget={total:0,items:[]};
+    if(!Array.isArray(local.budget.items))local.budget.items=[];
+    var itemMap={};
+    local.budget.items.forEach(function(it){ if(it&&it.time)itemMap[it.time]=it; });
+    (remote.budget&&remote.budget.items||[]).forEach(function(it){ if(it&&it.time&&!itemMap[it.time])itemMap[it.time]=it; });
+    local.budget.items=Object.keys(itemMap).map(function(k){ return itemMap[k]; }).sort(function(a,b){ return a.time-b.time; });
+    local.budget.total=local.budget.items.reduce(function(s,it){ return s+(parseFloat(it.amt)||0); },0);
+    byId[t.id].trip=local;
   });
-  return Object.keys(byId).map(function(k){return byId[k].trip;});
+  return Object.keys(byId).map(function(k){ return byId[k].trip; });
 }
 
 function syncPull(force){
@@ -1228,8 +1268,11 @@ function syncPull(force){
       data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
     }
     var merged=mergeTrips(data.trips,remote.trips);
-    var changed=tripsFingerprint(merged)!==tripsFingerprint(data.trips);
-    if(changed){data.trips=merged;saveDataLocal();renderAll();}
+    data.trips=merged; // assign before repair so repair normalizes dates/days
+    repairTrips();
+    var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged); // compare after repair
+    if(changed)saveDataLocal();
+    renderAll();
     GH.lastSync=Date.now();setSyncStatus('synced');
   }).catch(function(e){
     GH.pulling=false;
@@ -1241,8 +1284,11 @@ function syncPull(force){
     var cache=ghCacheRead();
     if(cache&&cache.data&&cache.data.trips){
       var merged=mergeTrips(data.trips,cache.data.trips);
-      var changed=tripsFingerprint(merged)!==tripsFingerprint(data.trips);
-      if(changed){data.trips=merged;saveDataLocal();renderAll();}
+      data.trips=merged;
+      repairTrips();
+      var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged);
+      if(changed)saveDataLocal();
+      renderAll();
       setSyncStatus('offline');
     }else{
       setSyncStatus('error');
@@ -1261,7 +1307,8 @@ function buildSyncPayload(){
   var now=new Date().toISOString();
   var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
   data.trips.forEach(function(t){
-    t.updatedAt=now;
+    // Preserve the trip's own updatedAt (set by the function that modified it).
+    // The top-level remoteData.updatedAt already represents this sync moment.
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
     c.photos=[];
@@ -1593,9 +1640,25 @@ function refreshTripDayWeather(){
   var day=t.days[currentTripDay]||t.days[0];
   if(!day||!day.date)return;
   var city=(t.destination||t.title||'').trim()||getCityFromHero();
-  document.getElementById('td-weather').textContent='加载中...';
-  document.getElementById('td-weather-alert').style.display='none';
-  loadTripDayWeather(city,day.date);
+  var el=document.getElementById('td-weather');
+  var alertEl=document.getElementById('td-weather-alert');
+  if(!el)return;
+  if(!city){
+    el.textContent='🌤 暂无数据';
+    if(alertEl)alertEl.style.display='none';
+    return;
+  }
+  el.textContent='加载中...';
+  if(alertEl)alertEl.style.display='none';
+  try{
+    loadTripDayWeather(city,day.date).catch(function(e){
+      console.error('refresh weather failed',e);
+      if(el)el.textContent='🌤 暂无数据';
+    });
+  }catch(e){
+    console.error('refresh weather error',e);
+    el.textContent='🌤 暂无数据';
+  }
 }
 
 // ============ Home ============
@@ -1894,9 +1957,11 @@ function saveTrip(){
       t.budget.total=tripBudget;
       if(!t.cover&&orig.cover)t.cover=orig.cover;
       Object.assign(orig,t);
+      orig.updatedAt=new Date().toISOString();
     }
   }else{
     t.id=uid();
+    t.updatedAt=new Date().toISOString();
     data.trips.push(t);
   }
   saveData();
@@ -2044,6 +2109,7 @@ function moveLocation(idx,dir){
   var next=idx+dir;
   if(next<0||next>=arr.length)return;
   var tmp=arr[idx];arr[idx]=arr[next];arr[next]=tmp;
+  t.updatedAt=new Date().toISOString();
   saveDataLocal();renderTimeline();
   if(typeof window.syncPushNow==='function')window.syncPushNow();
   else if(typeof window.syncPush==='function')window.syncPush();
@@ -2056,6 +2122,7 @@ function deleteLocation(idx){
   if(!day||!day.locations||!day.locations[idx])return;
   if(!confirm('删除这个地点？'))return;
   day.locations.splice(idx,1);
+  t.updatedAt=new Date().toISOString();
   saveDataLocal();renderTimeline();renderDayPills();
   if(typeof window.syncPushNow==='function')window.syncPushNow();
   else if(typeof window.syncPush==='function')window.syncPush();
@@ -2162,6 +2229,7 @@ function saveLocation(){
     budget:{total:lmBudgetItems.reduce(function(s,it){return s+it.amt;},0), items:lmBudgetItems.slice()}
   });
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+  t.updatedAt=new Date().toISOString();
   saveDataLocal();
   closeModal('location-modal');
   renderTimeline();
