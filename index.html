@@ -811,7 +811,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <div class="modal-overlay" id="location-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">添加地点</div>
+    <div class="modal-title" id="location-modal-title">添加地点</div>
     <div class="form-row form-row-flex">
       <div>
         <label class="form-label">时间</label>
@@ -881,7 +881,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('location-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveLocation()">添加</button>
+      <button class="btn btn-primary" id="lm-save-btn" onclick="saveLocation()">添加</button>
     </div>
   </div>
 </div>
@@ -1001,6 +1001,7 @@ var calFilterType='all';
 var currentTripId=null;
 var currentEditingTripId=null;
 var currentTripDay=0;
+var currentEditingLocationIdx=-1; // -1 = adding new location, >=0 = editing existing location
 var currentEditingGuideId=null;
 var lmPhotos=[];
 var lmBudgetItems=[];
@@ -1132,24 +1133,24 @@ function tripsFingerprint(trips){
 }
 
 function ghReadTrips(){
-  return ghFetchTimeout(GH.rawBase+'data/trips.json?t='+Date.now(),null,8000)
-    .then(function(r){
-      if(r.status===404)return null;
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      return r.json();
-    })
-    .catch(function(e){
-      // Only fall back to the CDN mirror on network errors (timeout / DNS / connection refused),
-      // not on HTTP errors. jsDelivr is fast and stable in mainland China; may lag a few minutes.
-      var isNetErr=(e instanceof TypeError)||(e&&e.name==='AbortError');
-      if(!isNetErr)throw e;
-      return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,8000)
-        .then(function(r){
-          if(r.status===404)return null;
-          if(!r.ok)throw new Error('HTTP '+r.status);
-          return r.json();
-        });
-    });
+  // Read strategy: GitHub API (real-time, needs token) -> raw.githubusercontent.com -> jsDelivr CDN cache.
+  // In mainland China raw.githubusercontent.com is often blocked, and jsDelivr can lag several minutes,
+  // so the API route is the only way to reliably see a collaborator's changes immediately.
+  var readApi=function(){
+    var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},15000)
+      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('api '+r.status);return r.json();})
+      .then(function(m){if(!m)return null;return JSON.parse(atob(m.content.replace(/\s/g,'')));});
+  };
+  var readRaw=function(){
+    return ghFetchTimeout(GH.rawBase+'data/trips.json?t='+Date.now(),null,8000)
+      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('raw '+r.status);return r.json();});
+  };
+  var readCdn=function(){
+    return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,8000)
+      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
+  };
+  return readApi().catch(function(){return readRaw();}).catch(function(){return readCdn();});
 }
 function ghGetSha(path){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
@@ -1197,6 +1198,10 @@ function mergeTrips(localTrips,remoteTrips){
     var local=byId[t.id].trip;
     var localTs=local.updatedAt||0;
     var remoteTs=remote.updatedAt||0;
+    // Remember local photos/cover before merge; remote payload strips them to save space.
+    var localPhotoMap={};
+    (local.days||[]).forEach(function(d){ if(d&&d.date){ (d.locations||[]).forEach(function(l){ if(l&&l.id&&l.photos&&l.photos.length)localPhotoMap[l.id]=l.photos.slice(); }); } });
+    var localCover=local.cover;
     var base=remoteTs>localTs?remote:local;   // newer wins for scalar fields
     var other=remoteTs>localTs?local:remote;
     // Scalar trip fields: newer non-empty wins
@@ -1206,7 +1211,7 @@ function mergeTrips(localTrips,remoteTrips){
     local.startDate=base.startDate||other.startDate||local.startDate;
     local.endDate=base.endDate||other.endDate||local.endDate;
     // Cover: local always wins if present (remote payload strips covers)
-    if(!local.cover&&remote.cover)local.cover=remote.cover;
+    local.cover=localCover||remote.cover||local.cover;
     // Keep the most recent update timestamp
     local.updatedAt=localTs>remoteTs?localTs:remoteTs;
     // Merge days by date, then merge locations within each day by id
@@ -1215,12 +1220,28 @@ function mergeTrips(localTrips,remoteTrips){
     (remote.days||[]).forEach(function(d){
       if(!d||!d.date)return;
       if(!dayMap[d.date]){ dayMap[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))}; return; }
-      var locIds={};
-      dayMap[d.date].locations.forEach(function(l){ if(l&&l.id)locIds[l.id]=true; });
-      (d.locations||[]).forEach(function(l){ if(l&&l.id&&!locIds[l.id]){ dayMap[d.date].locations.push(JSON.parse(JSON.stringify(l))); locIds[l.id]=true; } });
+      var locMap={};
+      dayMap[d.date].locations.forEach(function(l){ if(l&&l.id)locMap[l.id]=JSON.parse(JSON.stringify(l)); });
+      (d.locations||[]).forEach(function(l){
+        if(!l||!l.id)return;
+        if(!locMap[l.id]){ locMap[l.id]=JSON.parse(JSON.stringify(l)); }
+        else if(remoteTs>localTs){
+          // Remote is newer: replace scalar fields but keep local photos if remote stripped them
+          var mergedLoc=JSON.parse(JSON.stringify(l));
+          var oldLoc=locMap[l.id];
+          if((!mergedLoc.photos||!mergedLoc.photos.length)&&oldLoc.photos&&oldLoc.photos.length)mergedLoc.photos=oldLoc.photos.slice();
+          locMap[l.id]=mergedLoc;
+        }
+      });
+      dayMap[d.date].locations=Object.keys(locMap).map(function(k){return locMap[k];});
       if(d.weather&&!dayMap[d.date].weather)dayMap[d.date].weather=d.weather;
     });
     local.days=Object.keys(dayMap).sort().map(function(k){ return dayMap[k]; });
+    // Restore local photos for any location that ended up without them after the merge
+    (local.days||[]).forEach(function(d){
+      if(!d||!d.locations)return;
+      d.locations.forEach(function(l){ if(l&&l.id&&localPhotoMap[l.id]&&(!l.photos||!l.photos.length))l.photos=localPhotoMap[l.id]; });
+    });
     // Merge top-level trip photos by URL
     var photoSet={};
     (local.photos||[]).forEach(function(p){ if(p)photoSet[p]=true; });
@@ -2010,6 +2031,8 @@ function openTrip(id){
   refreshTripDayWeather();
   // Always pull fresh data when opening a trip so a freshly-installed device sees the latest cloud copy
   if(typeof syncPull==='function'){
+    var beforeCount=getAllLocations(t).length;
+    showToast('正在同步最新数据…');
     syncPull(true).then(function(){
       var t2=data.trips.find(function(x){return x.id===currentTripId;});
       if(!t2)return;
@@ -2018,6 +2041,8 @@ function openTrip(id){
       renderTimeline();
       renderTripDetailExtras();
       refreshTripDayWeather();
+      var afterCount=getAllLocations(t2).length;
+      if(afterCount>beforeCount){showToast('已同步 '+afterCount+' 个地点');}
     });
   }
 }
@@ -2066,7 +2091,7 @@ function renderTimeline(){
   locs.forEach(function(l,idx){
     var typeIcon={attraction:'🏞',food:'🍜',transport:'🚇',checkin:'📷',departure:'✈️',return:'🏠',stay:'🏨',other:'✨'}[l.type]||'📍';
     var dotClass=(l.type==='food'?'food':l.type==='transport'||l.type==='departure'||l.type==='return'?'transport':'');
-    html+='<div class="tl-item" data-idx="'+idx+'">'+
+    html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')">'+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
       '<div class="tl-card">'+
@@ -2075,9 +2100,10 @@ function renderTimeline(){
           (l.distance?('<span>📏 '+l.distance+' km</span>'):'')+
           (l.duration?('<span>⏱ '+l.duration+' 分钟</span>'):'')+
           '<span style="margin-left:auto;display:flex;gap:6px;">'+
-            '<span style="cursor:pointer;color:var(--primary);" onclick="moveLocation('+idx+',-1)">↑</span>'+
-            '<span style="cursor:pointer;color:var(--primary);" onclick="moveLocation('+idx+',1)">↓</span>'+
-            '<span style="cursor:pointer;color:var(--danger);" onclick="deleteLocation('+idx+')">✕</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();editLocation('+idx+')">✎</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',-1)">↑</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',1)">↓</span>'+
+            '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>'+
           '</span>'+
         '</div>'+
       '</div></div>';
@@ -2128,11 +2154,7 @@ function deleteLocation(idx){
   else if(typeof window.syncPush==='function')window.syncPush();
   showToast('已删除');
 }
-function addLocationToCurrentDay(){
-  var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  ensureTripDays(t);
-  if(currentTripDay>=t.days.length)currentTripDay=0;
+function resetLocationModal(){
   document.getElementById('lm-time').value='09:00';
   document.getElementById('lm-type').value='attraction';
   document.getElementById('lm-name').value='';
@@ -2145,6 +2167,42 @@ function addLocationToCurrentDay(){
   document.getElementById('lm-bamt').value='';
   lmPhotos=[];
   lmBudgetItems=[];
+  renderLocationModalPhotos();
+  renderLocationModalBudget();
+}
+function addLocationToCurrentDay(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  ensureTripDays(t);
+  if(currentTripDay>=t.days.length)currentTripDay=0;
+  currentEditingLocationIdx=-1;
+  document.getElementById('location-modal-title').textContent='添加地点';
+  document.getElementById('lm-save-btn').textContent='添加';
+  resetLocationModal();
+  document.getElementById('location-modal').classList.add('active');
+}
+function editLocation(idx){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  ensureTripDays(t);
+  var day=t.days[currentTripDay]||t.days[0];
+  if(!day||!day.locations||!day.locations[idx])return;
+  var l=day.locations[idx];
+  currentEditingLocationIdx=idx;
+  document.getElementById('location-modal-title').textContent='编辑地点';
+  document.getElementById('lm-save-btn').textContent='保存';
+  document.getElementById('lm-time').value=l.time||'09:00';
+  document.getElementById('lm-type').value=l.type||'attraction';
+  document.getElementById('lm-name').value=l.name||'';
+  document.getElementById('lm-distance').value=l.distance||'';
+  document.getElementById('lm-duration').value=l.duration||'';
+  document.getElementById('lm-guide').value=l.guide||'';
+  document.getElementById('lm-feeling').value=l.feeling||'';
+  document.getElementById('lm-bcat').value='food';
+  document.getElementById('lm-bnote').value='';
+  document.getElementById('lm-bamt').value='';
+  lmPhotos=(l.photos||[]).slice();
+  lmBudgetItems=(l.budget&&l.budget.items||[]).slice();
   renderLocationModalPhotos();
   renderLocationModalBudget();
   document.getElementById('location-modal').classList.add('active');
@@ -2216,8 +2274,7 @@ function saveLocation(){
       time:Date.now()
     });
   }
-  day.locations.push({
-    id:uid(),
+  var loc={
     time:document.getElementById('lm-time').value,
     type:document.getElementById('lm-type').value,
     name:name,
@@ -2227,17 +2284,26 @@ function saveLocation(){
     feeling:document.getElementById('lm-feeling').value.trim(),
     photos:lmPhotos.slice(),
     budget:{total:lmBudgetItems.reduce(function(s,it){return s+it.amt;},0), items:lmBudgetItems.slice()}
-  });
+  };
+  var isEdit=currentEditingLocationIdx>=0;
+  if(isEdit&&day.locations[currentEditingLocationIdx]){
+    loc.id=day.locations[currentEditingLocationIdx].id;
+    day.locations[currentEditingLocationIdx]=loc;
+  }else{
+    loc.id=uid();
+    day.locations.push(loc);
+  }
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
   t.updatedAt=new Date().toISOString();
   saveDataLocal();
   closeModal('location-modal');
+  currentEditingLocationIdx=-1;
   renderTimeline();
   renderDayPills();
   renderTripDetailExtras();
   renderCal();
   renderBudget();
-  showToast('已添加地点');
+  showToast(isEdit?'已保存地点':'已添加地点');
   // CRITICAL: push immediately, do NOT debounce. If the user quits the app
   // within seconds of adding a location, the 3s debounce would silently drop
   // the change on devices that read from cloud first.
@@ -2383,11 +2449,15 @@ function deleteCurrentTrip(){
   // Tombstone: prevent this trip from being re-pulled until the deletion is pushed
   if(!data.tombstones)data.tombstones={};
   data.tombstones[delId]=new Date().toISOString();
+  // Reset budget filter if it was pointing to the deleted trip
+  if(budgetFilterTripId===delId)budgetFilterTripId='all';
   saveDataLocal();
+  renderBudget();
   // Force an immediate push (skip 3s debounce) so the next syncPull won't bring the trip back
   if(typeof syncPushNow==='function')syncPushNow();
   else syncPush();
   currentTripId=null;
+  closeModal('trip-modal');
   showPage('trips');
   showToast('已删除');
 }
