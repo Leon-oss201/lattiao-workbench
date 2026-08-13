@@ -1421,16 +1421,18 @@ function syncPull(force){
       GH.tokenWarned=true;
       showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
     }
-    // Fall back to the last-known-good remote copy so the app stays usable offline
+    // Fall back to the last-known-good remote copy so the app stays usable offline.
+    // BUT skip the fallback when the token is dead — using a stale cache in that case
+    // can wipe out the local trip data that the user actually has.
     var cache=ghCacheRead();
-    if(cache&&cache.data&&cache.data.trips){
+    if(cache&&cache.data&&cache.data.trips&&!GH.tokenInvalid){
       var merged=mergeTrips(data.trips,cache.data.trips);
       data.trips=merged;
       repairTrips();
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged);
       if(changed)saveDataLocal();
       renderAll();
-      setSyncStatus(GH.tokenInvalid?'error':'offline');
+      setSyncStatus('offline');
     }else{
       setSyncStatus('error');
     }
@@ -2179,22 +2181,29 @@ function openTrip(id){
   if(typeof syncPull==='function'){
     var beforeCount=getAllLocations(t).length;
     showToast('正在同步最新数据…');
+    var renderFromData=function(){
+      var t2=data.trips.find(function(x){return x.id===currentTripId;});
+      if(!t2)return;
+      ensureTripDays(t2);
+      renderDayPills();
+      renderTimeline();
+      renderTripDetailExtras();
+      refreshTripDayWeather();
+      return getAllLocations(t2).length;
+    };
     var retryPull=function(attemptsLeft){
       return syncPull(true).then(function(){
-        var t2=data.trips.find(function(x){return x.id===currentTripId;});
-        if(!t2)return;
-        ensureTripDays(t2);
-        renderDayPills();
-        renderTimeline();
-        renderTripDetailExtras();
-        refreshTripDayWeather();
-        var afterCount=getAllLocations(t2).length;
-        // If we have a token but pull brought nothing AND we still have retry budget, try once more
+        var afterCount=renderFromData();
+        // If pull brought no locations yet we still have retry budget, try once more
         // — first call after a fresh app launch often fails (cold cache, slow network).
-        if(attemptsLeft>0&&ghHasToken()&&afterCount===0&&!GH.tokenInvalid){
+        if(attemptsLeft>0&&afterCount===0&&!GH.tokenInvalid){
           return new Promise(function(r){setTimeout(r,1500);}).then(function(){return retryPull(attemptsLeft-1);});
         }
         if(afterCount>beforeCount){showToast('已同步 '+afterCount+' 个地点');}
+      }).catch(function(){
+        // Even when pull fails the catch fallback already merged ghCache into data.trips,
+        // so re-render the trip-detail page with whatever we have now.
+        renderFromData();
       });
     };
     retryPull(2);
@@ -2203,9 +2212,9 @@ function openTrip(id){
 function renderOpenTripChrome(t){
   var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><div class="td-hero-overlay"><h1>'+escapeHTML(t.title)+'</h1><div class="sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }
   document.getElementById('td-title').textContent=t.title;
   document.getElementById('td-sub').textContent='📍 '+(t.destination||'未设置目的地');
@@ -3109,17 +3118,17 @@ function forcePush(){
 }
 function forceRescue(){
   // Recovery from corrupted local cache (e.g. garbled Chinese after a bad decode):
-  // wipe local trip cache, then adopt the cloud copy directly.
-  if(!ghHasToken()){showToast('请先配置 Token');return;}
+  // wipe local trip cache, then adopt the cloud copy directly. Works without a
+  // token because the repo is public (anonymous GitHub API reads work).
   if(!confirm('将清除本机行程数据缓存（含乱码数据），并从云端重新下载。云端已有内容不会丢失。确定继续？'))return;
   closeModal('settings-modal');
   showToast('正在从云端恢复…');
   ghReadTrips().then(function(remote){
-    if(!remote||!remote.trips){showToast('云端暂无数据，请检查 Token');return;}
+    if(!remote||!remote.trips){showToast('云端暂无数据，请检查网络');return;}
     // 1) wipe local caches that may hold corrupted data
     try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
-    GH.pullBackoff=0;
+    GH.pullBackoff=0;GH.nextPullAt=0;GH.tokenInvalid=false;
     // 2) rebuild an empty state, keeping the user's settings
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
     data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{}};
