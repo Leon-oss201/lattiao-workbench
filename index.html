@@ -1108,7 +1108,9 @@ var GH={
   pullBackoff:0,     // exponential backoff after failures
   shaCache:null,     // cached sha of data/trips.json to avoid a round-trip on every push
   payloadStripped:false, // true when the last push dropped photos to stay under the size cap
-  payloadWarned:false    // one-time toast flag so we don't nag the user on every sync
+  payloadWarned:false,   // one-time toast flag so we don't nag the user on every sync
+  tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
+  tokenWarned:false      // one-time toast flag for the token hint
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -1165,24 +1167,45 @@ function tripsFingerprint(trips){
 }
 
 function ghReadTrips(){
-  // Read strategy: GitHub API (real-time, needs token) -> raw.githubusercontent.com -> jsDelivr CDN cache.
-  // In mainland China raw.githubusercontent.com is often blocked, and jsDelivr can lag several minutes,
-  // so the API route is the only way to reliably see a collaborator's changes immediately.
-  var readApi=function(){
+  // Read strategy: GitHub API (real-time, needs token) -> jsDelivr CDN cache.
+  // GitHub API can fail two ways on large files (>=1MB):
+  //   1. JSON view returns content=null, or
+  //   2. the JSON response itself can be blocked by intermediaries
+  // In either case we fall back to mediaType=raw which streams the file body
+  // directly without base64 encoding — works for any file size.
+  // raw.githubusercontent.com is omitted because it's reliably blocked in mainland China.
+  var readApiJson=function(){
     var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
     return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},20000)
-      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('api '+r.status);return r.json();})
-      .then(function(m){if(!m)return null;var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));return JSON.parse(json);});
+      .then(function(r){
+        if(r.status===404)return null;
+        if(r.status===401){GH.tokenInvalid=true;throw new Error('api 401');}
+        if(!r.ok)throw new Error('api '+r.status);
+        return r.json();
+      })
+      .then(function(m){
+        if(!m)return null;
+        // Files >1MB come back with content=null — fall through to the raw route.
+        if(!m.content)throw new Error('oversized');
+        var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));return JSON.parse(json);
+      });
   };
-  var readRaw=function(){
-    return ghFetchTimeout(GH.rawBase+'data/trips.json?t='+Date.now(),null,8000)
-      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('raw '+r.status);return r.json();});
+  var readApiRaw=function(){
+    var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github.v3.raw'}},30000)
+      .then(function(r){
+        if(r.status===404)return null;
+        if(r.status===401){GH.tokenInvalid=true;throw new Error('api-raw 401');}
+        if(!r.ok)throw new Error('api-raw '+r.status);
+        return r.text();
+      })
+      .then(function(s){return s?JSON.parse(s):null;});
   };
   var readCdn=function(){
-    return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,8000)
+    return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,10000)
       .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
   };
-  return readApi().catch(function(){return readRaw();}).catch(function(){return readCdn();});
+  return readApiJson().catch(function(){return readApiRaw();}).catch(function(){return readCdn();});
 }
 function ghGetSha(path){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
@@ -1387,6 +1410,11 @@ function syncPull(force){
     // Exponential backoff: 30s → 1m → 2m → 4m → ... max 5m, reset on success
     GH.pullBackoff=GH.pullBackoff?Math.min(GH.pullBackoff*2,300000):30000;
     GH.nextPullAt=Date.now()+GH.pullBackoff;
+    // If the token is dead, surface it once so the user knows to reconfigure
+    if(GH.tokenInvalid&&!GH.tokenWarned){
+      GH.tokenWarned=true;
+      showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
+    }
     // Fall back to the last-known-good remote copy so the app stays usable offline
     var cache=ghCacheRead();
     if(cache&&cache.data&&cache.data.trips){
@@ -1396,7 +1424,7 @@ function syncPull(force){
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged);
       if(changed)saveDataLocal();
       renderAll();
-      setSyncStatus('offline');
+      setSyncStatus(GH.tokenInvalid?'error':'offline');
     }else{
       setSyncStatus('error');
     }
@@ -2138,17 +2166,25 @@ function openTrip(id){
   if(typeof syncPull==='function'){
     var beforeCount=getAllLocations(t).length;
     showToast('正在同步最新数据…');
-    syncPull(true).then(function(){
-      var t2=data.trips.find(function(x){return x.id===currentTripId;});
-      if(!t2)return;
-      ensureTripDays(t2);
-      renderDayPills();
-      renderTimeline();
-      renderTripDetailExtras();
-      refreshTripDayWeather();
-      var afterCount=getAllLocations(t2).length;
-      if(afterCount>beforeCount){showToast('已同步 '+afterCount+' 个地点');}
-    });
+    var retryPull=function(attemptsLeft){
+      return syncPull(true).then(function(){
+        var t2=data.trips.find(function(x){return x.id===currentTripId;});
+        if(!t2)return;
+        ensureTripDays(t2);
+        renderDayPills();
+        renderTimeline();
+        renderTripDetailExtras();
+        refreshTripDayWeather();
+        var afterCount=getAllLocations(t2).length;
+        // If we have a token but pull brought nothing AND we still have retry budget, try once more
+        // — first call after a fresh app launch often fails (cold cache, slow network).
+        if(attemptsLeft>0&&ghHasToken()&&afterCount===0&&!GH.tokenInvalid){
+          return new Promise(function(r){setTimeout(r,1500);}).then(function(){return retryPull(attemptsLeft-1);});
+        }
+        if(afterCount>beforeCount){showToast('已同步 '+afterCount+' 个地点');}
+      });
+    };
+    retryPull(2);
   }
 }
 function renderOpenTripChrome(t){
