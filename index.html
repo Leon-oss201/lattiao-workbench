@@ -1025,30 +1025,52 @@ function loadData(){
     repairTrips();
   }catch(e){console.error(e);}
 }
+function tripsSameTrip(a,b){
+  // Two trip objects describe the same trip when title AND destination match,
+  // and their start dates are either both missing or within 15 days of each other
+  // (a 30-day gap means it's a separate trip to the same place).
+  if(!a||!b)return false;
+  if((a.title||'')!==(b.title||''))return false;
+  if((a.destination||'')!==(b.destination||''))return false;
+  var as=a.startDate?parseDateStr(a.startDate):null;
+  var bs=b.startDate?parseDateStr(b.startDate):null;
+  if(as&&bs){
+    var diff=Math.abs(as-bs)/(24*3600*1000);
+    if(diff>15)return false;
+  }
+  return true;
+}
+function countLocations(t){
+  var n=0;
+  (t&&t.days||[]).forEach(function(d){n+=(d.locations||[]).length;});
+  return n;
+}
 function dedupeTrips(){
   if(!Array.isArray(data.trips))return;
-  var groups={};
+  var keep=[];
+  var dropped={};
   data.trips.forEach(function(t){
-    if(!t)return;
-    var key=(t.title||'')+'|'+(t.destination||'')+'|'+(t.startDate||'');
-    if(!key.replace(/\|/g,''))return; // skip trips that have nothing to compare on
-    if(!groups[key])groups[key]=[];
-    groups[key].push(t);
+    if(!t||!t.id||dropped[t.id])return;
+    var dup=keep.find(function(k){return tripsSameTrip(k,t);});
+    if(!dup){keep.push(t);return;}
+    // Same trip appears twice with different ids (created on two devices).
+    // Only collapse when exactly one copy is empty and the other has data —
+    // two populated trips with the same name are kept (they may be real, distinct trips).
+    var tl=countLocations(t), dl=countLocations(dup);
+    if(tl>0&&dl>0){keep.push(t);return;}
+    if(tl===0&&dl===0){keep.push(t);return;}
+    // One is empty, the other populated → keep the populated one.
+    if(tl>dl){
+      var idx=keep.indexOf(dup);
+      keep[idx]=t;
+      dropped[dup.id]=true;
+    }else{
+      dropped[t.id]=true;
+    }
   });
-  var deduped=[];
-  Object.keys(groups).forEach(function(k){
-    if(groups[k].length===1){deduped.push(groups[k][0]);return;}
-    // Multiple trips share a key — keep the one with the most locations, drop the rest.
-    groups[k].sort(function(a,b){
-      var al=0,bl=0;
-      (a.days||[]).forEach(function(d){al+=(d.locations||[]).length;});
-      (b.days||[]).forEach(function(d){bl+=(d.locations||[]).length;});
-      return bl-al;
-    });
-    deduped.push(groups[k][0]);
-  });
-  if(deduped.length!==data.trips.length){
-    data.trips=deduped;
+  if(keep.length!==data.trips.length){
+    console.warn('[dedupe] collapsed',data.trips.length-keep.length,'duplicate trip(s)');
+    data.trips=keep;
     try{saveDataLocal();}catch(e){}
   }
 }
@@ -1241,8 +1263,19 @@ function ghReadTrips(){
       .then(function(s){return s?JSON.parse(s):null;});
   };
   var readCdn=function(){
-    return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,10000)
-      .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
+    // jsDelivr mirrors; try several CDN hosts since mainland access can be flaky.
+    var bases=[GH.cdnBase,'https://fastly.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/','https://gcore.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/'];
+    var tryBase=function(i){
+      if(i>=bases.length)return Promise.reject(new Error('cdn exhausted'));
+      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,10000)
+        .then(function(r){
+          if(r.status===404)return null;
+          if(!r.ok)throw new Error('cdn '+r.status);
+          return r.json();
+        })
+        .catch(function(e){if(e&&e.message==='cdn 404')return null;return tryBase(i+1);});
+    };
+    return tryBase(0);
   };
   return readApiJson().catch(function(){
     // Second attempt: if our first failure was because the token is dead, retry
@@ -2214,6 +2247,19 @@ function openTrip(id){
     return;
   }
   ensureTripDays(t);
+  // Safety net: if this trip has no locations at all but another trip with the same
+  // title+destination has data (created independently on a collaborator's device with
+  // a different id), switch to the populated copy instead of showing an empty page.
+  if(countLocations(t)===0){
+    var alt=data.trips.find(function(x){
+      return x.id!==id&&tripsSameTrip(x,t)&&countLocations(x)>0;
+    });
+    if(alt){
+      console.warn('[openTrip] empty trip',id,'-> switching to',alt.id);
+      openTrip(alt.id);
+      return;
+    }
+  }
   showPage('trip-detail');
   renderOpenTripChrome(t);
   renderDayPills();
