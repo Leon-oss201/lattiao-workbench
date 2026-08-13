@@ -733,9 +733,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
       <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
       <div class="menu-row" onclick="showAbout()"><div class="mr-icon">ℹ️</div><div class="mr-label">关于</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" style="cursor:default;"><div class="mr-icon">🔖</div><div class="mr-label">当前版本</div><div class="mr-arrow" id="app-version">—</div></div>
       <div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>
     </div>
-    <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;">薄荷旅行手账 v4.0 · 记录每一段旅程 ✨</div>
+    <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;">薄荷旅行手账 <span id="app-version-footer">v4.0</span> · 记录每一段旅程 ✨</div>
   </section>
 
   <!-- ===== Bottom Nav ===== -->
@@ -1003,6 +1004,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 <script>
 // ============ Data ============
+// App version — bump this on every release so users can check the version they run.
+var APP_VERSION='v36';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3135,6 +3138,11 @@ function delFav(id){
 // ============ Profile ============
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
+  // Show the running app version so the user always knows which build they're on.
+  var verEl=document.getElementById('app-version');
+  if(verEl)verEl.textContent='v'+APP_VERSION;
+  var verFoot=document.getElementById('app-version-footer');
+  if(verFoot)verFoot.textContent='v'+APP_VERSION;
   var photoCount=0;
   var totalKm=0;
   data.trips.forEach(function(t){
