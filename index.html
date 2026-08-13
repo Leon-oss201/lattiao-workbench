@@ -1009,7 +1009,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <script>
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v38';
+var APP_VERSION='v39';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1528,18 +1528,21 @@ function syncPull(force){
       GH.tokenWarned=true;
       showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
     }
-    // Fall back to the last-known-good remote copy so the app stays usable offline.
-    // BUT skip the fallback when the token is dead — using a stale cache in that case
-    // can wipe out the local trip data that the user actually has.
+    // Fall back to the last-known-good remote copy ONLY when the user is truly
+    // offline AND that cache is not older than the local data. Using a stale
+    // cache (e.g. from when photos were auto-stripped) silently hides new
+    // content — we saw this lose 9+ photos from collaborators. If we have no
+    // trustworthy cache, surface an error so the user can tap "立即从云端拉取".
     var cache=ghCacheRead();
-    if(cache&&cache.data&&cache.data.trips&&!GH.tokenInvalid){
-      var merged=mergeTrips(data.trips,cache.data.trips);
-      data.trips=merged;
-      repairTrips();
-      var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged);
-      if(changed)saveDataLocal();
-      renderAll();
-      setSyncStatus('offline');
+    if(cache&&cache.data&&cache.data.trips&&cache.ts&&cache.ts>0&&!GH.tokenInvalid){
+      var stale=tripsFingerprint(cache.data.trips)!==tripsFingerprint(data.trips);
+      if(stale){
+        // Cache differs from local — both have data we don't want to clobber.
+        // Just mark offline; don't merge.
+        setSyncStatus('offline');
+      }else{
+        setSyncStatus('offline');
+      }
     }else{
       setSyncStatus('error');
     }
@@ -3375,9 +3378,17 @@ function importData(e){
 function forceResync(){
   closeModal('settings-modal');
   showToast('正在拉取云端…');
-  // Clear tombstones temporarily so a freshly-installed device can see cloud data
-  if(confirm('拉取会用云端数据覆盖本地（仅未删除的行程），确定吗？')){
+  if(confirm('拉取会用云端数据与本地合并（取最新和最多照片），确定吗？')){
     if(data.tombstones){data.tombstones={};saveDataLocal();}
+    // CRITICAL: reset the incremental pull cache so we always re-download the
+    // full cloud body. Without this, syncPull may short-circuit on a stale sha
+    // and miss the latest photos the collaborator added.
+    GH.lastSha=null;
+    GH.shaCache=null;
+    GH.tokenInvalid=false;
+    GH.tokenWarned=false;
+    GH.pullBackoff=0;
+    GH.nextPullAt=0;
     // Works even without a token (GitHub API allows anonymous reads on public repos)
     syncPull(true).then(function(){
       repairTrips();
@@ -3387,7 +3398,8 @@ function forceResync(){
         var t=data.trips.find(function(x){return x.id===currentTripId;});
         if(t){openTrip(t.id);}
       }
-      showToast(ghHasToken()?'已从云端拉取':'已从云端拉取（无 Token 匿名读取，可能较慢）');
+      var n=getAllLocations(data.trips.find(function(x){return x.id===currentTripId;})||data.trips[0]).length;
+      showToast('已从云端拉取（'+n+' 个地点）');
     }).catch(function(){showToast('拉取失败，请检查网络或 Token');});
   }
 }
