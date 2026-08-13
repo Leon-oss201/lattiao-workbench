@@ -1017,8 +1017,40 @@ function loadData(){
     if(raw){var d=JSON.parse(raw);if(d)Object.assign(data,d);}
     if(!data.settings) data.settings={};
     if(typeof data.settings.heroTitle==='undefined') data.settings.heroTitle='杭州旅行计划';
+    // MergeTrips keys on trip id. If two devices independently created a trip with the
+    // same title+destination+startDate the ids won't match — we'd keep two trips, one
+    // empty (local) and one populated (cloud). Drop the empty dupes on every load so
+    // the user always lands on the populated copy when opening the trip.
+    dedupeTrips();
     repairTrips();
   }catch(e){console.error(e);}
+}
+function dedupeTrips(){
+  if(!Array.isArray(data.trips))return;
+  var groups={};
+  data.trips.forEach(function(t){
+    if(!t)return;
+    var key=(t.title||'')+'|'+(t.destination||'')+'|'+(t.startDate||'');
+    if(!key.replace(/\|/g,''))return; // skip trips that have nothing to compare on
+    if(!groups[key])groups[key]=[];
+    groups[key].push(t);
+  });
+  var deduped=[];
+  Object.keys(groups).forEach(function(k){
+    if(groups[k].length===1){deduped.push(groups[k][0]);return;}
+    // Multiple trips share a key — keep the one with the most locations, drop the rest.
+    groups[k].sort(function(a,b){
+      var al=0,bl=0;
+      (a.days||[]).forEach(function(d){al+=(d.locations||[]).length;});
+      (b.days||[]).forEach(function(d){bl+=(d.locations||[]).length;});
+      return bl-al;
+    });
+    deduped.push(groups[k][0]);
+  });
+  if(deduped.length!==data.trips.length){
+    data.trips=deduped;
+    try{saveDataLocal();}catch(e){}
+  }
 }
 function repairTrips(){
   if(!Array.isArray(data.trips))data.trips=[];
@@ -1405,6 +1437,7 @@ function syncPull(force){
     }
     var merged=mergeTrips(data.trips,remote.trips);
     data.trips=merged; // assign before repair so repair normalizes dates/days
+    dedupeTrips();     // collapse dupes created by independent trip ids on different devices
     repairTrips();
     var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged); // compare after repair
     if(changed)saveDataLocal();
