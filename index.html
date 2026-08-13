@@ -1076,7 +1076,20 @@ function saveDataLocal(){
     // change when that specific trip is actually modified. Updating all trips
     // on every local save makes mergeTrips think the local copy is newer than
     // a collaborator's recently-pushed changes, which silently drops them.
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    }catch(e){
+      // Storage overflow (usually too many base64 photos): persist a
+      // photo-stripped copy so all text data survives at least.
+      console.warn('[save] storage full, saving without photos');
+      var slim=JSON.parse(JSON.stringify(data));
+      (slim.trips||[]).forEach(function(t){
+        t.photos=[];
+        if(t.cover)t.cover='';
+        (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
+      });
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(slim));
+    }
   }catch(e){}
 }
 
@@ -1093,7 +1106,9 @@ var GH={
   pulling:false,
   nextPullAt:0,      // throttle: earliest allowed next pull (ms)
   pullBackoff:0,     // exponential backoff after failures
-  shaCache:null      // cached sha of data/trips.json to avoid a round-trip on every push
+  shaCache:null,     // cached sha of data/trips.json to avoid a round-trip on every push
+  payloadStripped:false, // true when the last push dropped photos to stay under the size cap
+  payloadWarned:false    // one-time toast flag so we don't nag the user on every sync
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -1126,8 +1141,21 @@ function ghCacheRead(){
   catch(e){return null;}
 }
 function ghCacheWrite(remote){
-  try{localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:remote}));}
-  catch(e){}
+  try{
+    localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:remote}));
+  }catch(e){
+    // Storage full (big photo payload): cache a photo-stripped copy so the
+    // offline fallback still has all text data.
+    try{
+      var slim=JSON.parse(JSON.stringify(remote));
+      (slim.trips||[]).forEach(function(t){
+        t.photos=[];
+        if(t.cover)t.cover='';
+        (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
+      });
+      localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:slim}));
+    }catch(e2){}
+  }
 }
 
 // Cheap change-detection fingerprint: id + updatedAt per trip, no full JSON compare
@@ -1142,7 +1170,7 @@ function ghReadTrips(){
   // so the API route is the only way to reliably see a collaborator's changes immediately.
   var readApi=function(){
     var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},15000)
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},20000)
       .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('api '+r.status);return r.json();})
       .then(function(m){if(!m)return null;var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));return JSON.parse(json);});
   };
@@ -1166,7 +1194,7 @@ function ghWriteFile(path,content,msg,sha){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
   var body={message:msg||'update',branch:GH.branch,content:ghB64(JSON.stringify(content))};
   if(sha)body.sha=sha;
-  return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},15000)
+  return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},30000)
     .then(function(r){if(!r.ok)throw new Error('put '+r.status);return r.json();});
 }
 function ghReadShared(shareId){
@@ -1227,8 +1255,10 @@ function mergeTrips(localTrips,remoteTrips){
     local.status=base.status||other.status||local.status;
     local.startDate=base.startDate||other.startDate||local.startDate;
     local.endDate=base.endDate||other.endDate||local.endDate;
-    // Cover: local always wins if present (remote payload strips covers)
-    local.cover=localCover||remote.cover||local.cover;
+    // Cover: remote wins only when it actually carries a cover (the payload may
+    // still strip covers when it overflows). A stripped remote (_hasCover without
+    // cover data) must never wipe the local cover.
+    local.cover=(remoteTs>localTs&&remote.cover)?remote.cover:(localCover||remote.cover||local.cover);
     // Keep the most recent update timestamp
     local.updatedAt=localTs>remoteTs?localTs:remoteTs;
     // Merge days by date, then merge locations within each day by id
@@ -1243,17 +1273,37 @@ function mergeTrips(localTrips,remoteTrips){
         if(!l||!l.id)return;
         if(!locMap[l.id]){ locMap[l.id]=JSON.parse(JSON.stringify(l)); }
         else if(remoteTs>localTs){
-          // Remote is newer: replace scalar fields but keep local photos if remote stripped them
+          // Remote is newer: replace scalar fields, but merge photos from both
+          // sides so pictures added by either collaborator are all visible.
           var mergedLoc=JSON.parse(JSON.stringify(l));
           var oldLoc=locMap[l.id];
-          if((!mergedLoc.photos||!mergedLoc.photos.length)&&oldLoc.photos&&oldLoc.photos.length)mergedLoc.photos=oldLoc.photos.slice();
+          if(oldLoc&&oldLoc.photos&&oldLoc.photos.length){
+            if(mergedLoc.photos&&mergedLoc.photos.length){
+              var pset={};
+              (mergedLoc.photos||[]).forEach(function(p){ if(p)pset[p]=1; });
+              (oldLoc.photos||[]).forEach(function(p){ if(p&&!pset[p]){mergedLoc.photos.push(p);pset[p]=1;} });
+            }else{
+              mergedLoc.photos=oldLoc.photos.slice();
+            }
+          }
           locMap[l.id]=mergedLoc;
         }else{
-          // Local is newer: keep local, but repair any garbled fields using the healthy remote copy
+          // Local is newer: keep local fields, repair garbled text, and still
+          // union in any remote photos (a friend's uploads must not be lost
+          // just because the local copy was edited more recently).
           var keepLoc=locMap[l.id];
           if(keepLoc&&isGarbled(keepLoc.name)&&!isGarbled(l.name))keepLoc.name=l.name;
           if(keepLoc&&isGarbled(keepLoc.guide)&&!isGarbled(l.guide))keepLoc.guide=l.guide;
           if(keepLoc&&isGarbled(keepLoc.feeling)&&!isGarbled(l.feeling))keepLoc.feeling=l.feeling;
+          if(keepLoc&&l.photos&&l.photos.length){
+            if(keepLoc.photos&&keepLoc.photos.length){
+              var pset2={};
+              (keepLoc.photos||[]).forEach(function(p){ if(p)pset2[p]=1; });
+              (l.photos||[]).forEach(function(p){ if(p&&!pset2[p]){keepLoc.photos.push(p);pset2[p]=1;} });
+            }else{
+              keepLoc.photos=l.photos.slice();
+            }
+          }
           locMap[l.id]=keepLoc;
         }
       });
@@ -1360,6 +1410,10 @@ function syncPush(){
 }
 // Build the cloud payload: strips covers & photos (they live only on the device) and
 // marks counts. Kept as a separate pure function so it is unit-testable.
+// Cloud payload size cap: below this we ship location photos & covers so
+// collaborators actually see each other's pictures; above it we strip them
+// (keeping counts) so sync stays fast — this was the old always-strip behaviour.
+var MAX_SYNC_PAYLOAD=4*1024*1024;
 function buildSyncPayload(){
   var now=new Date().toISOString();
   var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
@@ -1368,17 +1422,29 @@ function buildSyncPayload(){
     // The top-level remoteData.updatedAt already represents this sync moment.
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
-    c.photos=[];
-    // Strip covers & location photos from the sync payload — they live only on the device.
-    // This is what keeps trips.json small and sync fast (a base64 cover can be 500KB+).
-    if(c.cover){c._hasCover=1;c.cover='';}
+    // Photos & cover are now part of the sync payload so a collaborator's
+    // pictures are visible on every device. Counts are kept as markers anyway.
+    if(c.cover)c._hasCover=1;
     (c.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
-        if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}
+        if(l.photos&&l.photos.length)l._photoCount=l.photos.length;
       });
     });
     remoteData.trips.push(c);
   });
+  // Oversized payload (usually many/very large photos): fall back to stripping
+  // pictures so the push still succeeds and stays reasonably fast.
+  var payloadText=JSON.stringify(remoteData);
+  GH.payloadStripped=payloadText.length>MAX_SYNC_PAYLOAD;
+  if(GH.payloadStripped){
+    remoteData.trips.forEach(function(t){
+      t.photos=[];
+      if(t.cover){t._hasCover=1;t.cover='';}
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}});
+      });
+    });
+  }
   return remoteData;
 }
 function syncPushNow(){
@@ -1397,6 +1463,8 @@ function syncPushNow(){
       if(res&&res.content&&res.content.sha)GH.shaCache=res.content.sha;
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
       setSyncStatus('synced');
+      // Photos were dropped from this push because the payload got too large
+      if(GH.payloadStripped&&!GH.payloadWarned){GH.payloadWarned=true;showToast('照片较多，本次云端未同步照片');}
     }).catch(function(e){
       // Stale sha → refetch once and retry
       if(String(e).indexOf('409')>=0&&!tried){
