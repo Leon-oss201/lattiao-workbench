@@ -1167,19 +1167,23 @@ function tripsFingerprint(trips){
 }
 
 function ghReadTrips(){
-  // Read strategy: GitHub API (real-time, needs token) -> jsDelivr CDN cache.
+  // Read strategy: GitHub API (real-time) -> jsDelivr CDN cache.
   // GitHub API can fail two ways on large files (>=1MB):
   //   1. JSON view returns content=null, or
   //   2. the JSON response itself can be blocked by intermediaries
   // In either case we fall back to mediaType=raw which streams the file body
   // directly without base64 encoding — works for any file size.
+  // The repo is public, so the API still works without a token (just 60 req/h),
+  // which is the safety net when a user's token has been revoked.
   // raw.githubusercontent.com is omitted because it's reliably blocked in mainland China.
   var readApiJson=function(){
-    var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},20000)
+    var t=ghToken();
+    var headers={'Accept':'application/vnd.github+json'};
+    if(t)headers['Authorization']='token '+t;
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},20000)
       .then(function(r){
         if(r.status===404)return null;
-        if(r.status===401){GH.tokenInvalid=true;throw new Error('api 401');}
+        if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('api 401');}
         if(!r.ok)throw new Error('api '+r.status);
         return r.json();
       })
@@ -1191,11 +1195,13 @@ function ghReadTrips(){
       });
   };
   var readApiRaw=function(){
-    var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github.v3.raw'}},30000)
+    var t=ghToken();
+    var headers={'Accept':'application/vnd.github.v3.raw'};
+    if(t)headers['Authorization']='token '+t;
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},30000)
       .then(function(r){
         if(r.status===404)return null;
-        if(r.status===401){GH.tokenInvalid=true;throw new Error('api-raw 401');}
+        if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('api-raw 401');}
         if(!r.ok)throw new Error('api-raw '+r.status);
         return r.text();
       })
@@ -1508,12 +1514,19 @@ function syncPushNow(){
 
 function syncStart(){
   syncPull();
-  if(GH.syncTimer)clearInterval(GH.syncTimer);
-  // 2min interval (was 60s): each pull is cheap now, and this keeps us under GitHub rate limits
-  GH.syncTimer=setInterval(function(){syncPull();},120000);
-  // Mobile browsers suspend timers in the background — pull as soon as the app is visible again
+  // Auto-pull every 2 min ONLY when the user has a working token — otherwise we
+  // would burn through the 60 req/h anonymous limit in less than a day of use.
+  if(ghHasToken()&&!GH.tokenInvalid){
+    if(GH.syncTimer)clearInterval(GH.syncTimer);
+    GH.syncTimer=setInterval(function(){syncPull();},120000);
+  }
+  // Mobile browsers suspend timers in the background — pull as soon as the user
+  // returns to the app, but only on the trip-detail page (where it actually matters).
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')syncPull();
+    if(document.visibilityState==='visible'){
+      var active=document.querySelector('.page.active');
+      if(active&&active.id==='page-trip-detail')syncPull();
+    }
   });
   // If the user closes the app with a pending debounced write, flush it immediately
   window.addEventListener('pagehide',function(){
@@ -3001,7 +3014,10 @@ function saveSettings(){
     data.settings.slogan=slogan;
     data.settings.city=city;
     data.settings.heroTitle=city+'旅行计划';
+    var tokChanged=newTok!==oldTok;
     ghSetToken(newTok);
+    // If the token was replaced, clear the dead-token flag so auto-pull resumes.
+    if(tokChanged){GH.tokenInvalid=false;GH.tokenWarned=false;}
     saveData();
     closeModal('settings-modal');
     renderProfile();
@@ -3009,6 +3025,7 @@ function saveSettings(){
     loadWeather(city);
     if(newTok&&!oldTok){syncStart();showToast(msg||'已配置，开始同步');}
     else if(!newTok&&oldTok){if(GH.syncTimer)clearInterval(GH.syncTimer);setSyncStatus('offline');showToast(msg||'已保存');}
+    else if(tokChanged&&newTok){syncStart();showToast(msg||'已更新 Token，正在重新同步');}
     else{showToast(msg||'已保存');}
   }
 
@@ -3062,13 +3079,13 @@ function importData(e){
   e.target.value='';
 }
 function forceResync(){
-  if(!ghHasToken()){showToast('请先配置 Token');return;}
   closeModal('settings-modal');
   showToast('正在拉取云端…');
   // Clear tombstones temporarily so a freshly-installed device can see cloud data
   if(confirm('拉取会用云端数据覆盖本地（仅未删除的行程），确定吗？')){
     if(data.tombstones){data.tombstones={};saveDataLocal();}
-    syncPull().then(function(){
+    // Works even without a token (GitHub API allows anonymous reads on public repos)
+    syncPull(true).then(function(){
       repairTrips();
       saveDataLocal();
       renderAll();
@@ -3076,8 +3093,8 @@ function forceResync(){
         var t=data.trips.find(function(x){return x.id===currentTripId;});
         if(t){openTrip(t.id);}
       }
-      showToast('已从云端拉取');
-    });
+      showToast(ghHasToken()?'已从云端拉取':'已从云端拉取（无 Token 匿名读取，可能较慢）');
+    }).catch(function(){showToast('拉取失败，请检查网络或 Token');});
   }
 }
 function forcePush(){
