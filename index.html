@@ -9,6 +9,12 @@
 <meta name="apple-mobile-web-app-title" content="薄荷旅行手账">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="薄荷旅行手账">
+<!-- No-cache: Safari's heuristic caching used to serve a stale index.html for
+     hours, which made users stuck on old versions (they saw "still v39" etc.).
+     These headers force a revalidation on every launch. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -1007,9 +1013,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <div class="toast" id="toast"></div>
 
 <script>
+// ============ Service Worker + version self-check ============
+// Register the SW with immediate activation so the network-first navigation
+// strategy applies on the very next launch. Then, on every launch, fetch the
+// LIVE sw.js (cache-busted) and compare its cache version against ours; if a
+// newer build exists, auto-reload once so the user always gets the latest app
+// even when Safari cached an old index.html.
+(function(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(e){
+      console.warn('SW register failed',e);
+    });
+  }
+  function latestVersionFromSW(text){
+    var m=text.match(/lattiao-travel-v(\d+)/);
+    return m?('v'+m[1]):null;
+  }
+  var done=false;
+  function check(){
+    if(done)return;done=true;
+    // Read APP_VERSION lazily — the assignment below happens after this IIFE runs.
+    var myVer=parseInt((window.APP_VERSION||'v0').replace(/\D/g,''),10)||0;
+    try{
+      fetch('./sw.js?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(txt){
+        var latest=latestVersionFromSW(txt);
+        if(!latest)return;
+        var latestN=parseInt(latest.replace(/\D/g,''),10)||0;
+        if(latestN>myVer){
+          console.warn('[updater] found newer build',latest,'current',APP_VERSION,'— reloading');
+          showToast('发现新版本 '+latest+'，正在更新…');
+          setTimeout(function(){location.reload();},600);
+        }
+      }).catch(function(e){console.warn('version check failed',e);});
+    }catch(e){console.warn('version check error',e);}
+  }
+  // Check after first paint + again after a short delay (covers slow networks).
+  window.addEventListener('load',function(){setTimeout(check,800);setTimeout(check,6000);});
+})();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v41';
+var APP_VERSION='v42';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
