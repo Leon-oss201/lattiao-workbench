@@ -2341,14 +2341,9 @@ function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
-  // If currentTripDay points at an empty day, snap forward to the first day with
-  // locations so the user actually sees something instead of a blank page.
-  var dayIdx=currentTripDay;
-  if(!t.days[dayIdx]||(t.days[dayIdx].locations||[]).length===0){
-    var f=t.days.findIndex(function(d){return d&&(d.locations||[]).length>0;});
-    if(f>=0){dayIdx=f;currentTripDay=f;}
-  }
-  var day=t.days[dayIdx]||t.days[0]||{locations:[]};
+  // Respect the user's chosen day (do NOT auto-snap to a non-empty day) so empty
+  // days like D3 stay visible as "📭 这一天还没有安排" instead of silently showing D1.
+  var day=t.days[currentTripDay]||t.days[0]||{locations:[]};
   var locs=day.locations||[];
   document.getElementById('td-loc-count').textContent=locs.length;
   if(locs.length===0){
