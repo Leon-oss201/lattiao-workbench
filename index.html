@@ -2234,7 +2234,7 @@ function ensureTripDays(t){
   }
 }
 function openTrip(id){
-  currentTripId=id;currentTripDay=0;
+  currentTripId=id;
   var t=data.trips.find(function(x){return x.id===id;});
   if(!t){
     // Trip not in local data — likely a fresh device / cleared cache. Pull from cloud and try again.
@@ -2248,6 +2248,10 @@ function openTrip(id){
     return;
   }
   ensureTripDays(t);
+  // Auto-pick the first day with actual locations so the user always lands on a
+  // populated day (rather than day 0 which may happen to be empty).
+  var firstWithLocs=t.days.findIndex(function(d){return d&&(d.locations||[]).length>0;});
+  currentTripDay=firstWithLocs>=0?firstWithLocs:0;
   // Safety net: if this trip has no locations at all but another trip with the same
   // title+destination has data (created independently on a collaborator's device with
   // a different id), switch to the populated copy instead of showing an empty page.
@@ -2263,10 +2267,10 @@ function openTrip(id){
   }
   showPage('trip-detail');
   // Diagnostic strip (small, unobtrusive) so a screenshot tells us exactly what the
-  // device holds: current trip id, local trip count, and total locations on this trip.
+  // device holds: current trip id, local trip count, current day index, and locations.
   var diagEl=document.getElementById('td-diag');
   if(diagEl){
-    var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · 本行程 '+countLocations(t)+' 地点';
+    var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · day '+(currentTripDay+1)+'/'+((t.days&&t.days.length)||0)+' · 本行程 '+countLocations(t)+' 地点';
     diagEl.textContent=diag;
     diagEl.style.display='block';
   }
@@ -2287,6 +2291,7 @@ function openTrip(id){
       renderTimeline();
       renderTripDetailExtras();
       refreshTripDayWeather();
+      updateTripDiag();
       return getAllLocations(t2).length;
     };
     var retryPull=function(attemptsLeft){
@@ -2336,7 +2341,16 @@ function renderDayPills(){
   }
   document.getElementById('td-day-pills').innerHTML=html;
 }
-function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();refreshTripDayWeather();}
+function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();refreshTripDayWeather();updateTripDiag();}
+function updateTripDiag(){
+  var el=document.getElementById('td-diag');
+  if(!el)return;
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t){el.style.display='none';return;}
+  var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · day '+(currentTripDay+1)+'/'+((t.days&&t.days.length)||0)+' · 本行程 '+countLocations(t)+' 地点';
+  el.textContent=diag;
+  el.style.display='block';
+}
 function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
