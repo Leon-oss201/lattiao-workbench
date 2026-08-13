@@ -1643,9 +1643,13 @@ function syncPushNow(){
 
 function syncStart(){
   syncPull();
-  // Auto-pull every 2 min ONLY when the user has a working token — otherwise we
-  // would burn through the 60 req/h anonymous limit in less than a day of use.
+  // Auto-pull frequently ONLY when the user has a working token — incremental
+  // pull (sha skip) makes each poll a tiny metadata request, so 30s is cheap.
+  // Without a token we'd burn the 60 req/h anonymous limit, so stay at 120s.
   if(ghHasToken()&&!GH.tokenInvalid){
+    if(GH.syncTimer)clearInterval(GH.syncTimer);
+    GH.syncTimer=setInterval(function(){syncPull();},30000);
+  }else if(ghHasToken()&&GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
     GH.syncTimer=setInterval(function(){syncPull();},120000);
   }
