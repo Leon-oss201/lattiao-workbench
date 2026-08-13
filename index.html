@@ -1009,7 +1009,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <script>
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v40';
+var APP_VERSION='v41';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1271,7 +1271,10 @@ function ghReadTrips(){
     var t=useToken?ghToken():null;
     var headers={'Accept':'application/vnd.github.v3.raw'};
     if(t)headers['Authorization']='token '+t;
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},30000)
+    // 120s timeout: the cloud file can be several MB of base64 photos, and
+    // mainland access to api.github.com is slow. 30s was too tight and made
+    // big pulls fail (users then fell back to a STALE jsDelivr cache below).
+    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},120000)
       .then(function(r){
         if(r.status===404)return null;
         // Only treat 401 as a token problem when we actually sent one.
@@ -1289,14 +1292,34 @@ function ghReadTrips(){
   };
   var readCdn=function(){
     // jsDelivr mirrors; try several CDN hosts since mainland access can be flaky.
+    // IMPORTANT: cdn.jsdelivr.net often serves a STALE cached copy of the branch
+    // for hours (we observed it returning an 8-hour-old 6-photo version). So each
+    // CDN result is only accepted if it is NEWER than the last-known-good cloud
+    // copy (from ghCache) — otherwise we skip to the next mirror. A stale CDN
+    // being accepted is exactly what made users see old photo counts.
     var bases=[GH.cdnBase,'https://fastly.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/','https://gcore.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/'];
+    var lastGoodTs=0;
+    try{
+      var cache=ghCacheRead();
+      if(cache&&cache.data&&cache.data.updatedAt)lastGoodTs=Date.parse(cache.data.updatedAt)||0;
+    }catch(e){}
     var tryBase=function(i){
       if(i>=bases.length)return Promise.reject(new Error('cdn exhausted'));
-      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,10000)
+      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,20000)
         .then(function(r){
           if(r.status===404)return null;
           if(!r.ok)throw new Error('cdn '+r.status);
           return r.json();
+        })
+        .then(function(data){
+          if(!data)return null;
+          // Accept only if fresh enough (>= last known good cloud updatedAt).
+          var ts=Date.parse(data&&data.updatedAt)||0;
+          if(ts>0&&ts<lastGoodTs){
+            console.warn('[cdn] stale copy (updatedAt',data.updatedAt,'< lastGood',new Date(lastGoodTs).toISOString(),') — skipping',bases[i]);
+            return tryBase(i+1);
+          }
+          return data;
         })
         .catch(function(e){if(e&&e.message==='cdn 404')return null;return tryBase(i+1);});
     };
