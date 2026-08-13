@@ -596,6 +596,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="tds" id="td-date-range">—</div>
       <button class="btn btn-ghost btn-sm" onclick="addLocationToCurrentDay()">＋ 添加地点</button>
     </div>
+    <div id="td-diag" style="display:none;padding:2px 18px 0;font-size:10px;color:var(--text-light);"></div>
     <div class="td-day-pills" id="td-day-pills"></div>
     <div class="td-weather">
       <div class="left">☀️ 今日天气：<span id="td-weather">加载中...</span></div>
@@ -2261,6 +2262,14 @@ function openTrip(id){
     }
   }
   showPage('trip-detail');
+  // Diagnostic strip (small, unobtrusive) so a screenshot tells us exactly what the
+  // device holds: current trip id, local trip count, and total locations on this trip.
+  var diagEl=document.getElementById('td-diag');
+  if(diagEl){
+    var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · 本行程 '+countLocations(t)+' 地点';
+    diagEl.textContent=diag;
+    diagEl.style.display='block';
+  }
   renderOpenTripChrome(t);
   renderDayPills();
   renderTimeline();
