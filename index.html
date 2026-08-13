@@ -228,6 +228,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .weather-alert.rain{background:#E0F2FE;color:#0369A1;}
 .weather-alert.uv{background:#FEF3C7;color:#B45309;}
 .weather-alert.hot{background:#FEE2E2;color:#B91C1C;}
+.weather-alert.cold{background:#E0E7FF;color:#4338CA;}
+.weather-alert.wind{background:#F3E8FF;color:#6B21A8;}
+.weather-alert.mood{background:linear-gradient(135deg,#FDF2F8,#FCE7F3);color:#BE185D;border:1px dashed #F9A8D4;animation:moodPulse 3s ease-in-out infinite;}
+@keyframes moodPulse{0%,100%{opacity:1;}50%{opacity:.75;}}
 
 .td-section{padding:14px 18px;}
 .td-section h3{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
@@ -1005,7 +1009,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <script>
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v37';
+var APP_VERSION='v38';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1937,6 +1941,38 @@ function loadTripDayWeather(city,date){
       return w;
     });
 }
+// Mood lines shown in the weather alert area when there are no real weather
+// warnings — a 5-second rotating set of little pep talks for Iris.
+var WEATHER_MOOD_LINES=[
+  'Iris，今天也是元气满满的一天 ✨',
+  'Iris，记得多喝水，保持水嫩嫩 💧',
+  'Iris，好天气配上好心情 🌸',
+  'Iris，慢慢走，路上的风景都为你停留 🚶‍♀️',
+  'Iris，今天的你比阳光还耀眼 ☀️',
+  'Iris，别忘了奖励自己一顿好吃的 🍦',
+  'Iris，把烦恼留给风，把快乐留给自己 🌬️',
+  'Iris，愿你今天遇到的所有美好都刚刚好 💛',
+  'Iris，天空很蓝，你很好看 🌈',
+  'Iris，世界那么大，今天也要开心地出发 ✈️'
+];
+var weatherMoodTimer=null;
+var weatherMoodIdx=0;
+function clearWeatherMood(){
+  if(weatherMoodTimer){clearInterval(weatherMoodTimer);weatherMoodTimer=null;}
+}
+function startWeatherMood(alertEl){
+  if(!alertEl)return;
+  clearWeatherMood();
+  // Show the first line immediately, then rotate every 5s. Never leave the slot empty.
+  var show=function(){
+    var line=WEATHER_MOOD_LINES[weatherMoodIdx%WEATHER_MOOD_LINES.length];
+    weatherMoodIdx++;
+    alertEl.style.display='flex';
+    alertEl.innerHTML='<span class="weather-alert mood">💬 '+line+'</span>';
+  };
+  show();
+  weatherMoodTimer=setInterval(show,5000);
+}
 function updateTripDayWeatherUI(w){
   // Weather header shows the day+city (e.g. "08.13 泉州天气") and the current reading.
   // Suggestions are addressed to "Iris" so they read like personal notes.
@@ -1965,11 +2001,13 @@ function updateTripDayWeatherUI(w){
   if(typeof w.tempMin==='number'&&w.tempMin<=5)alerts.push({cls:'cold',icon:'🧣',text:'Iris，'+Math.round(w.tempMin)+'°C 偏冷，加件外套'});
   if(typeof w.wind==='number'&&w.wind>=30)alerts.push({cls:'wind',icon:'🌬',text:'Iris，风力 '+Math.round(w.wind)+'km/h，户外注意'});
   if(alerts.length){
+    // Real warnings beat the mood lines — stop the rotator while showing them.
+    clearWeatherMood();
     alertEl.style.display='flex';
     alertEl.innerHTML=alerts.map(function(a){return '<span class="weather-alert '+a.cls+'">'+a.icon+' '+a.text+'</span>';}).join('');
   }else{
-    alertEl.style.display='none';
-    alertEl.innerHTML='';
+    // No warnings → pep-talk rotator. Never empty.
+    startWeatherMood(alertEl);
   }
 }
 function refreshTripDayWeather(){
@@ -1983,20 +2021,25 @@ function refreshTripDayWeather(){
   if(!el)return;
   if(!city){
     el.textContent='🌤 暂无数据';
-    if(alertEl)alertEl.style.display='none';
+    clearWeatherMood();
+    if(alertEl){alertEl.style.display='none';alertEl.innerHTML='';}
     return;
   }
   // Show a placeholder immediately so the user sees we're fetching the right day.
   el.textContent=fmtDateShort(day.date)+' '+city+'天气 · 加载中…';
-  if(alertEl)alertEl.style.display='none';
+  clearWeatherMood();
+  if(alertEl){alertEl.style.display='none';alertEl.innerHTML='';}
   try{
     loadTripDayWeather(city,day.date).catch(function(e){
       console.error('refresh weather failed',e);
       if(el)el.textContent=fmtDateShort(day.date)+' '+city+'天气 · 🌤 暂无数据';
+      // Even on failure, keep the slot alive with a mood line.
+      if(alertEl)startWeatherMood(alertEl);
     });
   }catch(e){
     console.error('refresh weather error',e);
     el.textContent=fmtDateShort(day.date)+' '+city+'天气 · 🌤 暂无数据';
+    if(alertEl)startWeatherMood(alertEl);
   }
 }
 
