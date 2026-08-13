@@ -1226,13 +1226,14 @@ function ghReadTrips(){
         var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));return JSON.parse(json);
       });
   };
-  var readApiRaw=function(){
-    var t=ghToken();
+  var readApiRaw=function(useToken){
+    var t=useToken?ghToken():null;
     var headers={'Accept':'application/vnd.github.v3.raw'};
     if(t)headers['Authorization']='token '+t;
     return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},30000)
       .then(function(r){
         if(r.status===404)return null;
+        // Only treat 401 as a token problem when we actually sent one.
         if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('api-raw 401');}
         if(!r.ok)throw new Error('api-raw '+r.status);
         return r.text();
@@ -1243,7 +1244,16 @@ function ghReadTrips(){
     return ghFetchTimeout(GH.cdnBase+'data/trips.json?t='+Date.now(),null,10000)
       .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
   };
-  return readApiJson().catch(function(){return readApiRaw();}).catch(function(){return readCdn();});
+  return readApiJson().catch(function(){
+    // Second attempt: if our first failure was because the token is dead, retry
+    // readApiRaw without any Authorization header. The repo is public so this
+    // still works — and it's the only way to bypass a token that GitHub revoked.
+    return readApiRaw(true).catch(function(){
+      return readApiRaw(false);
+    }).catch(function(){
+      return readCdn();
+    });
+  });
 }
 function ghGetSha(path){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
@@ -3171,11 +3181,10 @@ function forceRescue(){
     repairTrips();
     saveDataLocal();
     ghCacheWrite(remote);
-    renderAll();
-    showToast('已从云端恢复 '+data.trips.length+' 个行程');
-    if(currentTripId&&data.trips.find(function(t){return t.id===currentTripId;}))openTrip(currentTripId);
-    else if(data.trips.length)openTrip(data.trips[0].id);
-  }).catch(function(){showToast('恢复失败，请检查网络后重试');});
+    showToast('已从云端恢复 '+data.trips.length+' 个行程，页面即将刷新');
+    // Hard reload so loadData runs again and dedupeTrips + renderAll see the fresh state
+    setTimeout(function(){location.reload();},800);
+  }).catch(function(){showToast('恢复失败，请检查网络或 Token');});
 }
 function showAbout(){
   alert('薄荷旅行手账 v4.0\n\n一站式记录旅行目的地、攻略、照片、记账 ✨');
