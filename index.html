@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v42';
+var APP_VERSION='v43';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2022,19 +2022,66 @@ var WEATHER_MOOD_LINES=[
   'Iris，把烦恼留给风，把快乐留给自己 🌬️',
   'Iris，愿你今天遇到的所有美好都刚刚好 💛',
   'Iris，天空很蓝，你很好看 🌈',
-  'Iris，世界那么大，今天也要开心地出发 ✈️'
+  'Iris，世界那么大，今天也要开心地出发 ✈️',
+  'Iris，今天也要闪闪发光呀 💫',
+  'Iris，你笑起来的样子最好看 😊',
+  'Iris，好运正在赶来的路上 🍀',
+  'Iris，今天的小确幸一定在转角等你 🎁',
+  'Iris，连风都在帮你吹散烦恼 🍃',
+  'Iris，保持热爱，一切都会顺顺利利 🌻',
+  'Iris，今天也值得被温柔以待 🧸',
+  'Iris，你值得世间所有的美好 💐',
+  'Iris，抬头看天，云朵都在为你加油 ☁️',
+  'Iris，做自己的小太阳，走到哪亮到哪 🔆',
+  'Iris，愿你眼里有光，心中有糖 🍬',
+  'Iris，今天也要好好爱自己 🤍',
+  'Iris，全世界都在为你让路 🛤️',
+  'Iris，开心的话，一切都变得很简单 🎈',
+  'Iris，今天的你，是限量版 💝',
+  'Iris，一切都刚刚好，慢慢来 🌿',
+  'Iris，愿你的心情和天气一样晴朗 ☀️',
+  'Iris，你是这趟旅程最亮眼的风景 📸',
+  'Iris，记得留点时间给快乐 🎶',
+  'Iris，好心情是最好的防晒 🧴',
+  'Iris，今天的浪漫也在路上 🌹',
+  'Iris，愿你每一步都走在惊喜里 🎀',
+  'Iris，别赶路，去感受路 🧡',
+  'Iris，你一来，好天气就跟着来了 🌤️',
+  'Iris，把期待放进行囊，把快乐带回家 🎒',
+  'Iris，今天也要可可爱爱没有脑袋 🐰',
+  'Iris，风很温柔，你也很温柔 🍂',
+  'Iris，愿美好与你环环相扣 💞',
+  'Iris，今天的照片一定张张都好看 📷',
+  'Iris，记得抬头，别错过云朵的表演 🎭',
+  'Iris，全世界最好看的风景是你 🥰',
+  'Iris，今天也要收获一堆小确幸 🌟'
 ];
 var weatherMoodTimer=null;
+var weatherMoodOrder=[]; // shuffled queue — one pass contains every line exactly once
 var weatherMoodIdx=0;
+function shuffleArray(arr){
+  var a=arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=a[i];a[i]=a[j];a[j]=tmp;
+  }
+  return a;
+}
 function clearWeatherMood(){
   if(weatherMoodTimer){clearInterval(weatherMoodTimer);weatherMoodTimer=null;}
 }
 function startWeatherMood(alertEl){
   if(!alertEl)return;
   clearWeatherMood();
-  // Show the first line immediately, then rotate every 5s. Never leave the slot empty.
+  // Show the first line immediately, then rotate every 5s. Never leave the slot
+  // empty. Lines are drawn from a shuffled queue so nothing repeats within a
+  // full pass; when the queue is exhausted we reshuffle.
   var show=function(){
-    var line=WEATHER_MOOD_LINES[weatherMoodIdx%WEATHER_MOOD_LINES.length];
+    if(weatherMoodIdx>=weatherMoodOrder.length){
+      weatherMoodOrder=shuffleArray(WEATHER_MOOD_LINES);
+      weatherMoodIdx=0;
+    }
+    var line=weatherMoodOrder[weatherMoodIdx];
     weatherMoodIdx++;
     alertEl.style.display='flex';
     alertEl.innerHTML='<span class="weather-alert mood">💬 '+line+'</span>';
