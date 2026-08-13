@@ -1001,8 +1001,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="fatal-error" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#E25C5C;color:#fff;padding:10px 14px;font-size:12px;line-height:1.5;"></div>
 
 <script>
+// ============ Global error capture ============
+// Any uncaught JS error is shown as a red banner so we can debug remotely from a screenshot.
+window.addEventListener('error',function(e){
+  var el=document.getElementById('fatal-error');
+  if(!el)return;
+  var msg=(e.message||String(e.error||'unknown error'));
+  var line=(e.lineno?(' @'+e.lineno):'');
+  el.textContent='⚠️ JS 错误: '+msg+line;
+  el.style.display='block';
+});
+window.addEventListener('unhandledrejection',function(e){
+  var el=document.getElementById('fatal-error');
+  if(!el)return;
+  var r=e.reason||{};
+  el.textContent='⚠️ Promise 错误: '+(r&&r.message?r.message:String(r));
+  el.style.display='block';
+});
+function safeRun(fn){
+  try{return fn();}catch(err){
+    console.error('[safeRun]',err);
+    var el=document.getElementById('fatal-error');
+    if(el){el.textContent='⚠️ 渲染错误: '+(err&&err.message?err.message:String(err));el.style.display='block';}
+  }
+}
 // ============ Data ============
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
@@ -2275,15 +2300,16 @@ function openTrip(id){
   // device holds: current trip id, local trip count, current day index, and locations.
   var diagEl=document.getElementById('td-diag');
   if(diagEl){
-    var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · day '+(currentTripDay+1)+'/'+((t.days&&t.days.length)||0)+' · 本行程 '+countLocations(t)+' 地点';
+    var per=t.days.map(function(d,i){return 'D'+(i+1)+':'+(d?(d.locations||[]).length:'-');}).join(' ');
+    var diag='id '+(t.id||'').slice(-12)+' · 本地行程 '+(data.trips||[]).length+' 个 · day '+(currentTripDay+1)+'/'+((t.days&&t.days.length)||0)+' · 本行程 '+countLocations(t)+' 地点 ['+per+']';
     diagEl.textContent=diag;
     diagEl.style.display='block';
   }
-  renderOpenTripChrome(t);
-  renderDayPills();
-  renderTimeline();
-  renderTripDetailExtras();
-  refreshTripDayWeather();
+  safeRun(function(){renderOpenTripChrome(t);});
+  safeRun(function(){renderDayPills();});
+  safeRun(function(){renderTimeline();});
+  safeRun(function(){renderTripDetailExtras();});
+  safeRun(function(){refreshTripDayWeather();});
   // Always pull fresh data when opening a trip so a freshly-installed device sees the latest cloud copy
   if(typeof syncPull==='function'){
     var beforeCount=getAllLocations(t).length;
@@ -2292,10 +2318,10 @@ function openTrip(id){
       var t2=data.trips.find(function(x){return x.id===currentTripId;});
       if(!t2)return;
       ensureTripDays(t2);
-      renderDayPills();
-      renderTimeline();
-      renderTripDetailExtras();
-      refreshTripDayWeather();
+      safeRun(function(){renderDayPills();});
+      safeRun(function(){renderTimeline();});
+      safeRun(function(){renderTripDetailExtras();});
+      safeRun(function(){refreshTripDayWeather();});
       updateTripDiag();
       return getAllLocations(t2).length;
     };
