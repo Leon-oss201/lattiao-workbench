@@ -1009,7 +1009,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <script>
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v39';
+var APP_VERSION='v40';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3376,32 +3376,40 @@ function importData(e){
   e.target.value='';
 }
 function forceResync(){
+  // The user-facing "立即从云端拉取" button. Some users had the syncPull path
+  // silently bail out (network blocked, sha cache stale, etc.) leaving them
+  // stuck on an older local snapshot. To guarantee they get the latest cloud
+  // copy with all photos/guides, this now runs the same hard-reset logic as
+  // forceRescue: wipe local trip data and ghCache, then rebuild from cloud.
   closeModal('settings-modal');
-  showToast('正在拉取云端…');
-  if(confirm('拉取会用云端数据与本地合并（取最新和最多照片），确定吗？')){
-    if(data.tombstones){data.tombstones={};saveDataLocal();}
-    // CRITICAL: reset the incremental pull cache so we always re-download the
-    // full cloud body. Without this, syncPull may short-circuit on a stale sha
-    // and miss the latest photos the collaborator added.
-    GH.lastSha=null;
-    GH.shaCache=null;
-    GH.tokenInvalid=false;
-    GH.tokenWarned=false;
-    GH.pullBackoff=0;
-    GH.nextPullAt=0;
-    // Works even without a token (GitHub API allows anonymous reads on public repos)
-    syncPull(true).then(function(){
-      repairTrips();
-      saveDataLocal();
-      renderAll();
-      if(currentTripId){
-        var t=data.trips.find(function(x){return x.id===currentTripId;});
-        if(t){openTrip(t.id);}
-      }
-      var n=getAllLocations(data.trips.find(function(x){return x.id===currentTripId;})||data.trips[0]).length;
-      showToast('已从云端拉取（'+n+' 个地点）');
-    }).catch(function(){showToast('拉取失败，请检查网络或 Token');});
-  }
+  showToast('正在从云端完整恢复…');
+  // Reset every incremental-pull cache before we even try.
+  GH.lastSha=null;
+  GH.shaCache=null;
+  GH.tokenInvalid=false;
+  GH.tokenWarned=false;
+  GH.pullBackoff=0;
+  GH.nextPullAt=0;
+  GH.lastPushFp=null;
+  ghReadTrips().then(function(remote){
+    if(!remote||!remote.trips){showToast('云端暂无数据，请检查网络');return;}
+    try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
+    try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
+    var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{}};
+    if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
+    data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
+    repairTrips();
+    saveDataLocal();
+    ghCacheWrite(remote);
+    var locCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){locCount+=(d.locations||[]).length;});
+    var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=(l.photos||[]).length;});});
+    showToast('已同步 '+locCount+' 个地点 · '+photoCount+' 张照片');
+    setTimeout(function(){location.reload();},800);
+  }).catch(function(e){
+    console.error('forceResync failed',e);
+    showToast('恢复失败：'+(e&&e.message?e.message:'未知错误'));
+  });
 }
 function forcePush(){
   if(!ghHasToken()){showToast('请先配置 Token');return;}
