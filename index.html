@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v45';
+var APP_VERSION='v46';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1372,13 +1372,32 @@ function ghReadTrips(){
       var cache=ghCacheRead();
       if(cache&&cache.data&&cache.data.updatedAt)lastGoodTs=Date.parse(cache.data.updatedAt)||0;
     }catch(e){}
+    // 90s CDN timeout: cdn.jsdelivr.net is the only mirror that returns the
+    // FULL file (others truncate to 1.2MB and the GitHub Contents API >1MB
+    // returns content=null). A 4-photo trip is ~3MB; a 30+ photo trip is ~10MB,
+    // and jsDelivr takes ~30s from China. Anything less than 90s has been
+    // failing for users mid-trip.
     var tryBase=function(i){
       if(i>=bases.length)return Promise.reject(new Error('cdn exhausted'));
-      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,20000)
+      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,90000)
         .then(function(r){
           if(r.status===404)return null;
           if(!r.ok)throw new Error('cdn '+r.status);
-          return r.json();
+          return r.text();
+        })
+        .then(function(text){
+          if(!text)return null;
+          // Truncated mirrors (gcore, fastly) cap responses at 1.2MB → JSON.parse
+          // fails. Guard against that BEFORE attempting to use the body, so we
+          // don't get a half-corrupted trips.json merged into local data.
+          if(text.length<500000){
+            console.warn('[cdn]',bases[i],'truncated to',text.length,'bytes — skipping');
+            return tryBase(i+1);
+          }
+          try{return JSON.parse(text);}catch(parseErr){
+            console.warn('[cdn]',bases[i],'parse failed:',parseErr.message,'— skipping');
+            return tryBase(i+1);
+          }
         })
         .then(function(data){
           if(!data)return null;
@@ -1394,14 +1413,16 @@ function ghReadTrips(){
     };
     return tryBase(0);
   };
-  return readApiJson().catch(function(){
-    // Second attempt: if our first failure was because the token is dead, retry
-    // readApiRaw without any Authorization header. The repo is public so this
-    // still works — and it's the only way to bypass a token that GitHub revoked.
-    return readApiRaw(true).catch(function(){
-      return readApiRaw(false);
-    }).catch(function(){
-      return readCdn();
+  // Read priority order is now CDN-first: cdn.jsdelivr.net is the only mirror
+  // that returns the FULL 3.9MB file (others truncate to 1.2MB and the GitHub
+  // Contents API >1MB returns content=null). Pulling from CDN first means we
+  // typically succeed in ~30s instead of failing for 2 minutes and falling
+  // back to a stale or truncated copy. The GitHub API paths are still used
+  // to (a) record the latest sha so future syncs can short-circuit, and
+  // (b) get a fresh-enough file if the CDN cache is stale.
+  return readCdn().catch(function(){
+    return readApiJson().catch(function(){
+      return readApiRaw(true).catch(function(){return readApiRaw(false);});
     });
   });
 }
@@ -3537,7 +3558,7 @@ function forceResync(){
   // copy with all photos/guides, this now runs the same hard-reset logic as
   // forceRescue: wipe local trip data and ghCache, then rebuild from cloud.
   closeModal('settings-modal');
-  showToast('正在从云端完整恢复…');
+  showToast('正在从云端拉取（首次可能需要 30–90 秒）…');
   // Reset every incremental-pull cache before we even try.
   GH.lastSha=null;
   GH.shaCache=null;
@@ -3547,7 +3568,7 @@ function forceResync(){
   GH.nextPullAt=0;
   GH.lastPushFp=null;
   ghReadTrips().then(function(remote){
-    if(!remote||!remote.trips){showToast('云端暂无数据，请检查网络');return;}
+    if(!remote||!remote.trips){showToast('拉取失败：云端无响应。请检查网络后重试。');return;}
     try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
@@ -3563,7 +3584,7 @@ function forceResync(){
     setTimeout(function(){location.reload();},800);
   }).catch(function(e){
     console.error('forceResync failed',e);
-    showToast('恢复失败：'+(e&&e.message?e.message:'未知错误'));
+    showToast('恢复失败：'+(e&&e.message?e.message:'网络超时，请稍后再试'));
   });
 }
 function forcePush(){
