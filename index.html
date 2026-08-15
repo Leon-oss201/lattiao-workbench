@@ -1060,7 +1060,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v64';
+var APP_VERSION='v65';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1079,6 +1079,8 @@ function loadData(){
     var raw=localStorage.getItem(STORAGE_KEY);
     if(raw){var d=JSON.parse(raw);if(d)Object.assign(data,d);}
     if(!data.settings) data.settings={};
+    if(!data.tombstones) data.tombstones={};
+    if(!data.locTombstones) data.locTombstones={};
     if(typeof data.settings.heroTitle==='undefined') data.settings.heroTitle='杭州旅行计划';
     // MergeTrips keys on trip id. If two devices independently created a trip with the
     // same title+destination+startDate the ids won't match — we'd keep two trips, one
@@ -1364,14 +1366,23 @@ function ghReadTrips(){
         if(!m)return null;
         // ALWAYS remember the cloud sha, even if content was stripped (>1MB).
         // The next sync can then short-circuit on sha match without re-downloading.
-        if(m.sha)GH.lastSha=m.sha;
-        // Incremental pull: if the cloud file sha is unchanged since the last
-        // successful pull, skip re-downloading the (potentially MB-sized) body.
-        if(m.sha&&m.sha===GH.lastSha)return {skip:true,sha:m.sha};
+        // FIX (v65): compare BEFORE assigning. The old order assigned GH.lastSha=m.sha
+        // first and then compared m.sha===GH.lastSha — always true — so EVERY pull
+        // short-circuited with {skip:true} and text data could never be fetched from
+        // the API path (fresh devices / forceResync stayed empty until the slow 120s
+        // raw fallback finally succeeded).
+        if(m.sha){
+          if(m.sha===GH.lastSha)return {skip:true,sha:m.sha};
+          GH.lastSha=m.sha;
+        }
         // Files >1MB come back with content=null — fall through to the raw route.
         if(!m.content)throw new Error('oversized');
         var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
-        return json;
+        // FIX (v65): parse to an OBJECT. Returning the raw string made syncPull
+        // see remote.trips === undefined and silently skip the merge — "synced"
+        // status with NO new data ever applied (friend's new locations/photos
+        // never appeared on the other device).
+        try{return JSON.parse(json);}catch(e){throw new Error('api json parse');}
       });
   };
   var readApiRaw=function(useToken){
@@ -1523,6 +1534,23 @@ function isGarbled(s){
     if(c>=0x80&&c<=0xFF)n++;
   }
   return n>=2&&(n/s.length)>0.5;
+}
+// v65: remove locations that carry a tombstone (deleted on another device).
+// Bumps trip.updatedAt so this device re-pushes the deletion — otherwise a
+// collaborator could re-upload a deleted location during a later merge.
+function applyLocTombstonesToTrips(trips,lt){
+  if(!lt)return;
+  trips.forEach(function(t){
+    var removedAny=false;
+    (t.days||[]).forEach(function(d){
+      if(d&&d.locations){
+        var before=d.locations.length;
+        d.locations=d.locations.filter(function(l){return !(l&&lt[l.id]);});
+        if(d.locations.length<before)removedAny=true;
+      }
+    });
+    if(removedAny)t.updatedAt=new Date().toISOString();
+  });
 }
 function mergeTrips(localTrips,remoteTrips){
   if(!remoteTrips)return localTrips;
@@ -1684,6 +1712,21 @@ function syncPull(force){
         // Drop tombstoned trips from local trips
         data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
       }
+      // v65: absorb location tombstones (a location deleted on another device)
+      // and remove those locations locally BEFORE mergeTrips — mergeTrips only
+      // adds/merges locations, so a deleted location would otherwise keep
+      // reappearing on this device forever.
+      if(remote.locTombstones&&typeof remote.locTombstones==='object'){
+        if(!data.locTombstones)data.locTombstones={};
+        Object.keys(remote.locTombstones).forEach(function(lid){
+          if(!data.locTombstones[lid]||remote.locTombstones[lid]>data.locTombstones[lid]){
+            data.locTombstones[lid]=remote.locTombstones[lid];
+          }
+        });
+      }
+      if(data.locTombstones){
+        applyLocTombstonesToTrips(data.trips,data.locTombstones);
+      }
       var merged=mergeTrips(data.trips,remote.trips);
       data.trips=merged; // assign before repair so repair normalizes dates/days
       dedupeTrips();     // collapse dupes created by independent trip ids on different devices
@@ -1817,7 +1860,7 @@ function buildPhotoChunks(t){
 }
 function buildTextPayload(){
   var now=new Date().toISOString();
-  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
+  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{}};
   data.trips.forEach(function(t){
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
@@ -1835,8 +1878,14 @@ function buildTextPayload(){
 // ---- IndexedDB photo store (photos are too big for localStorage) ----
 var photoDBName='lattiao_photos_v1';
 var photoDB=null;
+var photoDBPromise=null;
 function photoDBOpen(){
-  return new Promise(function(resolve,reject){
+  // v65: cache the PROMISE, not just the db. prefetchAllTripPhotos fires many
+  // concurrent ensureLocationPhotos → photoCacheGet calls; without a shared
+  // promise every call re-ran indexedDB.open() and raced on the same upgrade,
+  // which could leave some calls hanging (photos never appeared automatically).
+  if(photoDBPromise)return photoDBPromise;
+  photoDBPromise=new Promise(function(resolve,reject){
     if(photoDB){resolve(photoDB);return;}
     if(typeof indexedDB==='undefined'){reject(new Error('no idb'));return;}
     var req=indexedDB.open(photoDBName,1);
@@ -1845,8 +1894,9 @@ function photoDBOpen(){
       if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos',{keyPath:'key'});
     };
     req.onsuccess=function(){photoDB=req.result;resolve(photoDB);};
-    req.onerror=function(){reject(req.error);};
+    req.onerror=function(){photoDBPromise=null;reject(req.error);};
   });
+  return photoDBPromise;
 }
 function photoCachePut(locKey,photos){
   return photoDBOpen().then(function(db){
@@ -1859,14 +1909,26 @@ function photoCachePut(locKey,photos){
   }).catch(function(){});
 }
 function photoCacheGet(locKey){
-  return photoDBOpen().then(function(db){
-    return new Promise(function(resolve){
-      var tx=db.transaction('photos','readonly');
-      var r=tx.objectStore('photos').get(locKey);
-      r.onsuccess=function(){resolve(r.result?r.result.photos:null);};
-      r.onerror=function(){resolve(null);};
+  // v65: 4s timeout fallback. If the IndexedDB transaction never fires its
+  // callbacks (can happen under heavy concurrent access / on some browsers),
+  // resolve null so ensureLocationPhotos proceeds to the remote chunks instead
+  // of hanging forever with no photos ever appearing.
+  return new Promise(function(resolve){
+    var done=false;
+    var timer=setTimeout(function(){if(!done){done=true;resolve(null);}},4000);
+    photoDBOpen().then(function(db){
+      return new Promise(function(res){
+        var tx=db.transaction('photos','readonly');
+        var r=tx.objectStore('photos').get(locKey);
+        r.onsuccess=function(){res(r.result?r.result.photos:null);};
+        r.onerror=function(){res(null);};
+      });
+    }).then(function(v){
+      if(!done){done=true;clearTimeout(timer);resolve(v);}
+    }).catch(function(){
+      if(!done){done=true;clearTimeout(timer);resolve(null);}
     });
-  }).catch(function(){return null;});
+  });
 }
 function photoCacheDel(locKey){
   return photoDBOpen().then(function(db){
@@ -2028,7 +2090,12 @@ function syncPushNow(){
       // to skip uploads of chunks we already pushed for this trip.
       return photoChunks.reduce(function(chain,chunk){
         return chain.then(function(){
-          var fp2=tripsFingerprint(chunk.data);
+          // FIX (v65): chunk.data is {photos:[...]}, NOT a trips array —
+          // tripsFingerprint() calls .map() on it and threw
+          // "trips.map is not a function", which aborted the whole chunk
+          // upload loop silently (photos never reached the cloud even though
+          // trips.json text synced fine).
+          var fp2=JSON.stringify(chunk.data);
           if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2)return Promise.resolve();
           // chunk file may already exist on GitHub → must pass its sha or PUT 422s
           return ghGetSha(chunk.path).then(function(sha){
@@ -3163,6 +3230,13 @@ function deleteLocation(idx){
   if(!confirm('删除这个地点？'))return;
   var removed=day.locations[idx];
   day.locations.splice(idx,1);
+  // v65: record a location tombstone so the delete propagates to collaborators
+  // (mergeTrips only ever ADDS/merges locations; without a tombstone the deleted
+  // location would keep reappearing on other devices forever).
+  if(removed&&removed.id){
+    if(!data.locTombstones)data.locTombstones={};
+    data.locTombstones[removed.id]=Date.now();
+  }
   // v47+: also drop the location's photo cache + its remote chunk files
   if(removed&&removed.id&&typeof photoCacheDel==='function'){
     photoCacheDel(locPhotoKey(t.id,removed.id));
@@ -4055,9 +4129,11 @@ function forceResync(){
     try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{}};
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
+    if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
     data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
+    applyLocTombstonesToTrips(data.trips,data.locTombstones);
     repairTrips();
     saveDataLocal();
     ghCacheWrite(remote);
@@ -4148,10 +4224,12 @@ function forceRescue(){
     GH.pullBackoff=0;GH.nextPullAt=0;GH.tokenInvalid=false;
     // 2) rebuild an empty state, keeping the user's settings
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{}};
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
+    if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
     // 3) adopt the healthy cloud copy directly (no merge)
     data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
+    applyLocTombstonesToTrips(data.trips,data.locTombstones);
     repairTrips();
     saveDataLocal();
     ghCacheWrite(remote);
