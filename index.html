@@ -982,7 +982,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
       <input class="form-input" id="set-token" type="password" placeholder="github_pat_ 开头">
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">填入后即可多人同步 & 分享行程。留空则只读模式。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--primary);">去生成</a></div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步 &amp; 分享行程。留空则只读模式。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--primary);">去生成 Token</a><br>生成步骤：① 登录 GitHub → 右上角头像 → Settings → Developer settings → Fine-grained tokens → Generate new token ② Token name 随便填，Repository access 选「Only select repositories」→ 勾选 lattiao-workbench ③ Permissions → Repository permissions → Contents 选「Read and write」④ 点 Generate token，复制 github_pat_ 开头的字符串粘贴到上面。两人填同一个仓库的 Token 即可互相同步。</div>
     </div>
     <div class="form-row" style="display:flex;gap:8px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
@@ -1005,6 +1005,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <button class="btn btn-ghost" style="flex:1;" onclick="exportLocalState()">⬇️ 导出本地数据</button>
     </div>
     <div style="font-size:11px;color:var(--text-light);margin-top:0;line-height:1.5;">遇到数据异常时，把这份数据贴给我，我能立刻看到 days/locations 真实分布并精确定位 bug。</div>
+    <div class="form-row" style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-ghost" style="flex:1;background:#F0FDF4;color:#166534;font-weight:600;" onclick="exportFullBackup()">💾 导出完整备份（含照片）</button>
+      <button class="btn btn-ghost" style="flex:1;background:#EFF6FF;color:#1D4ED8;font-weight:600;" onclick="document.getElementById('import-backup-input').click()">📥 导入备份</button>
+    </div>
+    <input type="file" id="import-backup-input" accept=".json,application/json" style="display:none;" onchange="importFullBackup(this)">
+    <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
     <div class="modal-actions">
       <button class="btn btn-danger" onclick="clearAll()">清空所有</button>
       <button class="btn btn-ghost" onclick="closeModal('settings-modal')">取消</button>
@@ -1048,9 +1054,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         if(!latest)return;
         var latestN=parseInt(latest.replace(/\D/g,''),10)||0;
         if(latestN>myVer){
-          console.warn('[updater] found newer build',latest,'current',APP_VERSION,'— reloading');
-          showToast('发现新版本 '+latest+'，正在更新…');
-          setTimeout(function(){location.reload();},600);
+          console.warn('[updater] found newer build',latest,'current',APP_VERSION);
+          showUpdateBanner(latest);
         }
       }).catch(function(e){console.warn('version check failed',e);});
     }catch(e){console.warn('version check error',e);}
@@ -1058,9 +1063,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   // Check after first paint + again after a short delay (covers slow networks).
   window.addEventListener('load',function(){setTimeout(check,800);setTimeout(check,6000);});
 })();
+// v66: show a tappable banner when a newer build exists (instead of auto-reloading
+// mid-use, which could interrupt the user while typing/editing).
+var UPDATE_BANNER_SHOWN=false;
+function showUpdateBanner(latest){
+  if(UPDATE_BANNER_SHOWN)return;
+  UPDATE_BANNER_SHOWN=true;
+  try{
+    if(document.getElementById('update-banner'))return;
+    var bar=document.createElement('div');
+    bar.id='update-banner';
+    bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;max-width:480px;margin:0 auto;background:linear-gradient(135deg,#7C3AED,#FF8C42);color:#fff;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(124,58,237,.35);cursor:pointer;';
+    bar.innerHTML='✨ 发现新版本 '+latest+'<span style="margin-left:auto;background:rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-size:12px;">点击刷新</span>';
+    bar.onclick=function(){location.reload();};
+    document.body.appendChild(bar);
+  }catch(e){console.warn('update banner error',e);}
+}
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v65';
+var APP_VERSION='v66';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1285,7 +1306,8 @@ var GH={
   payloadStripped:false, // true when the last push dropped photos to stay under the size cap
   payloadWarned:false,   // one-time toast flag so we don't nag the user on every sync
   tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
-  tokenWarned:false      // one-time toast flag for the token hint
+  tokenWarned:false,     // one-time toast flag for the token hint
+  mergeConflicts:0       // v66: count of same-location edits by both sides in the last merge
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -1600,6 +1622,13 @@ function mergeTrips(localTrips,remoteTrips){
           // sides so pictures added by either collaborator are all visible.
           var mergedLoc=JSON.parse(JSON.stringify(l));
           var oldLoc=locMap[l.id];
+          // v66: count real conflicts (both sides edited the same text field) so
+          // the UI can tell the user the merge actually happened.
+          if(oldLoc&&!GH._counting){
+            if((oldLoc.name||'')!==(mergedLoc.name||'')||(oldLoc.guide||'')!==(mergedLoc.guide||'')||(oldLoc.feeling||'')!==(mergedLoc.feeling||'')){
+              GH.mergeConflicts=(GH.mergeConflicts||0)+1;
+            }
+          }
           if(oldLoc&&oldLoc.photos&&oldLoc.photos.length){
             if(mergedLoc.photos&&mergedLoc.photos.length){
               var pset={};
@@ -1735,6 +1764,13 @@ function syncPull(force){
       if(changed)saveDataLocal();
       renderAll();
       GH.lastSync=Date.now();setSyncStatus('synced');
+      // v66: tell the user when both sides edited the same location (merge happened)
+      if(GH.mergeConflicts>0){
+        var cf=GH.mergeConflicts;
+        GH.mergeConflicts=0;
+        showToast('检测到 '+cf+' 处双方同时修改，已自动合并');
+      }
+      GH.mergeConflicts=0;
       // v47+: text is in trips.json, photos in separate chunk files. Kick off a
       // background load of the current trip's photos so timelines/maps show them
       // shortly after opening, without blocking the text sync.
@@ -2043,6 +2079,34 @@ function prefetchTripPhotos(t){
   });
   if(!jobs.length)return;
   Promise.all(jobs).then(function(){
+    // v66: retry once (30s later) any location whose photos failed to load —
+    // a transient network blip shouldn't leave photos missing forever.
+    var failed=[];
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.id&&(l._photoCount||0)>0&&(!l.photos||!l.photos.length))failed.push(l);
+      });
+    });
+    if(failed.length){
+      setTimeout(function(){
+        var retryJobs=[];
+        failed.forEach(function(l){
+          retryJobs.push(ensureLocationPhotos(t.id,l,false).then(function(photos){
+            if(photos&&photos.length){
+              try{saveDataLocal();}catch(e){}
+            }
+          }).catch(function(){}));
+        });
+        Promise.all(retryJobs).then(function(){
+          var active=document.querySelector('.page.active');
+          if(active){
+            if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
+            else if(active.id==='page-calendar')renderCal();
+            else if(active.id==='page-trips')renderTrips();
+          }
+        }).catch(function(){});
+      },30000);
+    }
     // Re-render whatever is on screen (trip detail, calendar, or home thumbnails)
     var active=document.querySelector('.page.active');
     if(active){
@@ -2218,15 +2282,17 @@ function syncStart(){
   // we'd burn the 60 req/h anonymous limit, so stay at 120s.
   if(ghHasToken()&&!GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
+    // v66: 30s polling (was 60s) — collaborators' edits arrive up to 2x faster.
+    // Free GitHub token allows 5000 req/h, two devices @30s ≈ 240/h, well within.
     GH.syncTimer=setInterval(function(){
       syncPull();
       // v63: periodic photo reconciliation — re-upload any local photo whose
       // cloud chunk is missing (throttled to 15 min inside the function).
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
-    },60000);
+    },30000);
   }else if(ghHasToken()&&GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
-    GH.syncTimer=setInterval(function(){syncPull();},120000);
+    GH.syncTimer=setInterval(function(){syncPull();},60000);
   }
   // Mobile browsers suspend timers in the background — pull as soon as the user
   // returns to the app, but only on the trip-detail page (where it actually matters).
@@ -2248,8 +2314,24 @@ function setSyncStatus(s){
   var el=document.getElementById('sync-indicator');
   if(el){
     var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败',retrying:'🔄 重试中…'};
-    el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
-    el.title='点击立即同步';
+    if(s==='synced'){
+      // v66: sync summary — show what was actually synced
+      var locCount=0,photoCount=0;
+      (data.trips||[]).forEach(function(t){
+        (t.days||[]).forEach(function(d){
+          (d.locations||[]).forEach(function(l){
+            locCount++;
+            photoCount+=((l._photoCount||0)+(l.photos||[]).length);
+          });
+        });
+      });
+      el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoCount+' 照片'):'✅ 已同步';
+      el.className='sync-indicator sync-synced';
+      el.title='点击立即同步';
+    }else{
+      el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
+      el.title='点击立即同步';
+    }
   }
 }
 
@@ -2871,7 +2953,7 @@ function renderCalLocationDetails(l){
   var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
   var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
   var html='';
-  var hasAny=l.guide||l.feeling||(l.photos&&l.photos.length)||(l.budget&&l.budget.items&&l.budget.items.length);
+  var hasAny=l.guide||l.feeling||(l.photos&&l.photos.length)||l._photoCount||(l.budget&&l.budget.items&&l.budget.items.length);
   if(!hasAny)return'';
   html+='<div style="margin-top:8px;padding:10px;background:#FAF5FF;border-radius:10px;font-size:12px;color:var(--text-sec);line-height:1.6;">';
   if(l.guide)html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📖 攻略</b> '+escapeHTML(l.guide)+'</div>';
@@ -2880,6 +2962,12 @@ function renderCalLocationDetails(l){
     html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📷 照片</b></div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">'+
       l.photos.map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
+      '</div>';
+  }else if(l._photoCount>0){
+    // v66: photo placeholder while chunks are still loading
+    html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📷 照片</b></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">'+
+      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#EDE9FE,#F5F3FF);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">📷 '+l._photoCount+'</div>'+
       '</div>';
   }
   if(l.budget&&l.budget.items&&l.budget.items.length){
@@ -2960,8 +3048,8 @@ function openTripModal(id){
 }
 function handleCoverUpload(e){
   var f=e.target.files[0];if(!f)return;
-  compressImage(f,1200,0.65,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});
-}
+  // v66: on slow networks compress harder so uploads are faster
+  compressImage(f,isSlowNet()?800:1200,isSlowNet()?0.5:0.65,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});}
 function saveTrip(){
   var budgetInput=document.getElementById('tm-budget').value;
   var tripBudget=budgetInput===''?null:parseFloat(budgetInput)||0;
@@ -3170,6 +3258,11 @@ function renderTimeline(){
         l.photos.slice(0,4).map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img loading="lazy" src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
         (l.photos.length>4?'<div style="aspect-ratio:1;border-radius:6px;background:#FAF5FF;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">+'+(l.photos.length-4)+'</div>':'')+
         '</div>';
+    }else if(l._photoCount>0){
+      // v66: loading placeholder — photos will swap in when prefetch finishes
+      photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
+        '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#EDE9FE,#F5F3FF);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">📷 '+l._photoCount+'</div>'+
+        '</div>';
     }
     html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')">'+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
@@ -3312,7 +3405,8 @@ function handleLocationPhotoUpload(e){
   var files=Array.from(e.target.files||[]);
   if(!files.length)return;
   files.forEach(function(f){
-    compressImage(f,1200,0.65,function(d){lmPhotos.push(d);renderLocationModalPhotos();});
+    // v66: slow network → smaller + lower quality so uploads complete faster
+    compressImage(f,isSlowNet()?800:1200,isSlowNet()?0.5:0.65,function(d){lmPhotos.push(d);renderLocationModalPhotos();});
   });
   e.target.value='';
 }
@@ -4011,6 +4105,99 @@ function exportLocalState(){
   a.href=url;a.download='lattiao-dump-'+new Date().toISOString().slice(0,10)+'.json';
   a.click();URL.revokeObjectURL(url);
   showToast('已导出本地数据');
+}
+// v66: full backup with photos. Ensures every location's photos are loaded into
+// memory (IndexedDB cache or remote chunks) before serializing, so the backup
+// file is a complete, restorable copy of the entire workspace.
+function exportFullBackup(){
+  closeModal('settings-modal');
+  showToast('正在打包备份（含照片）…');
+  var jobs=[];
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.id&&(l._photoCount||0)>0&&(!l.photos||!l.photos.length)){
+          jobs.push(ensureLocationPhotos(t.id,l,false).catch(function(){return [];}));
+        }
+      });
+    });
+  });
+  // Wait for photos to fill in, but don't block forever on slow networks (12s cap).
+  var done=function(){
+    try{
+      var payload={type:'lattiao-full-backup',app:APP_VERSION||'v4',exportedAt:new Date().toISOString(),
+        data:{trips:data.trips,guides:data.guides||[],favorites:data.favorites||[],tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},settings:data.settings||{}}};
+      var blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;a.download='lattiao-backup-'+new Date().toISOString().slice(0,10)+'.json';
+      a.click();URL.revokeObjectURL(url);
+      var photoN=0;(data.trips||[]).forEach(function(t){(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoN+=(l.photos||[]).length;});});});
+      showToast('备份已导出（含 '+photoN+' 张照片）');
+    }catch(e){showToast('导出失败：'+e.message);}
+  };
+  if(!jobs.length){done();return;}
+  var t0=Date.now();
+  Promise.all(jobs).then(function(){
+    // still allow a tiny settle for photoCachePut
+    setTimeout(done,300);
+  }).catch(function(){
+    if(Date.now()-t0>12000){done();return;}
+    setTimeout(done,300);
+  });
+  // hard cap: never wait longer than 12s total
+  setTimeout(function(){done();},12000);
+}
+// v66: restore a full backup file. Replaces current data and writes photos into
+// IndexedDB, then pushes the restored state to the cloud so every device sees it.
+function importFullBackup(input){
+  var f=input&&input.files&&input.files[0];
+  if(!f)return;
+  if(!confirm('导入备份将覆盖当前所有数据（行程/攻略/照片）。建议先导出当前备份。确定继续？')){input.value='';return;}
+  showToast('正在读取备份…');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var obj=JSON.parse(e.target.result);
+      var d=obj&&obj.data?obj.data:(obj&&obj.trips?obj:{trips:[]});
+      if(!d||!Array.isArray(d.trips)){showToast('备份文件格式不正确');input.value='';return;}
+      // sanity check: must have at least one trip or be explicitly empty
+      data.trips=d.trips||[];
+      data.guides=d.guides||[];
+      data.favorites=d.favorites||[];
+      data.tombstones=d.tombstones||{};
+      data.locTombstones=d.locTombstones||{};
+      if(d.settings&&d.settings.city){data.settings=d.settings;}
+      repairTrips();
+      saveDataLocal();
+      // write photos into IndexedDB so they survive a reload
+      var jobs=[];
+      (data.trips||[]).forEach(function(t){
+        (t.days||[]).forEach(function(dd){
+          (dd.locations||[]).forEach(function(l){
+            if(l&&l.id&&l.photos&&l.photos.length){
+              jobs.push(photoCachePut(locPhotoKey(t.id,l.id),l.photos.slice()));
+            }
+          });
+        });
+      });
+      Promise.all(jobs).then(function(){
+        showToast('导入完成，正在同步到云端…');
+        renderAll();
+        if(ghHasToken()){if(typeof window.syncPushNow==='function')window.syncPushNow();}
+        else{showToast('导入完成（未配置 Token，仅保存在本机）');}
+      }).catch(function(){
+        showToast('导入完成（照片缓存写入失败，稍后会自动重新下载）');
+        if(ghHasToken()&&typeof window.syncPushNow==='function')window.syncPushNow();
+      });
+      input.value='';
+    }catch(err){
+      console.error('import err',err);
+      showToast('导入失败：文件无法解析');
+      input.value='';
+    }
+  };
+  reader.readAsText(f);
 }
 
 // ============ Settings / Love ============
