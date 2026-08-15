@@ -989,6 +989,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()">☁️ 立即推送本地</button>
     </div>
     <div class="form-row">
+      <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent);font-weight:600;" onclick="onlyPullPhotos()">📷 仅拉取照片（不重置行程数据）</button>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果只是日历/行程里看不到照片（但文字攻略、行程卡都在），点这个按钮直接从云端下载照片块，不动本地其他数据。</div>
+    </div>
+    <div class="form-row">
       <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果文字乱码/数据异常，点这个按钮会清除手机上的本地数据缓存，然后从云端重新下载正确数据。已同步到云端的内容不会丢。</div>
     </div>
@@ -1052,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v48';
+var APP_VERSION='v49';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3819,6 +3823,36 @@ function forceResync(){
   }).catch(function(e){
     console.error('forceResync failed',e);
     showToast('拉取失败：网络不佳。本地数据已保留。');
+  });
+}
+function onlyPullPhotos(){
+  closeModal('settings-modal');
+  showToast('正在拉取所有云端照片块…');
+  var jobs=[];
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.id&&((l._photoCount||0)>0||(l.photos||[]).length)){
+          // forceRemote=true skips the IndexedDB cache and goes straight to cloud chunks
+          jobs.push(ensureLocationPhotos(t.id,l,true).catch(function(){return [];}));
+        }
+      });
+    });
+  });
+  if(!jobs.length){showToast('当前没有需要拉取的照片');return;}
+  Promise.all(jobs).then(function(){
+    var total=0;
+    (data.trips||[]).forEach(function(t){(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){total+=(l.photos||[]).length;});});});
+    showToast('已拉取 '+total+' 张照片');
+    var active=document.querySelector('.page.active');
+    if(active){
+      if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
+      else if(active.id==='page-calendar')renderCal();
+      else if(active.id==='page-trips')renderTrips();
+      else renderHome();
+    }
+  }).catch(function(e){
+    showToast('拉取失败：'+(e&&e.message?e.message:'网络异常'));
   });
 }
 function forcePush(){
