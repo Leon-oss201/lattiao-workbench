@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v53';
+var APP_VERSION='v54';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1482,8 +1482,15 @@ function ghDeleteFile(path){
   });
 }
 function ghReadShared(shareId){
-  return fetch(GH.rawBase+'data/shared/'+shareId+'.json?t='+Date.now()).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+  // Try raw.githubusercontent first, then jsDelivr CDN (CN-friendly).
+  var raw=function(){
+    return fetch(GH.rawBase+'data/shared/'+shareId+'.json?t='+Date.now()).then(function(r){
+      if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+    });
+  };
+  return raw().catch(function(){
+    return ghFetchTimeout(GH.cdnBase+'data/shared/'+shareId+'.json?t='+Date.now(),null,20000)
+      .then(function(r){if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
   });
 }
 
@@ -3167,9 +3174,14 @@ function saveLocation(){
   }
   // v47+: keep the location's photos in IndexedDB (they're too big for
   // localStorage); trips.json stays text-only. Persist before push so a
-  // refresh mid-sync doesn't lose them.
-  if(loc.id&&loc.photos&&loc.photos.length){
-    if(typeof photoCachePut==='function')photoCachePut(locPhotoKey(t.id,loc.id),loc.photos.slice());
+  // refresh mid-sync doesn't lose them. If photos were removed (empty array)
+  // also drop the stale cached copy.
+  if(loc.id){
+    if(loc.photos&&loc.photos.length){
+      if(typeof photoCachePut==='function')photoCachePut(locPhotoKey(t.id,loc.id),loc.photos.slice());
+    }else if(typeof photoCacheDel==='function'){
+      photoCacheDel(locPhotoKey(t.id,loc.id));
+    }
   }
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
   t.updatedAt=new Date().toISOString();
@@ -3345,7 +3357,14 @@ function shareCurrentTrip(){
   if(!ghHasToken()){showToast('请先在设置中配置协作 Token');openSettings();return;}
   showToast('正在生成分享链接...');
   var shareId='s_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  // v47+: share a TEXT-ONLY copy (KB-size) so the shared file is small, never
+  // truncated by GitHub, and loads fast over raw.githubusercontent.com in CN.
+  // The reader's device pulls photo chunks from the cloud on open.
   var shareData=JSON.parse(JSON.stringify(t));
+  (shareData.days||[]).forEach(function(d){
+    (d.locations||[]).forEach(function(l){ if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];} });
+  });
+  if(shareData.photos)shareData.photos=[];
   shareData._sharedAt=new Date().toISOString();
   shareData._sharedBy=ghUserId();
   ghWriteFile('data/shared/'+shareId+'.json',shareData,'share: '+t.title,null).then(function(){
@@ -3379,6 +3398,8 @@ function initShareView(shareId){
     if(!trip){showToast('分享内容不存在或已过期');return;}
     data.trips=[trip];currentTripId=trip.id;
     showPage('trip-detail');viewTrip(trip.id);
+    // v47+: shared file is text-only — pull the trip's photo chunks from cloud
+    if(typeof prefetchTripPhotos==='function')prefetchTripPhotos(trip);
     var actions=document.querySelector('.td-actions');
     if(actions)actions.style.display='none';
     var back=document.querySelector('.td-back');
@@ -3730,7 +3751,7 @@ function dumpLocalState(){
     return o;
   }
   var summary={
-    version:'v28',
+    version:APP_VERSION||'v4',
     storageKey:STORAGE_KEY,
     dataTripsLen:(data.trips||[]).length,
     trips:(data.trips||[]).map(function(t){
