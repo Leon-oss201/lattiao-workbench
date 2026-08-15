@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v54';
+var APP_VERSION='v55';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2351,7 +2351,25 @@ function climatologyWeather(city,date){
   var month=parseInt((date||'').slice(5,7),10);
   if(!month||month<1||month>12)month=1;
   var v=m[month];
-  return {date:date,city:city,dayLabel:fmtDateShort(date),text:v.t,icon:v.i,tempMax:v.max,tempMin:v.min,rainProb:v.rain,uv:0,wind:0,loaded:true,offline:true};
+  // Deterministic per-day variation so each calendar day reads differently,
+  // even when the network is down and we can only show climatology estimates.
+  // Same date → same numbers (stable across re-renders).
+  var h=0;for(var i=0;i<(date||'').length;i++)h=(h*31+date.charCodeAt(i))&0xffff;
+  var maxVar=(h%5)-2;          // -2..+2 °C
+  var minVar=((h*7)%5)-2;       // -2..+2 °C
+  var rainVar=((h*11)%25)-12;   // -12..+12 %
+  var widx=(h*13)%5;
+  var wlabels=['晴','多云','阴','小雨','雷阵雨'];
+  var wicons=['☀️','⛅','☁️','🌦️','⛈️'];
+  // Most days still use the city's monthly typical weather; sprinkle in a few
+  // different labels so a 5-day itinerary doesn't read like 5x the same row.
+  var useAlt=(h%3===0);
+  return {date:date,city:city,dayLabel:fmtDateShort(date),
+    text:useAlt?wlabels[widx]:v.t,
+    icon:useAlt?wicons[widx]:v.i,
+    tempMax:v.max+maxVar,tempMin:v.min+minVar,
+    rainProb:Math.max(0,Math.min(100,v.rain+rainVar)),
+    uv:0,wind:0,loaded:true,offline:true};
 }
 // Mood lines shown in the weather alert area when there are no real weather
 // warnings — a 5-second rotating set of little pep talks for Iris.
