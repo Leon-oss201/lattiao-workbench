@@ -227,10 +227,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-day-pills .pill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 .td-day-pills .pill.active .pill-d{color:rgba(255,255,255,.8);}
 
-.td-weather{padding:10px 18px;background:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;}
-.td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;}
-.weather-alert{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;}
+.td-weather{padding:10px 18px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+.td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:1;}
+.td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;row-gap:4px;flex:1;min-width:0;}
+.weather-alert{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:normal;}
 .weather-alert.rain{background:#E0F2FE;color:#0369A1;}
 .weather-alert.uv{background:#FEF3C7;color:#B45309;}
 .weather-alert.hot{background:#FEE2E2;color:#B91C1C;}
@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v56';
+var APP_VERSION='v57';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
