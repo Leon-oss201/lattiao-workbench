@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v57';
+var APP_VERSION='v58';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1643,79 +1643,84 @@ function mergeTrips(localTrips,remoteTrips){
 function syncPull(force){
   if(GH.pulling)return Promise.resolve();
   if(GH.pushing)return Promise.resolve(); // don't pull while pushing — avoids race with deletes
-  var now=Date.now();
-  if(!force){
-    // Throttle: never pull more than once per 20s, and back off exponentially after failures
-    if(GH.nextPullAt&&now<GH.nextPullAt)return Promise.resolve();
-  }
-  GH.nextPullAt=now+20000;
-  GH.pulling=true;setSyncStatus('syncing');
-  return ghReadTrips().then(function(remote){
-    GH.pulling=false;
-    GH.pullBackoff=0;
-    // {skip:true} means the cloud sha matched our last pull — nothing changed, so
-    // skip the merge + re-render entirely (this is the fast path for idle polling).
-    if(remote&&remote.skip){
+  // v58: auto-retry on network failure (2s, 5s, 10s) — a single transient
+  // timeout in mainland no longer surfaces as "网络不佳" to the user.
+  var attempt=0;
+  var maxAttempts=3;
+  var delays=[0,2000,5000,10000];
+  function doOnce(){
+    attempt++;
+    GH.pulling=true;
+    if(attempt>1)setSyncStatus('retrying');
+    else setSyncStatus('syncing');
+    var now=Date.now();
+    if(!(force&&attempt===1)){
+      if(GH.nextPullAt&&now<GH.nextPullAt)return Promise.resolve();
+    }
+    GH.nextPullAt=now+20000;
+    return ghReadTrips().then(function(remote){
+      GH.pulling=false;
+      GH.pullBackoff=0;
+      GH.pullRetryCount=0;
+      // {skip:true} means the cloud sha matched our last pull — nothing changed, so
+      // skip the merge + re-render entirely (this is the fast path for idle polling).
+      if(remote&&remote.skip){
+        GH.lastSync=Date.now();setSyncStatus('synced');
+        return;
+      }
+      if(!remote||!remote.trips){setSyncStatus('synced');return;}
+      ghCacheWrite(remote); // remember last-good copy for offline fallback
+      // Absorb tombstones from remote (a delete pushed from another device)
+      if(remote.tombstones&&typeof remote.tombstones==='object'){
+        if(!data.tombstones)data.tombstones={};
+        Object.keys(remote.tombstones).forEach(function(k){
+          // Always take the newer tombstone timestamp
+          if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
+        });
+        // Drop tombstoned trips from local trips
+        data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
+      }
+      var merged=mergeTrips(data.trips,remote.trips);
+      data.trips=merged; // assign before repair so repair normalizes dates/days
+      dedupeTrips();     // collapse dupes created by independent trip ids on different devices
+      repairTrips();
+      var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged); // compare after repair
+      if(changed)saveDataLocal();
+      renderAll();
       GH.lastSync=Date.now();setSyncStatus('synced');
-      return;
-    }
-    if(!remote||!remote.trips){setSyncStatus('synced');return;}
-    ghCacheWrite(remote); // remember last-good copy for offline fallback
-    // Absorb tombstones from remote (a delete pushed from another device)
-    if(remote.tombstones&&typeof remote.tombstones==='object'){
-      if(!data.tombstones)data.tombstones={};
-      Object.keys(remote.tombstones).forEach(function(k){
-        // Always take the newer tombstone timestamp
-        if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
-      });
-      // Drop tombstoned trips from local trips
-      data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
-    }
-    var merged=mergeTrips(data.trips,remote.trips);
-    data.trips=merged; // assign before repair so repair normalizes dates/days
-    dedupeTrips();     // collapse dupes created by independent trip ids on different devices
-    repairTrips();
-    var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged); // compare after repair
-    if(changed)saveDataLocal();
-    renderAll();
-    GH.lastSync=Date.now();setSyncStatus('synced');
-    // v47+: text is in trips.json, photos in separate chunk files. Kick off a
-    // background load of the current trip's photos so timelines/maps show them
-    // shortly after opening, without blocking the text sync.
-    if(currentTripId){
-      var ct=data.trips.find(function(x){return x.id===currentTripId;});
-      if(ct)prefetchTripPhotos(ct);
-    }
-  }).catch(function(e){
-    GH.pulling=false;
-    console.error('pull err',e);
-    // Exponential backoff: 30s → 1m → 2m → 4m → ... max 5m, reset on success
-    GH.pullBackoff=GH.pullBackoff?Math.min(GH.pullBackoff*2,300000):30000;
-    GH.nextPullAt=Date.now()+GH.pullBackoff;
-    // If the token is dead, surface it once so the user knows to reconfigure
-    if(GH.tokenInvalid&&!GH.tokenWarned){
-      GH.tokenWarned=true;
-      showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
-    }
-    // Fall back to the last-known-good remote copy ONLY when the user is truly
-    // offline AND that cache is not older than the local data. Using a stale
-    // cache (e.g. from when photos were auto-stripped) silently hides new
-    // content — we saw this lose 9+ photos from collaborators. If we have no
-    // trustworthy cache, surface an error so the user can tap "立即从云端拉取".
-    var cache=ghCacheRead();
-    if(cache&&cache.data&&cache.data.trips&&cache.ts&&cache.ts>0&&!GH.tokenInvalid){
-      var stale=tripsFingerprint(cache.data.trips)!==tripsFingerprint(data.trips);
-      if(stale){
-        // Cache differs from local — both have data we don't want to clobber.
-        // Just mark offline; don't merge.
+      // v47+: text is in trips.json, photos in separate chunk files. Kick off a
+      // background load of the current trip's photos so timelines/maps show them
+      // shortly after opening, without blocking the text sync.
+      if(currentTripId){
+        var ct=data.trips.find(function(x){return x.id===currentTripId;});
+        if(ct)prefetchTripPhotos(ct);
+      }
+    }).catch(function(e){
+      GH.pulling=false;
+      console.error('pull err (attempt '+attempt+')',e);
+      if(attempt<maxAttempts){
+        var delay=delays[attempt]||10000;
+        if(attempt===1)showToast('网络不佳，正在第 1/2 次重试…');
+        else if(attempt===2)showToast('网络不佳，正在第 2/2 次重试…');
+        return new Promise(function(r){setTimeout(function(){r(doOnce());},delay);});
+      }
+      // Final failure after all retries exhausted
+      GH.pullBackoff=GH.pullBackoff?Math.min(GH.pullBackoff*2,300000):30000;
+      GH.nextPullAt=Date.now()+GH.pullBackoff;
+      if(GH.tokenInvalid&&!GH.tokenWarned){
+        GH.tokenWarned=true;
+        showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
+      }
+      var cache=ghCacheRead();
+      if(cache&&cache.data&&cache.data.trips&&cache.ts&&cache.ts>0&&!GH.tokenInvalid){
         setSyncStatus('offline');
       }else{
-        setSyncStatus('offline');
+        setSyncStatus('error');
       }
-    }else{
-      setSyncStatus('error');
-    }
-  });
+      showToast('网络不佳，3 次重试仍失败。下次 1 分钟后再试。');
+    });
+  }
+  return doOnce();
 }
 
 function syncPush(){
@@ -2069,7 +2074,7 @@ function setSyncStatus(s){
   GH.status=s;
   var el=document.getElementById('sync-indicator');
   if(el){
-    var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败'};
+    var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败',retrying:'🔄 重试中…'};
     el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
     el.title='点击立即同步';
   }
@@ -3925,7 +3930,7 @@ function forceResync(){
   GH.nextPullAt=0;
   GH.lastPushFp=null;
   ghReadTrips().then(function(remote){
-    if(!remote||!remote.trips){showToast('拉取失败：网络不佳。本地数据已保留。');return;}
+    if(!remote||!remote.trips){showToast('拉取失败：云端无响应（已重试 3 次）。本地数据已保留。');return;}
     try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
