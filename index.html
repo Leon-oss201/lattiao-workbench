@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v52';
+var APP_VERSION='v53';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1244,13 +1244,10 @@ function saveDataLocal(){
     // change when that specific trip is actually modified. Updating all trips
     // on every local save makes mergeTrips think the local copy is newer than
     // a collaborator's recently-pushed changes, which silently drops them.
+    // v47+: photos live in IndexedDB (photoCachePut). localStorage stores a
+    // text-only copy so it stays KB-size — never serialize the 12MB photos
+    // into localStorage (that overflowed and forced a slow fallback before).
     try{
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-    }catch(e){
-      // Storage overflow (usually too many base64 photos): persist a
-      // photo-stripped copy so all text data survives at least. Photos are
-      // kept in IndexedDB (photoCachePut) so nothing is lost.
-      console.warn('[save] storage full, saving without photos');
       var slim=JSON.parse(JSON.stringify(data));
       (slim.trips||[]).forEach(function(t){
         t.photos=[];
@@ -1258,7 +1255,7 @@ function saveDataLocal(){
         (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
       });
       localStorage.setItem(STORAGE_KEY,JSON.stringify(slim));
-    }
+    }catch(e){console.warn('[save] local save failed',e);}
   }catch(e){}
 }
 
@@ -1988,7 +1985,8 @@ function syncPushNow(){
   // v47+: trips.json is now text-only (KB) so it uploads in one fast PUT.
   // Photos go in per-location chunk files that stay under 1MB each.
   var remoteData=buildTextPayload();
-  var photoChunks=buildPhotoChunks(data.trips[0]);
+  var photoChunks=[];
+  (data.trips||[]).forEach(function(t){photoChunks=photoChunks.concat(buildPhotoChunks(t));});
   var attempt=function(tried){
     // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
     var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
@@ -2002,7 +2000,10 @@ function syncPushNow(){
         return chain.then(function(){
           var fp2=tripsFingerprint(chunk.data);
           if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2)return Promise.resolve();
-          return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,null).then(function(res2){
+          // chunk file may already exist on GitHub → must pass its sha or PUT 422s
+          return ghGetSha(chunk.path).then(function(sha){
+            return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,sha);
+          }).then(function(res2){
             if(!GH.photoChunkFp)GH.photoChunkFp={};
             GH.photoChunkFp[chunk.path]=fp2;
           });
@@ -2252,7 +2253,11 @@ function loadWeather(city){
     })
     .catch(function(e){
       console.error('weather',e);
-      updateWeatherUI({temp:25,text:'晴',icon:'☀️'});
+      // Offline climatology fallback (same as trip-day weather)
+      var today=new Date();
+      var ds=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+      var cw=climatologyWeather(city,ds);
+      updateWeatherUI({temp:(cw.tempMax+cw.tempMin)/2,text:cw.text,icon:cw.icon});
     });
 }
 
@@ -3006,10 +3011,14 @@ function deleteLocation(idx){
   // v47+: also drop the location's photo cache + its remote chunk files
   if(removed&&removed.id&&typeof photoCacheDel==='function'){
     photoCacheDel(locPhotoKey(t.id,removed.id));
-    // Delete remote chunks sequentially until 404 (robust to any chunk scheme)
-    for(var ci=0;ci<50;ci++){
-      try{ghDeleteFile('data/photos/'+t.id+'/'+removed.id+'_'+ci+'.json');}catch(e){break;}
-    }
+    // Delete remote chunks sequentially until 404 (robust to any chunk scheme).
+    // ghDeleteFile resolves with null when the file is already gone.
+    (function delChunks(ci){
+      if(ci>=50)return;
+      ghDeleteFile('data/photos/'+t.id+'/'+removed.id+'_'+ci+'.json').then(function(res){
+        if(res)delChunks(ci+1); // file existed & deleted → check next
+      }).catch(function(){});
+    })(0);
   }
   t.updatedAt=new Date().toISOString();
   saveDataLocal();renderTimeline();renderDayPills();
