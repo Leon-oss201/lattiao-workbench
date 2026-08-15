@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v60';
+var APP_VERSION='v61';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2036,6 +2036,20 @@ function syncPushNow(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
       GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
       setSyncStatus('synced');
+      // v61: give the user a confirmation that photos actually uploaded, so
+      // collaborators know their pictures reached the cloud (this was the
+      // silent gap: text synced but photo chunks failed without any feedback).
+      var pushedPhotos=0;
+      photoChunks.forEach(function(c){pushedPhotos+=(c.data.photos||[]).length;});
+      if(pushedPhotos>0){
+        var photoTxt=pushedPhotos+' 张照片';
+        var isBackground=(typeof document!=='undefined'&&document.hidden);
+        if(!isBackground){
+          if(GH.lastPhotoPushAt&&Date.now()-GH.lastPhotoPushAt<15000)return;
+          GH.lastPhotoPushAt=Date.now();
+          showToast('已同步 '+pushedPhotos+' 张照片到云端');
+        }
+      }
     }).catch(function(e){
       // Stale sha → refetch once and retry
       if(String(e).indexOf('409')>=0&&!tried){
