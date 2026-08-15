@@ -993,6 +993,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果只是日历/行程里看不到照片（但文字攻略、行程卡都在），点这个按钮直接从云端下载照片块，不动本地其他数据。</div>
     </div>
     <div class="form-row">
+      <button class="btn btn-ghost" style="width:100%;background:#FEF3C7;color:#92400E;font-weight:600;" onclick="reconcileManual()">🔄 补传本地照片到云端（对账）</button>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果手机上添加了照片但云端没有（比如之前网络不好没传成功），点这个按钮会把本地照片和云端对比，缺失的自动补传。App 每 15 分钟也会自动做一次。</div>
+    </div>
+    <div class="form-row">
       <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果文字乱码/数据异常，点这个按钮会清除手机上的本地数据缓存，然后从云端重新下载正确数据。已同步到云端的内容不会丢。</div>
     </div>
@@ -1056,7 +1060,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v62';
+var APP_VERSION='v63';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1698,6 +1702,9 @@ function syncPull(force){
       // v60+: pull photo chunks for every trip so calendar/home refresh
       // within seconds of syncPull success — not on the next page render.
       if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
+      // v63: reconcile local photos against cloud (auto-reupload missing chunks).
+      // Runs after every successful pull, throttled to 15 min internally.
+      if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
     }).catch(function(e){
       GH.pulling=false;
       console.error('pull err (attempt '+attempt+')',e);
@@ -2069,6 +2076,73 @@ function syncPushNow(){
   };
   return attempt(false);
 }
+// ============ Photo reconciliation (v63) ============
+// Background task: compare LOCAL photos (IndexedDB) against CLOUD photo chunks.
+// Any photo that exists locally but is missing from the cloud (e.g. a chunk
+// upload failed silently after trips.json succeeded) gets re-uploaded.
+// This runs periodically via syncTimer AND after every successful syncPull.
+var GH_LAST_RECONCILE=0;
+var GH_RECONCILING=false;
+function reconcileLocalPhotos(){
+  if(!ghHasToken())return Promise.resolve();
+  if(GH_RECONCILING)return Promise.resolve();
+  // Throttle: at most once per 15 min to avoid hammering the API.
+  var now=Date.now();
+  if(GH_LAST_RECONCILE&&now-GH_LAST_RECONCILE<15*60*1000)return Promise.resolve();
+  GH_LAST_RECONCILE=now;
+  GH_RECONCILING=true;
+  console.log('[reconcile] scanning local photos vs cloud…');
+  return photoDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      var all={};
+      var tx=db.transaction('photos','readonly');
+      var r=tx.objectStore('photos').openCursor();
+      r.onsuccess=function(){
+        var c=r.result;
+        if(c){all[c.value.key]=c.value.photos||[];c.continue();}
+        else resolve(all);
+      };
+      r.onerror=function(){resolve(all);};
+    });
+  }).then(function(all){
+    // For each trip/location with local photos, ensure cloud chunks exist.
+    // Compare against the CURRENT photoChunk scheme (byte-sized chunks).
+    var keys=Object.keys(all);
+    if(!keys.length){GH_RECONCILING=false;return;}
+    var seq=Promise.resolve();
+    var pushed=0;
+    keys.forEach(function(key){
+      seq=seq.then(function(){
+        var parts=key.split('|');
+        if(parts.length!==2)return;
+        var tripId=parts[0],locId=parts[1];
+        var photos=all[key];
+        if(!photos||!photos.length)return;
+        // Build chunks for these photos (byte-size) and ensure each exists.
+        var chunks=buildPhotoChunksForLoc(tripId,{id:locId,photos:photos});
+        return chunks.reduce(function(chain,chunk){
+          return chain.then(function(){
+            return ghGetSha(chunk.path).then(function(sha){
+              if(sha)return; // already on cloud
+              return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,null).then(function(){
+                pushed+=(chunk.data.photos||[]).length;
+              });
+            });
+          });
+        },Promise.resolve());
+      });
+    });
+    return seq.then(function(){
+      GH_RECONCILING=false;
+      if(pushed>0)console.log('[reconcile] uploaded '+pushed+' missing photos');
+      return pushed;
+    });
+  }).catch(function(e){
+    GH_RECONCILING=false;
+    console.warn('[reconcile] failed',e);
+    return 0;
+  });
+}
 
 function syncStart(){
   syncPull();
@@ -2077,7 +2151,12 @@ function syncStart(){
   // we'd burn the 60 req/h anonymous limit, so stay at 120s.
   if(ghHasToken()&&!GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
-    GH.syncTimer=setInterval(function(){syncPull();},60000);
+    GH.syncTimer=setInterval(function(){
+      syncPull();
+      // v63: periodic photo reconciliation — re-upload any local photo whose
+      // cloud chunk is missing (throttled to 15 min inside the function).
+      if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
+    },60000);
   }else if(ghHasToken()&&GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
     GH.syncTimer=setInterval(function(){syncPull();},120000);
@@ -2088,6 +2167,8 @@ function syncStart(){
     if(document.visibilityState==='visible'){
       var active=document.querySelector('.page.active');
       if(active&&active.id==='page-trip-detail')syncPull();
+      // v63: also reconcile photos when the app comes back to foreground
+      if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
     }
   });
   // If the user closes the app with a pending debounced write, flush it immediately
@@ -3985,8 +4066,19 @@ function forceResync(){
     showToast('拉取失败：网络不佳。本地数据已保留。');
   });
 }
-function onlyPullPhotos(){
+function reconcileManual(){
+  if(!ghHasToken()){showToast('请先配置 Token');openSettings();return;}
   closeModal('settings-modal');
+  showToast('正在对比本地照片与云端…');
+  GH_LAST_RECONCILE=0; // force run
+  reconcileLocalPhotos().then(function(pushed){
+    if(pushed>0)showToast('补传了 '+pushed+' 张照片到云端 ✓');
+    else showToast('本地照片与云端已一致');
+  }).catch(function(){
+    showToast('对账失败：网络不佳，稍后会自动重试');
+  });
+}
+function onlyPullPhotos(){
   showToast('正在拉取所有云端照片块…');
   var jobs=[];
   // Iterate ALL locations (not just ones with _photoCount>0 — the marker may
