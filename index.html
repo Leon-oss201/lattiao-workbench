@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v43';
+var APP_VERSION='v44';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1300,13 +1300,15 @@ function ghReadTrips(){
       })
       .then(function(m){
         if(!m)return null;
+        // ALWAYS remember the cloud sha, even if content was stripped (>1MB).
+        // The next sync can then short-circuit on sha match without re-downloading.
+        if(m.sha)GH.lastSha=m.sha;
         // Incremental pull: if the cloud file sha is unchanged since the last
         // successful pull, skip re-downloading the (potentially MB-sized) body.
         if(m.sha&&m.sha===GH.lastSha)return {skip:true,sha:m.sha};
         // Files >1MB come back with content=null — fall through to the raw route.
         if(!m.content)throw new Error('oversized');
         var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
-        GH.lastSha=m.sha;
         return json;
       });
   };
@@ -1328,8 +1330,9 @@ function ghReadTrips(){
       .then(function(s){
         if(!s)return null;
         var parsed=JSON.parse(s);
-        // Remember the cloud sha (last pushed sha ≈ current) so the next pull can skip
-        if(GH.shaCache)GH.lastSha=GH.shaCache;
+        // The raw endpoint doesn't return sha. Fire a tiny metadata GET to update
+        // GH.lastSha so the NEXT sync can short-circuit on sha match.
+        ghGetSha('data/trips.json').then(function(sha){if(sha)GH.lastSha=sha;}).catch(function(){});
         return parsed;
       });
   };
@@ -1726,12 +1729,12 @@ function syncPushNow(){
 
 function syncStart(){
   syncPull();
-  // Auto-pull frequently ONLY when the user has a working token — incremental
-  // pull (sha skip) makes each poll a tiny metadata request, so 30s is cheap.
-  // Without a token we'd burn the 60 req/h anonymous limit, so stay at 120s.
+  // Auto-pull every 60s ONLY when the user has a working token — incremental
+  // pull (sha skip) makes each poll a tiny metadata request. Without a token
+  // we'd burn the 60 req/h anonymous limit, so stay at 120s.
   if(ghHasToken()&&!GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
-    GH.syncTimer=setInterval(function(){syncPull();},30000);
+    GH.syncTimer=setInterval(function(){syncPull();},60000);
   }else if(ghHasToken()&&GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
     GH.syncTimer=setInterval(function(){syncPull();},120000);
@@ -1971,7 +1974,7 @@ function setTripDayWeatherCache(city,date,w){
 }
 function loadTripDayWeather(city,date){
   var cached=getTripDayWeatherCache(city,date);
-  if(cached){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
+  if(cached&&cached.loaded){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
   // 6s timeout — if network is slow or blocked, fall back to default rather than showing 加载中 forever
   var timeoutId=setTimeout(function(){
     var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
@@ -1982,7 +1985,10 @@ function loadTripDayWeather(city,date){
     .then(function(geo){
       if(!geo.results||!geo.results.length)throw new Error('no geo for '+city);
       var lat=geo.results[0].latitude,lon=geo.results[0].longitude;
-      var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max&current=temperature_2m,wind_speed_10m&timezone=auto';
+      // past_days=92 + forecast_days=16 → covers any past or upcoming trip date.
+      // Without past_days the API only returns the next ~16 days, so PAST trip days
+      // (e.g. "what was the weather on 8.12") fell back to a fake "晴 28°C" reading.
+      var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max&current=temperature_2m,wind_speed_10m&timezone=auto&past_days=92&forecast_days=16';
       return fetch(url).then(function(r){return r.json();});
     })
     .then(function(d){
@@ -2005,7 +2011,9 @@ function loadTripDayWeather(city,date){
     .catch(function(e){
       clearTimeout(timeoutId);
       console.error('trip weather',e);
-      var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'晴',icon:'☀️',tempMax:28,tempMin:20,rainProb:0,uv:0,wind:0,loaded:true};
+      // Honest fallback — do NOT pretend a fake temperature, just tell the user.
+      var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
+      setTripDayWeatherCache(city,date,w);
       updateTripDayWeatherUI(w);
       return w;
     });
@@ -2603,6 +2611,13 @@ function renderTimeline(){
   locs.forEach(function(l,idx){
     var typeIcon={attraction:'🏞',food:'🍜',transport:'🚇',checkin:'📷',departure:'✈️',return:'🏠',stay:'🏨',other:'✨'}[l.type]||'📍';
     var dotClass=(l.type==='food'?'food':l.type==='transport'||l.type==='departure'||l.type==='return'?'transport':'');
+    var photoThumbs='';
+    if(l.photos&&l.photos.length){
+      photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
+        l.photos.slice(0,4).map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img loading="lazy" src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
+        (l.photos.length>4?'<div style="aspect-ratio:1;border-radius:6px;background:#FAF5FF;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">+'+(l.photos.length-4)+'</div>':'')+
+        '</div>';
+    }
     html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')">'+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
@@ -2618,6 +2633,7 @@ function renderTimeline(){
             '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>'+
           '</span>'+
         '</div>'+
+        photoThumbs+
       '</div></div>';
   });
   document.getElementById('td-timeline').innerHTML=html;
