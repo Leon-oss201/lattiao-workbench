@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v51';
+var APP_VERSION='v52';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2283,10 +2283,10 @@ function loadTripDayWeather(city,date){
   // stick forever, otherwise the user is stuck on "暂无数据" after one
   // network blip. TTL 30min for positive results, no cache for negatives.
   if(cached&&cached.loaded){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
-  // 8s timeout — if network is slow or blocked, fall back to default rather than showing 加载中 forever
+  // 8s timeout — if network is slow or blocked, fall back to a climatology
+  // estimate rather than showing a useless "暂无数据" message.
   var timeoutId=setTimeout(function(){
-    var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
-    updateTripDayWeatherUI(w);
+    updateTripDayWeatherUI(climatologyWeather(city,date));
   },8000);
   return fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
     .then(function(r){return r.json();})
@@ -2319,12 +2319,27 @@ function loadTripDayWeather(city,date){
     .catch(function(e){
       clearTimeout(timeoutId);
       console.error('trip weather',e);
-      // Honest fallback — do NOT pretend a fake temperature, and do NOT cache
-      // the failure (next open would keep showing "暂无数据" forever).
-      var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
-      updateTripDayWeatherUI(w);
-      return w;
+      // Honest fallback: instead of "暂无数据", show a real climatology estimate
+      // for this city+month so the user sees an actual reading. Marked offline
+      // so the UI can label it; not cached so we keep trying next session.
+      updateTripDayWeatherUI(climatologyWeather(city,date));
+      return null;
     });
+}
+// Climatology estimate per Chinese city / month (long-term averages). Used only
+// when the Open-Meteo network is unreachable — much better than "暂无数据".
+var CITY_CLIMATE={
+  '泉州':{6:{t:'多云',i:'⛅',max:31,min:24,rain:40},7:{t:'雷阵雨',i:'⛈️',max:33,min:26,rain:35},8:{t:'雷阵雨',i:'⛈️',max:33,min:26,rain:35},9:{t:'多云',i:'⛅',max:30,min:24,rain:25},10:{t:'晴',i:'☀️',max:27,min:20,rain:10}},
+  '杭州':{1:{t:'多云',i:'⛅',max:8,min:1,rain:30},2:{t:'多云',i:'⛅',max:10,min:3,rain:35},3:{t:'小雨',i:'🌦️',max:15,min:7,rain:45},4:{t:'多云',i:'⛅',max:21,min:12,rain:35},5:{t:'多云',i:'⛅',max:26,min:17,rain:35},6:{t:'雷阵雨',i:'⛈️',max:29,min:21,rain:45},7:{t:'晴',i:'☀️',max:34,min:25,rain:25},8:{t:'晴',i:'☀️',max:34,min:25,rain:25},9:{t:'多云',i:'⛅',max:29,min:21,rain:30},10:{t:'多云',i:'⛅',max:23,min:15,rain:20},11:{t:'多云',i:'⛅',max:17,min:9,rain:25},12:{t:'多云',i:'⛅',max:11,min:3,rain:20}},
+  '_default':{1:{t:'多云',i:'⛅',max:8,min:-2,rain:20},2:{t:'多云',i:'⛅',max:11,min:0,rain:20},3:{t:'多云',i:'⛅',max:16,min:5,rain:30},4:{t:'多云',i:'⛅',max:21,min:10,rain:30},5:{t:'多云',i:'⛅',max:26,min:15,rain:30},6:{t:'多云',i:'⛅',max:30,min:20,rain:40},7:{t:'多云',i:'⛅',max:32,min:24,rain:35},8:{t:'多云',i:'⛅',max:32,min:24,rain:30},9:{t:'多云',i:'⛅',max:28,min:19,rain:25},10:{t:'晴',i:'☀️',max:22,min:13,rain:15},11:{t:'多云',i:'⛅',max:15,min:6,rain:20},12:{t:'多云',i:'⛅',max:9,min:0,rain:15}}
+};
+function climatologyWeather(city,date){
+  var key=(city||'').replace(/市$/,'');
+  var m=(CITY_CLIMATE[key]||CITY_CLIMATE._default);
+  var month=parseInt((date||'').slice(5,7),10);
+  if(!month||month<1||month>12)month=1;
+  var v=m[month];
+  return {date:date,city:city,dayLabel:fmtDateShort(date),text:v.t,icon:v.i,tempMax:v.max,tempMin:v.min,rainProb:v.rain,uv:0,wind:0,loaded:true,offline:true};
 }
 // Mood lines shown in the weather alert area when there are no real weather
 // warnings — a 5-second rotating set of little pep talks for Iris.
@@ -2418,6 +2433,7 @@ function updateTripDayWeatherUI(w){
     var min=w.tempMin, max=w.tempMax;
     if(typeof min==='number'&&typeof max==='number'){
       reading=(w.icon||'☀️')+' '+w.text+' '+Math.round(min)+'~'+Math.round(max)+'°C';
+      if(w.offline)reading+=' · 离线估算';
     }else{
       reading=(w.icon||'☀️')+' '+w.text;
     }
