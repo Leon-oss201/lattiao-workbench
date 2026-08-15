@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v44';
+var APP_VERSION='v45';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1078,6 +1078,29 @@ function loadData(){
     // the user always lands on the populated copy when opening the trip.
     dedupeTrips();
     repairTrips();
+    // Drop stale weather cache: keep positive (loaded:true) results that are
+    // < 30 min old, and discard anything else so a one-time network failure
+    // can't keep the UI stuck on a stale "暂无数据".
+    try{
+      var wxRaw=localStorage.getItem('lattiao_trip_weather');
+      if(wxRaw){
+        var wx=JSON.parse(wxRaw);
+        var fresh=Date.now()-30*60*1000;
+        if(!wx.ts||wx.ts<fresh){
+          Object.keys(wx).forEach(function(k){
+            if(k!=='ts'&&wx[k]&&typeof wx[k]==='object'){
+              Object.keys(wx[k]).forEach(function(d){
+                var v=wx[k][d];
+                if(!v||!v.loaded)delete wx[k][d];
+                else if(!v.ts||v.ts<fresh)delete wx[k][d];
+              });
+            }
+          });
+          wx.ts=Date.now();
+          localStorage.setItem('lattiao_trip_weather',JSON.stringify(wx));
+        }
+      }
+    }catch(we){}
   }catch(e){console.error(e);}
 }
 function tripsSameTrip(a,b){
@@ -1974,12 +1997,15 @@ function setTripDayWeatherCache(city,date,w){
 }
 function loadTripDayWeather(city,date){
   var cached=getTripDayWeatherCache(city,date);
+  // Only trust a positive result — a cached failure (loaded:false) must not
+  // stick forever, otherwise the user is stuck on "暂无数据" after one
+  // network blip. TTL 30min for positive results, no cache for negatives.
   if(cached&&cached.loaded){updateTripDayWeatherUI(cached);return Promise.resolve(cached);}
-  // 6s timeout — if network is slow or blocked, fall back to default rather than showing 加载中 forever
+  // 8s timeout — if network is slow or blocked, fall back to default rather than showing 加载中 forever
   var timeoutId=setTimeout(function(){
     var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
     updateTripDayWeatherUI(w);
-  },6000);
+  },8000);
   return fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
     .then(function(r){return r.json();})
     .then(function(geo){
@@ -2011,9 +2037,9 @@ function loadTripDayWeather(city,date){
     .catch(function(e){
       clearTimeout(timeoutId);
       console.error('trip weather',e);
-      // Honest fallback — do NOT pretend a fake temperature, just tell the user.
+      // Honest fallback — do NOT pretend a fake temperature, and do NOT cache
+      // the failure (next open would keep showing "暂无数据" forever).
       var w={date:date,city:city,dayLabel:fmtDateShort(date),text:'暂无数据',icon:'🌤',tempMax:null,tempMin:null,rainProb:0,uv:0,wind:0,loaded:false};
-      setTripDayWeatherCache(city,date,w);
       updateTripDayWeatherUI(w);
       return w;
     });
@@ -3543,10 +3569,16 @@ function forceResync(){
 function forcePush(){
   if(!ghHasToken()){showToast('请先配置 Token');return;}
   closeModal('settings-modal');
-  if(confirm('把当前本地所有数据推送到云端，会覆盖云端内容，确定吗？')){
+  if(confirm('把当前本地所有数据（包括照片）推送到云端。\\n\\n如果你的本地有朋友上传的照片还没同步上来（比如之前网络不好没传成功），用这个按钮补传一次。确定吗？')){
     showToast('正在推送…');
+    // Reset the push fingerprint so this is an unconditional upload — useful
+    // when a collaborator has photos in their localStorage that haven't been
+    // pushed yet (buildSyncPayload now never strips photos).
+    GH.lastPushFp=null;
     syncPushNow().then(function(){
       showToast('已推送到云端');
+    }).catch(function(e){
+      showToast('推送失败：'+(e&&e.message?e.message:'未知'));
     });
   }
 }
