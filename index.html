@@ -1060,7 +1060,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v63';
+var APP_VERSION='v64';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3978,13 +3978,20 @@ function saveSettings(){
     else{showToast(msg||'已保存');}
   }
 
+  // v63: 城市校验加 6s 超时兜底——网络差/被墙时不能卡死保存
+  var timedOut=false;
+  var timer=setTimeout(function(){timedOut=true;applySave('已保存（城市未联网校验）');},6000);
   fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
     .then(function(r){return r.json();})
     .then(function(geo){
+      if(timedOut)return;
+      clearTimeout(timer);
       if(!geo.results||!geo.results.length){showToast('请填写正确的城市名'); return;}
       applySave();
     })
     .catch(function(e){
+      if(timedOut)return;
+      clearTimeout(timer);
       console.error('city validate',e);
       // network error: still save with warning
       applySave('已保存（城市未联网校验）');
