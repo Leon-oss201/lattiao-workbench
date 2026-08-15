@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v50';
+var APP_VERSION='v51';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1888,10 +1888,9 @@ function restorePhotosFromIndexedDB(){
 }
 function locPhotoKey(tripId,locId){return tripId+'|'+locId;}
 // Load a location's photos: IndexedDB first, then remote chunks, then backfill.
-// Chunks are read sequentially until a 404 (or a safe upper bound) — we do NOT
-// rely on _photoCount to compute chunk paths, because the cloud migration split
-// photos by BYTE size while the app used to assume 3 photos/chunk. Reading
-// until 404 makes pull robust to either scheme.
+// Chunks are read by index (0,1,2…) — we fire up to 6 parallel reads and keep
+// the contiguous ones that exist. This is robust to ANY chunking scheme and
+// doesn't depend on _photoCount.
 function ensureLocationPhotos(tripId,loc,forceRemote){
   if(!loc||!loc.id)return Promise.resolve([]);
   if(loc.photos&&loc.photos.length&&!forceRemote)return Promise.resolve(loc.photos);
@@ -1899,38 +1898,57 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
   var cached=photoCacheGet(key);
   return cached.then(function(photos){
     if(photos&&photos.length&&!forceRemote){loc.photos=photos;return photos;}
-    // Not cached (or forced) → pull remote chunks until 404
-    var all=[];
-    var step=function(i){
-      if(i>50)return Promise.resolve(all); // safety bound
-      var p='data/photos/'+tripId+'/'+loc.id+'_'+i+'.json';
-      return ghReadPhotoChunk(p).then(function(chunk){
-        if(!chunk||!chunk.photos||!chunk.photos.length)return all; // 404 / empty → stop
+    // Parallel-read chunk indexes 0..5 (safety bound). Missing/empty chunks
+    // resolve to null; we keep the contiguous prefix that has data.
+    var maxChunk=6;
+    var reads=[];
+    for(var i=0;i<maxChunk;i++){
+      reads.push(ghReadPhotoChunk('data/photos/'+tripId+'/'+loc.id+'_'+i+'.json'));
+    }
+    return Promise.all(reads).then(function(results){
+      var all=[];
+      for(var j=0;j<results.length;j++){
+        var chunk=results[j];
+        if(!chunk||!chunk.photos||!chunk.photos.length)break; // first missing = stop
         all=all.concat(chunk.photos);
-        return step(i+1);
-      }).catch(function(){return all;});
-    };
-    return step(0).then(function(result){
-      if(result.length){loc.photos=result;photoCachePut(key,result);}
-      return result;
+      }
+      if(all.length){loc.photos=all;photoCachePut(key,all);}
+      return all;
     });
   });
 }
 function ghReadPhotoChunk(path){
+  // Try GitHub API first (real-time), then fall back to jsDelivr CDN — the CDN
+  // is usually reachable from mainland China when api.github.com is slow/blocked.
   var t=ghToken();
   var headers={'Accept':'application/vnd.github+json'};
   if(t)headers['Authorization']='token '+t;
-  return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:headers},20000)
-    .then(function(r){
-      if(r.status===404)return null;
-      if(!r.ok)throw new Error('photo-chunk '+r.status);
-      return r.json();
-    })
-    .then(function(m){
-      if(!m||!m.content)return null;
-      var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
-      try{return JSON.parse(json);}catch(e){return null;}
-    });
+  var api=function(){
+    return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:headers},20000)
+      .then(function(r){
+        if(r.status===404)return null;
+        if(!r.ok)throw new Error('photo-chunk '+r.status);
+        return r.json();
+      })
+      .then(function(m){
+        if(!m||!m.content)return null;
+        var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
+        try{return JSON.parse(json);}catch(e){return null;}
+      });
+  };
+  var cdn=function(){
+    // jsDelivr mirrors; try a couple in order. Each chunk is <1MB so CDN
+    // returns it intact.
+    var bases=[GH.cdnBase,'https://fastly.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/','https://gcore.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/'];
+    var tryBase=function(i){
+      if(i>=bases.length)return null;
+      return ghFetchTimeout(bases[i]+path+'?t='+Date.now(),null,30000)
+        .then(function(r){if(!r.ok)throw new Error('cdn '+r.status);return r.json();})
+        .catch(function(){return tryBase(i+1);});
+    };
+    return tryBase(0);
+  };
+  return api().catch(function(){return cdn();});
 }
 // Load all photo chunks for a trip (used after a pull / on trip open) and
 // refresh the timeline once photos arrive. Non-blocking.
@@ -3854,11 +3872,14 @@ function onlyPullPhotos(){
   closeModal('settings-modal');
   showToast('正在拉取所有云端照片块…');
   var jobs=[];
+  // Iterate ALL locations (not just ones with _photoCount>0 — the marker may
+  // be stale/absent on this device after the migration). ensureLocationPhotos
+  // scans chunks until 404, so locations without photos simply return [].
   (data.trips||[]).forEach(function(t){
     (t.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
-        if(l&&l.id&&((l._photoCount||0)>0||(l.photos||[]).length)){
-          // forceRemote=true skips the IndexedDB cache and goes straight to cloud chunks
+        if(l&&l.id){
+          // forceRemote=true: skip IndexedDB cache and go straight to cloud
           jobs.push(ensureLocationPhotos(t.id,l,true).catch(function(){return [];}));
         }
       });
