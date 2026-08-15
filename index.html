@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v46';
+var APP_VERSION='v47';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1078,6 +1078,38 @@ function loadData(){
     // the user always lands on the populated copy when opening the trip.
     dedupeTrips();
     repairTrips();
+    // v47 migration: if localStorage still holds full-size photos (from before
+    // photo separation), move them into IndexedDB and slim the localStorage copy.
+    // This happens once per device; afterwards localStorage stays text-only.
+    try{
+      var needsSlim=false;
+      (data.trips||[]).forEach(function(t){
+        if((t.photos&&t.photos.length)||(t.cover&&t.cover.length>1000))needsSlim=true;
+        (t.days||[]).forEach(function(d){
+          (d.locations||[]).forEach(function(l){
+            if(l.photos&&l.photos.length){
+              needsSlim=true;
+              if(typeof photoCachePut==='function'&&t.id&&l.id){
+                photoCachePut(locPhotoKey(t.id,l.id),l.photos.slice());
+              }
+              l._photoCount=l.photos.length;
+            }
+          });
+        });
+      });
+      if(needsSlim&&typeof buildTextPayload==='function'){
+        var slim=buildTextPayload();
+        var d2=JSON.parse(JSON.stringify(data));
+        // rebuild data.trips from slim payload (keeps settings etc.)
+        data.trips=slim.trips;
+        try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e2){}
+      }
+    }catch(me){}
+    // v47+: restore photos from IndexedDB into the in-memory trips so the UI
+    // shows them instantly on next render (they live outside localStorage).
+    if(typeof photoDBOpen==='function'){
+      restorePhotosFromIndexedDB().catch(function(){});
+    }
     // Drop stale weather cache: keep positive (loaded:true) results that are
     // < 30 min old, and discard anything else so a one-time network failure
     // can't keep the UI stuck on a stale "暂无数据".
@@ -1212,7 +1244,8 @@ function saveDataLocal(){
       localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     }catch(e){
       // Storage overflow (usually too many base64 photos): persist a
-      // photo-stripped copy so all text data survives at least.
+      // photo-stripped copy so all text data survives at least. Photos are
+      // kept in IndexedDB (photoCachePut) so nothing is lost.
       console.warn('[save] storage full, saving without photos');
       var slim=JSON.parse(JSON.stringify(data));
       (slim.trips||[]).forEach(function(t){
@@ -1241,6 +1274,7 @@ var GH={
   shaCache:null,     // cached sha of data/trips.json to avoid a round-trip on every push
   lastSha:null,      // sha of the last successfully pulled cloud file (incremental pull)
   lastPushFp:null,   // tripsFingerprint of the last successfully pushed state (incremental push)
+  photoChunkFp:null, // {path: fingerprint} of photo chunks we've already uploaded
   payloadStripped:false, // true when the last push dropped photos to stay under the size cap
   payloadWarned:false,   // one-time toast flag so we don't nag the user on every sync
   tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
@@ -1413,16 +1447,14 @@ function ghReadTrips(){
     };
     return tryBase(0);
   };
-  // Read priority order is now CDN-first: cdn.jsdelivr.net is the only mirror
-  // that returns the FULL 3.9MB file (others truncate to 1.2MB and the GitHub
-  // Contents API >1MB returns content=null). Pulling from CDN first means we
-  // typically succeed in ~30s instead of failing for 2 minutes and falling
-  // back to a stale or truncated copy. The GitHub API paths are still used
-  // to (a) record the latest sha so future syncs can short-circuit, and
-  // (b) get a fresh-enough file if the CDN cache is stale.
-  return readCdn().catch(function(){
-    return readApiJson().catch(function(){
-      return readApiRaw(true).catch(function(){return readApiRaw(false);});
+  // Read priority: GitHub API first now that trips.json is text-only (~5KB,
+  // so the Contents API returns it intact with a sha for incremental skip).
+  // CDN is a fallback only if the API is unreachable.
+  return readApiJson().catch(function(){
+    return readApiRaw(true).catch(function(){
+      return readApiRaw(false).catch(function(){
+        return readCdn();
+      });
     });
   });
 }
@@ -1438,6 +1470,15 @@ function ghWriteFile(path,content,msg,sha){
   if(sha)body.sha=sha;
   return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},30000)
     .then(function(r){if(!r.ok)throw new Error('put '+r.status);return r.json();});
+}
+function ghDeleteFile(path){
+  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+  return ghGetSha(path).then(function(sha){
+    if(!sha)return null; // already gone
+    var body={message:'sync: delete '+path,branch:GH.branch,sha:sha};
+    return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'DELETE',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},30000)
+      .then(function(r){if(!r.ok)throw new Error('del '+r.status);return true;});
+  });
 }
 function ghReadShared(shareId){
   return fetch(GH.rawBase+'data/shared/'+shareId+'.json?t='+Date.now()).then(function(r){
@@ -1630,6 +1671,13 @@ function syncPull(force){
     if(changed)saveDataLocal();
     renderAll();
     GH.lastSync=Date.now();setSyncStatus('synced');
+    // v47+: text is in trips.json, photos in separate chunk files. Kick off a
+    // background load of the current trip's photos so timelines/maps show them
+    // shortly after opening, without blocking the text sync.
+    if(currentTripId){
+      var ct=data.trips.find(function(x){return x.id===currentTripId;});
+      if(ct)prefetchTripPhotos(ct);
+    }
   }).catch(function(e){
     GH.pulling=false;
     console.error('pull err',e);
@@ -1684,43 +1732,200 @@ function isSlowNet(){
   }catch(e){}
   return false;
 }
-function buildSyncPayload(){
+// ============ Photo separation (v47+) ============
+// trips.json holds ONLY text now (KB-size, so GitHub Contents API never
+// truncates it). Photos live in per-location chunk files:
+//   data/photos/<tripId>/<locId>_<chunk>.json  → {"photos":[...]}
+// Each chunk stays < 1MB so GitHub's Contents API returns it intact
+// (files >1MB get truncated to 1.2MB — that's what destroyed photos before).
+function photoChunkPaths(tripId,locId,count){
+  // count = number of photos → number of chunks needed (chunk cap ~3 photos
+  // or ~800KB worth of base64, whichever is safer for <1MB files)
+  var paths=[];
+  if(!count)return paths;
+  var perChunk=3; // conservative: 3 photos × ~250KB = 750KB < 1MB
+  var n=Math.ceil(count/perChunk);
+  for(var i=0;i<n;i++)paths.push('data/photos/'+tripId+'/'+locId+'_'+i+'.json');
+  return paths;
+}
+function photoChunkPathForIdx(tripId,locId,idx){
+  return 'data/photos/'+tripId+'/'+locId+'_'+Math.floor(idx/3)+'.json';
+}
+// Number of chunks a location's photos occupy (0 if no photos)
+function locPhotoChunkCount(loc){
+  var n=(loc&&loc.photos&&loc.photos.length)||0;
+  return n?Math.ceil(n/3):0;
+}
+// Split a location's photos into chunk objects {path, data:{photos:[...]}}
+function buildPhotoChunks(t){
+  var out=[];
+  (t.days||[]).forEach(function(d){
+    (d.locations||[]).forEach(function(l){
+      if(!l||!l.id||!(l.photos&&l.photos.length))return;
+      var n=locPhotoChunkCount(l);
+      for(var i=0;i<n;i++){
+        var slice=l.photos.slice(i*3,i*3+3);
+        if(!slice.length)continue;
+        out.push({path:photoChunkPathForIdx(t.id,l.id,i),data:{photos:slice}});
+      }
+    });
+  });
+  return out;
+}
+function buildTextPayload(){
   var now=new Date().toISOString();
   var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{}};
-  var stripPhotos=isSlowNet(); // data-saver or 2G → text-only payload
   data.trips.forEach(function(t){
-    // Preserve the trip's own updatedAt (set by the function that modified it).
-    // The top-level remoteData.updatedAt already represents this sync moment.
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
-    // Photos & cover are now part of the sync payload so a collaborator's
-    // pictures are visible on every device. Counts are kept as markers anyway.
     if(c.cover)c._hasCover=1;
     (c.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
         if(l.photos&&l.photos.length)l._photoCount=l.photos.length;
+        l.photos=[]; // photos live in separate chunk files now
       });
     });
-    if(stripPhotos){
-      c.photos=[];
-      if(c.cover){c._hasCover=1;c.cover='';}
-      (c.days||[]).forEach(function(d){
-        (d.locations||[]).forEach(function(l){if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];}});
-      });
-    }
     remoteData.trips.push(c);
   });
-  // NEVER auto-strip photos. Earlier we had a 4MB cap that silently dropped all
-  // photos when the file got too large — that lost collaborators' pictures for
-  // good (a friend pushed 5 photos, cap hit, push went out empty, every device
-  // pulled the empty version and lost their copy). GitHub Contents API actually
-  // accepts up to ~100MB so the real push limit is much higher than 4MB.
-  // We still want the user to know if a push is going to be slow/expensive, so
-  // we just record a flag for the toast — no data is lost.
-  var payloadText=JSON.stringify(remoteData);
-  GH.payloadStripped=false;
-  GH.payloadBytes=payloadText.length;
   return remoteData;
+}
+// ---- IndexedDB photo store (photos are too big for localStorage) ----
+var photoDBName='lattiao_photos_v1';
+var photoDB=null;
+function photoDBOpen(){
+  return new Promise(function(resolve,reject){
+    if(photoDB){resolve(photoDB);return;}
+    if(typeof indexedDB==='undefined'){reject(new Error('no idb'));return;}
+    var req=indexedDB.open(photoDBName,1);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos',{keyPath:'key'});
+    };
+    req.onsuccess=function(){photoDB=req.result;resolve(photoDB);};
+    req.onerror=function(){reject(req.error);};
+  });
+}
+function photoCachePut(locKey,photos){
+  return photoDBOpen().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction('photos','readwrite');
+      tx.objectStore('photos').put({key:locKey,photos:photos,ts:Date.now()});
+      tx.oncomplete=function(){resolve();};
+      tx.onerror=function(){reject(tx.error);};
+    });
+  }).catch(function(){});
+}
+function photoCacheGet(locKey){
+  return photoDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      var tx=db.transaction('photos','readonly');
+      var r=tx.objectStore('photos').get(locKey);
+      r.onsuccess=function(){resolve(r.result?r.result.photos:null);};
+      r.onerror=function(){resolve(null);};
+    });
+  }).catch(function(){return null;});
+}
+function photoCacheDel(locKey){
+  return photoDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      var tx=db.transaction('photos','readwrite');
+      tx.objectStore('photos').delete(locKey);
+      tx.oncomplete=function(){resolve();};
+      tx.onerror=function(){resolve();};
+    });
+  }).catch(function(){});
+}
+// Fill every location's photos from IndexedDB (called on load). If a location
+// has none cached it stays empty and will be fetched from remote chunks later.
+function restorePhotosFromIndexedDB(){
+  return photoDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      var all={};
+      var tx=db.transaction('photos','readonly');
+      var r=tx.objectStore('photos').openCursor();
+      r.onsuccess=function(){
+        var c=r.result;
+        if(c){all[c.value.key]=c.value.photos||[];c.continue();}
+        else resolve(all);
+      };
+      r.onerror=function(){resolve(all);};
+    });
+  }).then(function(all){
+    (data.trips||[]).forEach(function(t){
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          if(!l||!l.id)return;
+          var key=locPhotoKey(t.id,l.id);
+          if(all[key]&&all[key].length)l.photos=all[key];
+        });
+      });
+    });
+  }).catch(function(){});
+}
+function locPhotoKey(tripId,locId){return tripId+'|'+locId;}
+// Load a location's photos: IndexedDB first, then remote chunks, then backfill
+function ensureLocationPhotos(tripId,loc,forceRemote){
+  if(!loc||!loc.id)return Promise.resolve([]);
+  if(loc.photos&&loc.photos.length&&!forceRemote)return Promise.resolve(loc.photos);
+  var key=locPhotoKey(tripId,loc.id);
+  var cached=photoCacheGet(key);
+  return cached.then(function(photos){
+    if(photos&&photos.length){loc.photos=photos;return photos;}
+    // Not cached → pull remote chunks
+    var count=(loc._photoCount||loc.photos&&loc.photos.length||0);
+    var paths=photoChunkPaths(tripId,loc.id,count);
+    var chain=Promise.resolve([]);
+    paths.forEach(function(p){
+      chain=chain.then(function(all){
+        return ghReadPhotoChunk(p).then(function(chunk){
+          if(chunk&&chunk.photos)all=all.concat(chunk.photos);
+          return all;
+        }).catch(function(){return all;});
+      });
+    });
+    return chain.then(function(all){
+      if(all.length){loc.photos=all;photoCachePut(key,all);}
+      return all;
+    });
+  });
+}
+function ghReadPhotoChunk(path){
+  var t=ghToken();
+  var headers={'Accept':'application/vnd.github+json'};
+  if(t)headers['Authorization']='token '+t;
+  return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:headers},20000)
+    .then(function(r){
+      if(r.status===404)return null;
+      if(!r.ok)throw new Error('photo-chunk '+r.status);
+      return r.json();
+    })
+    .then(function(m){
+      if(!m||!m.content)return null;
+      var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
+      try{return JSON.parse(json);}catch(e){return null;}
+    });
+}
+// Load all photo chunks for a trip (used after a pull / on trip open) and
+// refresh the timeline once photos arrive. Non-blocking.
+function prefetchTripPhotos(t){
+  if(!t||!t.days)return;
+  var jobs=[];
+  (t.days||[]).forEach(function(d){
+    (d.locations||[]).forEach(function(l){
+      if(l&&l.id&&(l._photoCount||0)>0)jobs.push(ensureLocationPhotos(t.id,l,false));
+    });
+  });
+  if(!jobs.length)return;
+  Promise.all(jobs).then(function(){
+    // Re-render whatever is on screen (trip detail, calendar, or home thumbnails)
+    var active=document.querySelector('.page.active');
+    if(active){
+      if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
+      else if(active.id==='page-calendar')renderCal();
+      else if(active.id==='page-trips')renderTrips();
+    }
+    try{saveDataLocal();}catch(e){}
+  }).catch(function(){});
 }
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
@@ -1735,12 +1940,10 @@ function syncPushNow(){
   }
   GH.pushing=true;
   setSyncStatus('syncing');
-  var remoteData=buildSyncPayload();
-  // Friendly nudge for very large pushes — but we never drop photos to make it fit.
-  if(GH.payloadBytes>5*1024*1024&&!GH.bigPushWarned){
-    GH.bigPushWarned=true;
-    showToast('数据较大（'+(GH.payloadBytes/1024/1024).toFixed(1)+'MB），首次同步需要稍等几秒');
-  }
+  // v47+: trips.json is now text-only (KB) so it uploads in one fast PUT.
+  // Photos go in per-location chunk files that stay under 1MB each.
+  var remoteData=buildTextPayload();
+  var photoChunks=buildPhotoChunks(data.trips[0]);
   var attempt=function(tried){
     // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
     var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
@@ -1748,6 +1951,19 @@ function syncPushNow(){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
     }).then(function(res){
       if(res&&res.content&&res.content.sha)GH.shaCache=res.content.sha;
+      // Now push photo chunks one at a time (each <1MB). Reuse the chunk cache
+      // to skip uploads of chunks we already pushed for this trip.
+      return photoChunks.reduce(function(chain,chunk){
+        return chain.then(function(){
+          var fp2=tripsFingerprint(chunk.data);
+          if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2)return Promise.resolve();
+          return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,null).then(function(res2){
+            if(!GH.photoChunkFp)GH.photoChunkFp={};
+            GH.photoChunkFp[chunk.path]=fp2;
+          });
+        });
+      },Promise.resolve());
+    }).then(function(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
       GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
       setSyncStatus('synced');
@@ -2579,6 +2795,8 @@ function openTrip(id){
   renderTimeline();
   renderTripDetailExtras();
   refreshTripDayWeather();
+  // v47+: fetch this trip's photo chunks from remote (local IndexedDB cache first)
+  if(typeof prefetchTripPhotos==='function')prefetchTripPhotos(t);
   // Always pull fresh data when opening a trip so a freshly-installed device sees the latest cloud copy
   if(typeof syncPull==='function'){
     var beforeCount=getAllLocations(t).length;
@@ -2722,7 +2940,14 @@ function deleteLocation(idx){
   var day=t.days[currentTripDay]||t.days[0];
   if(!day||!day.locations||!day.locations[idx])return;
   if(!confirm('删除这个地点？'))return;
+  var removed=day.locations[idx];
   day.locations.splice(idx,1);
+  // v47+: also drop the location's photo cache + its remote chunk files
+  if(removed&&removed.id&&typeof photoCacheDel==='function'){
+    photoCacheDel(locPhotoKey(t.id,removed.id));
+    var pc=locPhotoChunkCount(removed);
+    for(var i=0;i<pc;i++){var p=photoChunkPathForIdx(t.id,removed.id,i);try{ghDeleteFile(p);}catch(e){}}
+  }
   t.updatedAt=new Date().toISOString();
   saveDataLocal();renderTimeline();renderDayPills();
   if(typeof window.syncPushNow==='function')window.syncPushNow();
@@ -2867,6 +3092,12 @@ function saveLocation(){
   }else{
     loc.id=uid();
     day.locations.push(loc);
+  }
+  // v47+: keep the location's photos in IndexedDB (they're too big for
+  // localStorage); trips.json stays text-only. Persist before push so a
+  // refresh mid-sync doesn't lose them.
+  if(loc.id&&loc.photos&&loc.photos.length){
+    if(typeof photoCachePut==='function')photoCachePut(locPhotoKey(t.id,loc.id),loc.photos.slice());
   }
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
   t.updatedAt=new Date().toISOString();
@@ -3579,9 +3810,12 @@ function forceResync(){
     saveDataLocal();
     ghCacheWrite(remote);
     var locCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){locCount+=(d.locations||[]).length;});
-    var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=(l.photos||[]).length;});});
+    // v47+: photos now live in separate chunk files; count via _photoCount markers
+    var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=((l._photoCount||0)+(l.photos||[]).length);});});
     showToast('已同步 '+locCount+' 个地点 · '+photoCount+' 张照片');
-    setTimeout(function(){location.reload();},800);
+    // Kick off photo-chunk downloads in the background; UI will re-render as they land
+    if(data.trips[0]&&typeof prefetchTripPhotos==='function')prefetchTripPhotos(data.trips[0]);
+    setTimeout(function(){location.reload();},1200);
   }).catch(function(e){
     console.error('forceResync failed',e);
     showToast('恢复失败：'+(e&&e.message?e.message:'网络超时，请稍后再试'));
