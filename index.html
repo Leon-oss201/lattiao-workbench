@@ -1052,7 +1052,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v47';
+var APP_VERSION='v48';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3799,7 +3799,7 @@ function forceResync(){
   GH.nextPullAt=0;
   GH.lastPushFp=null;
   ghReadTrips().then(function(remote){
-    if(!remote||!remote.trips){showToast('拉取失败：云端无响应。请检查网络后重试。');return;}
+    if(!remote||!remote.trips){showToast('拉取失败：网络不佳。本地数据已保留。');return;}
     try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
@@ -3818,7 +3818,7 @@ function forceResync(){
     setTimeout(function(){location.reload();},1200);
   }).catch(function(e){
     console.error('forceResync failed',e);
-    showToast('恢复失败：'+(e&&e.message?e.message:'网络超时，请稍后再试'));
+    showToast('拉取失败：网络不佳。本地数据已保留。');
   });
 }
 function forcePush(){
@@ -3880,8 +3880,15 @@ function closePhotoViewer(){document.getElementById('photo-viewer').classList.re
 
 // ============ Init ============
 function init(){
-  loadData();
-  renderHome();
+  // v47+: wait for IndexedDB photo cache to load BEFORE first render, so
+  // photos aren't blank for the first frame after upgrade.
+  var ready=typeof restorePhotosFromIndexedDB==='function'
+    ?restorePhotosFromIndexedDB().catch(function(){})
+    :Promise.resolve();
+  ready.then(function(){
+    loadData();
+    renderHome();
+  });
   document.querySelectorAll('.bn-item').forEach(function(b){
     b.addEventListener('click',function(){showPage(b.dataset.page);});
   });
