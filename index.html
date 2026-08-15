@@ -1056,7 +1056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 })();
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v58';
+var APP_VERSION='v59';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1981,6 +1981,14 @@ function prefetchTripPhotos(t){
     try{saveDataLocal();}catch(e){}
   }).catch(function(){});
 }
+// v58+: pull photo chunks for every trip in the user's library. Called from
+// renderCal / renderTrips / renderHome so the calendar list (which renders
+// locations with empty photos arrays) gets fresh chunks even when the user
+// is on a different page than the trip detail.
+function prefetchAllTripPhotos(){
+  if(!data.trips||!data.trips.length)return;
+  data.trips.forEach(function(t){prefetchTripPhotos(t);});
+}
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
@@ -2680,7 +2688,7 @@ function renderCalLocationList(monthLocs){
           '<span style="font-size:16px;">'+(typeIcon[l.type]||'📍')+'</span>'+
           '<div style="flex:1;">'+
             '<div style="font-size:14px;font-weight:600;">'+escapeHTML(l.name||'未命名')+'</div>'+
-            '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+'</div>'+
+            '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+' · '+(l._photoCount||(l.photos&&l.photos.length)?'📷 '+(l._photoCount||l.photos.length):'')+'</div>'+
           '</div>'+
         '</div>'+
         renderCalLocationDetails(l)+
@@ -2689,6 +2697,10 @@ function renderCalLocationList(monthLocs){
     html+='</div></div>';
   });
   container.innerHTML=html;
+  // v58+: kick off photo-chunk fetch for every trip so the list re-renders
+  // with thumbnails once chunks arrive. ensureLocationPhotos uses IndexedDB
+  // first so this is cheap when photos are already cached.
+  if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
 }
 function renderCalLocationDetails(l){
   var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
@@ -3407,10 +3419,14 @@ function shareCurrentTrip(){
   shareData._sharedBy=ghUserId();
   ghWriteFile('data/shared/'+shareId+'.json',shareData,'share: '+t.title,null).then(function(){
     var link=location.origin+location.pathname+'?share='+shareId;
-    if(navigator.share){navigator.share({title:t.title,text:'看看我的旅行计划',url:link}).catch(function(){});}
+    if(navigator.share){navigator.share({title:t.title,text:'看看我的旅行计划',url:link}).catch(function(e){/* user cancelled share sheet — silently ignore */});}
     else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('分享链接已复制');});}
     else{prompt('复制分享链接：',link);}
-  }).catch(function(e){console.error(e);showToast('生成失败：'+e.message);});
+  }).catch(function(e){
+    // User cancelling the share sheet surfaces an AbortError — not a failure.
+    if(e&&(e.name==='AbortError'||String(e.message).indexOf('aborted')>=0))return;
+    console.error(e);showToast('生成失败：'+e.message);
+  });
 }
 function inviteCollaborator(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
