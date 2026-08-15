@@ -1,5 +1,5 @@
-// Service Worker for Lattiao Travel Journal PWA v46
-const CACHE_NAME = 'lattiao-travel-v46';
+// Service Worker for Lattiao Travel Journal PWA v47
+const CACHE_NAME = 'lattiao-travel-v47';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
