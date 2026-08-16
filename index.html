@@ -1081,7 +1081,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v66';
+var APP_VERSION='v67';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2121,9 +2121,50 @@ function prefetchTripPhotos(t){
 // renderCal / renderTrips / renderHome so the calendar list (which renders
 // locations with empty photos arrays) gets fresh chunks even when the user
 // is on a different page than the trip detail.
+// v67: concurrency cap for prefetch. Without this, opening the calendar with
+// ~20 locations fires ~120 simultaneous chunk fetches (20 locations × 6 chunk
+// indices each), which freezes weaker phones in the browser. 3 concurrent
+// locations keeps peak network load at a safe ~18 requests while still
+// pulling photos promptly.
+var PREFETCH_CONCURRENCY=3;
+function runWithLimit(jobs,limit){
+  var idx=0;
+  var workers=[];
+  for(var w=0;w<limit;w++){
+    workers.push((function(){
+      function next(){
+        if(idx>=jobs.length)return Promise.resolve();
+        var i=idx++;
+        return Promise.resolve().then(function(){return jobs[i]();}).then(next,next);
+      }
+      return next();
+    })());
+  }
+  return Promise.all(workers);
+}
 function prefetchAllTripPhotos(){
   if(!data.trips||!data.trips.length)return;
-  data.trips.forEach(function(t){prefetchTripPhotos(t);});
+  var jobs=[];
+  data.trips.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.id&&(l._photoCount||0)>0&&(!l.photos||!l.photos.length)){
+          jobs.push(function(){return ensureLocationPhotos(t.id,l,false).catch(function(){return [];});});
+        }
+      });
+    });
+  });
+  if(!jobs.length)return;
+  runWithLimit(jobs,PREFETCH_CONCURRENCY).then(function(){
+    // re-render whatever is on screen (calendar/trips/home thumbnails)
+    var active=document.querySelector('.page.active');
+    if(active){
+      if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
+      else if(active.id==='page-calendar')renderCal();
+      else if(active.id==='page-trips')renderTrips();
+    }
+    try{saveDataLocal();}catch(e){}
+  }).catch(function(){});
 }
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
@@ -2316,18 +2357,28 @@ function setSyncStatus(s){
     var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败',retrying:'🔄 重试中…'};
     if(s==='synced'){
       // v66: sync summary — show what was actually synced
-      var locCount=0,photoCount=0;
+      var locCount=0,downloaded=0,marked=0;
       (data.trips||[]).forEach(function(t){
         (t.days||[]).forEach(function(d){
           (d.locations||[]).forEach(function(l){
             locCount++;
-            photoCount+=((l._photoCount||0)+(l.photos||[]).length);
+            // v67: photos-in-memory and _photoCount marker describe the SAME set
+            // of photos. Adding both would double-count (e.g. 3 photos + marker=3 → 6).
+            // Use photos.length if populated, else the marker.
+            var pInMem=(l.photos||[]).length;
+            var val=pInMem>0?pInMem:(l._photoCount||0);
+            downloaded+=val;
+            marked+=(l._photoCount||0);
           });
         });
       });
-      el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoCount+' 照片'):'✅ 已同步';
+      // Show "43/58" if some cloud chunks haven't been downloaded yet — gives
+      // the user a clear signal that photos are pending (instead of pretending
+      // everything is in sync).
+      var photoTxt=marked>downloaded?(downloaded+'/'+marked+' 照片'):(downloaded+' 照片');
+      el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoTxt):'✅ 已同步';
       el.className='sync-indicator sync-synced';
-      el.title='点击立即同步';
+      el.title=marked>downloaded?'云端还有 '+(marked-downloaded)+' 张照片未下载' :'点击立即同步';
     }else{
       el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
       el.title='点击立即同步';
