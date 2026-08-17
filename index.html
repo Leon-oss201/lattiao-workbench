@@ -77,12 +77,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .sync-error{color:#E25C5C;}
 .sync-offline{color:#9A8FB5;}
 .home-hero-text{position:absolute;top:36px;left:22px;z-index:2;}
-.home-hero h1{font-size:32px;font-weight:700;color:#4C1D95;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;}
+.home-hero h1{font-size:32px;font-weight:700;color:#4C1D95;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;word-break:break-word;overflow-wrap:break-word;max-width:calc(100% - 80px);}
 .home-hero h1.editable-title{cursor:pointer;border-radius:8px;padding:2px 6px;margin:-2px -6px;transition:background .2s;}
 .home-hero h1.editable-title:hover{background:rgba(255,255,255,.55);}
 .home-hero h1.editable-title::after{content:"✎";font-size:14px;color:#7C3AED;opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
 .home-hero h1.editable-title:hover::after{opacity:.7;}
-.home-hero .sub-slogan{font-size:13px;color:#7C3AED;margin-top:6px;}
+.home-hero .sub-slogan{font-size:13px;color:#7C3AED;margin-top:6px;cursor:pointer;border-radius:6px;padding:2px 6px;margin-left:-6px;margin-right:-6px;transition:background .2s;}
+.home-hero .sub-slogan:hover{background:rgba(255,255,255,.55);}
+.home-hero .sub-slogan:focus{outline:none;background:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
+.home-hero h1:focus{outline:none;background:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
+.home-hero h1:empty::before,.home-hero .sub-slogan:empty::before{content:attr(data-placeholder);color:#A78BFA;opacity:.6;}
 .home-hero .hero-decor{position:absolute;top:30px;right:60px;font-size:24px;animation:sparkle 2.5s ease-in-out infinite;z-index:1;}
 @keyframes sparkle{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.15);}}
 
@@ -473,8 +477,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步">📴 离线</div>
       <div class="hero-decor">✨</div>
       <div class="home-hero-text">
-        <h1 id="hero-title">杭州旅行计划</h1>
-        <div class="sub-slogan" id="hero-slogan">让每一次出行都值得期待</div>
+        <h1 id="hero-title" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="城市旅行计划" title="点击编辑标题（100 字以内）">杭州旅行计划</h1>
+        <div class="sub-slogan" id="hero-slogan" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="让每一次出行都值得期待" title="点击编辑签名（100 字以内）">让每一次出行都值得期待</div>
       </div>
     </div>
 
@@ -768,12 +772,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="modal-title" id="trip-modal-title">新建行程</div>
     <div class="form-row">
       <label class="form-label">行程标题</label>
-      <input class="form-input" id="tm-title" placeholder="例如：杭州三日游">
+      <input class="form-input" id="tm-title" placeholder="例如：杭州三日游" maxlength="100">
     </div>
     <div class="form-row form-row-flex">
       <div>
         <label class="form-label">目的地</label>
-        <input class="form-input" id="tm-destination" placeholder="例如：杭州">
+        <input class="form-input" id="tm-destination" placeholder="例如：杭州" maxlength="100">
       </div>
       <div>
         <label class="form-label">状态</label>
@@ -969,15 +973,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="modal-title">偏好设置</div>
     <div class="form-row">
       <label class="form-label">显示名称</label>
-      <input class="form-input" id="set-name" placeholder="Iris">
+      <input class="form-input" id="set-name" placeholder="Iris" maxlength="100">
     </div>
     <div class="form-row">
       <label class="form-label">签名</label>
-      <input class="form-input" id="set-slogan" placeholder="让每一次出行都值得期待">
+      <input class="form-input" id="set-slogan" placeholder="让每一次出行都值得期待" maxlength="100">
     </div>
     <div class="form-row">
       <label class="form-label">默认城市</label>
-      <input class="form-input" id="set-city" placeholder="城市">
+      <input class="form-input" id="set-city" placeholder="城市" maxlength="100">
     </div>
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
@@ -1094,7 +1098,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v72.2';
+var APP_VERSION='v72.3';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2562,6 +2566,51 @@ document.querySelectorAll('.bn-item').forEach(function(b){
   b.addEventListener('click',function(){showPage(b.dataset.page);});
 });
 
+// v72.3: inline edit for #hero-title and #hero-slogan — click to edit, blur to save.
+// 100-char limit enforced in JS (contenteditable doesn't honor the maxlength attr).
+function clampTextContent(el,max){
+  // Strip pasted formatting / line breaks, then truncate to max chars
+  var t=(el.textContent||'').replace(/[\r\n\t]+/g,' ').slice(0,max);
+  if(el.textContent!==t)el.textContent=t;
+}
+function bindHeroInlineEdit(){
+  var titleEl=document.getElementById('hero-title');
+  var sloganEl=document.getElementById('hero-slogan');
+  if(!titleEl||!sloganEl)return;
+  ['title','slogan'].forEach(function(kind){
+    var el=kind==='title'?titleEl:sloganEl;
+    el.addEventListener('input',function(){
+      clampTextContent(el,100);
+    });
+    el.addEventListener('focus',function(){
+      // Bring the editable element into view (iOS keyboard would otherwise cover it)
+      setTimeout(function(){
+        try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+      },100);
+    });
+    el.addEventListener('blur',function(){
+      var v=(el.textContent||'').trim();
+      if(!v)v=kind==='title'?(getCityFromHero()+(getCityFromHero()?'旅行计划':'')):'让每一次出行都值得期待';
+      el.textContent=v;
+      if(kind==='title'){
+        data.settings.heroTitle=v;
+      }else{
+        data.settings.slogan=v;
+      }
+      saveData();
+      renderHome();
+    });
+    el.addEventListener('keydown',function(e){
+      // Enter / Esc → commit & blur
+      if(e.key==='Enter'||e.key==='Escape'){
+        e.preventDefault();
+        el.blur();
+      }
+    });
+  });
+}
+bindHeroInlineEdit();
+
 // ============ City & Weather ============
 function getCityFromHero(){
   var city=(data.settings.city||'').trim();
@@ -2575,6 +2624,36 @@ function getCityFromHero(){
     if(title)return title;
   }
   return '杭州';
+}
+// v72.3: weather is driven by the nearest upcoming/active trip — not the
+// settings-city. Iris's rule:
+//   1) If a trip is currently in progress (startDate ≤ today ≤ endDate) → its destination
+//   2) Else if a trip starts within the next 7 days → its destination
+//   3) Else (no upcoming trip, all trips done) → default to 上海
+// Settings-city still drives hero title/Hi greeting — only weather switches.
+function getActiveWeatherCity(){
+  var now=new Date();now.setHours(0,0,0,0);
+  var trips=(data.trips||[]).slice();
+  var upcoming=trips.filter(function(t){return t.startDate;}).sort(function(a,b){
+    var sa=parseDateStr(a.startDate),sb=parseDateStr(b.startDate);
+    return (sa||0)-(sb||0);
+  });
+  // Priority 1: in-progress (startDate ≤ now ≤ endDate)
+  for(var i=0;i<upcoming.length;i++){
+    var t=upcoming[i];
+    var s=parseDateStr(t.startDate),e=parseDateStr(t.endDate);
+    if(s&&e&&s<=now&&now<=e&&t.destination)return t.destination;
+  }
+  // Priority 2: starting within next 7 days
+  for(var j=0;j<upcoming.length;j++){
+    var t2=upcoming[j];
+    var s2=parseDateStr(t2.startDate);
+    if(!s2)continue;
+    var diffDays=Math.round((s2-now)/86400000);
+    if(diffDays>=0&&diffDays<=7&&t2.destination)return t2.destination;
+  }
+  // Default: 上海 (Iris's home base — works after all trips end)
+  return '上海';
 }
 function getWeatherCache(city){
   try{
@@ -2913,12 +2992,19 @@ function renderHome(){
   var city=getCityFromHero();
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
-  document.getElementById('hero-title').textContent=city+'旅行计划';
-  document.getElementById('hero-slogan').textContent=(data.settings.slogan||'让每一次出行都值得期待');
+  // hero-title: user-editable, persist into data.settings.heroTitle (不再跟 city 派生 —
+  // 用户已经手动编辑后，改 city 不会冲掉他们写的标题)
+  var heroTitleEl=document.getElementById('hero-title');
+  var storedHeroTitle=(data.settings.heroTitle||'').trim();
+  if(!storedHeroTitle)storedHeroTitle=city+'旅行计划';
+  if(heroTitleEl.textContent.trim()!==storedHeroTitle)heroTitleEl.textContent=storedHeroTitle;
+  var heroSloganEl=document.getElementById('hero-slogan');
+  var storedSlogan=data.settings.slogan||'让每一次出行都值得期待';
+  if(heroSloganEl.textContent.trim()!==storedSlogan)heroSloganEl.textContent=storedSlogan;
   var days=['日','一','二','三','四','五','六'];
   var n=new Date();
   document.getElementById('greet-date').innerHTML=fmtDate(n)+' 周'+days[n.getDay()]+' · <b id="home-weather-line">--</b>';
-  loadWeather(city);
+  loadWeather(getActiveWeatherCity());
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
