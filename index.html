@@ -1429,7 +1429,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v85';
+var APP_VERSION='v86';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -6684,11 +6684,16 @@ function confirmFavToTrip(favId){
 // the first render so we don't get a light → dark flash.
 function applyAppearance(){
   var s=data.settings||{};
-  // Dark mode: 'auto' follows OS, 'on'/'off' explicit
+  // v86: explicit light/dark/auto — the previous `classList.toggle('dark', ...)`
+  // approach let the @media (prefers-color-scheme: dark) rule win over the
+  // user's "浅色" choice (because no .light class was added). Now we set
+  // explicit .dark / .light classes, with .light winning as the override.
+  document.documentElement.classList.remove('dark','light');
   var darkPref=s.darkMode||'auto';
   var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
   var dark=darkPref==='on'||(darkPref==='auto'&&prefersDark);
-  document.documentElement.classList.toggle('dark',dark);
+  if(dark)document.documentElement.classList.add('dark');
+  if(darkPref==='off')document.documentElement.classList.add('light');
   // Font scale: 0.85 / 1 / 1.15 / 1.3
   var scale=parseFloat(s.fontScale||'1');
   if(isNaN(scale)||scale<0.7||scale>1.5)scale=1;
