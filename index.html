@@ -981,8 +981,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
-      <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌" style="flex:1;font-family:monospace;">
+        <button type="button" class="btn btn-ghost" style="background:#F1F5F9;color:#475569;font-weight:600;padding:8px 12px;flex:none;" onclick="toggleTokenVisibility()" title="显示/隐藏密码（v72.1：上次你看到「Token 无效」但你的 token 我 curl 验证仍 200 OK——大概率是你 App 里存的不是有效那个，眼睛看到原始值最安全）">👁</button>
+      </div>
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步行程（云端：Gitee 私有仓库，国内访问快）。留空则只读模式。<a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank" style="color:var(--primary);">去 Gitee 生成令牌</a><br>生成步骤：① 登录 Gitee → 头像 → 设置 → 私人令牌 ② 权限勾选「projects」③ 点生成，复制令牌粘贴到这里。两人填同一仓库的令牌即可互相同步。</div>
+      <div style="font-size:11px;color:#DC2626;margin-top:6px;line-height:1.5;background:#FEF2F2;padding:8px;border-radius:6px;">
+        <b>⚠️ Token 显示「无效」？最常见三个原因：</b><br>
+        ① App 里存的是旧 token（你之前可能生成过新 token，但忘了换）<br>
+        ② 复制时漏了字符 / 多打了空格 / 截屏时被遮挡<br>
+        ③ 权限不足——必须勾选「projects」+ 仓库路径必须是 <code>zyl_Leon/lattiao-workbench</code>
+      </div>
     </div>
     <div class="form-row" style="display:flex;gap:8px;align-items:center;">
       <span id="token-status" style="flex:1;font-size:12px;color:var(--text-light);">⌛ 未测试</span>
@@ -1085,7 +1094,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v72';
+var APP_VERSION='v72.1';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4332,6 +4341,15 @@ function openSettings(){
 }
 // v72: lightweight live token probe so the user can verify before saving.
 // Returns success → flips the status badge to green + fills in repo info.
+// v72.1: eye toggle — let the user SEE what's actually in the box so we can
+// rule out copy-paste mistakes (a leading/trailing space is enough to break
+// a Gitee token). Password managers / autofill also sometimes insert their
+// own junk that's invisible behind bullets.
+function toggleTokenVisibility(){
+  var i=document.getElementById('set-token');
+  if(!i)return;
+  i.type=i.type==='password'?'text':'password';
+}
 function testCurrentToken(){
   var el=document.getElementById('token-status');
   var input=document.getElementById('set-token');
