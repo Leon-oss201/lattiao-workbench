@@ -20,5 +20,28 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "⏳ 最近出行",
+      "short_name": "出行倒计时",
+      "description": "查看最近的一次旅行",
+      "url": "./?shortcut=countdown",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "📷 行程相册",
+      "short_name": "相册",
+      "description": "浏览所有旅行照片",
+      "url": "./?shortcut=album",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "🧳 新建行程",
+      "short_name": "新建",
+      "description": "快速开始规划旅行",
+      "url": "./?shortcut=newtrip",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }
