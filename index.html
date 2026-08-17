@@ -220,6 +220,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trips-tabs{display:flex;padding:14px 18px 0;gap:18px;border-bottom:1px solid var(--border);}
 .trips-tabs div{padding:8px 0;font-size:14px;color:var(--text-sec);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .trips-tabs div.active{color:var(--primary);font-weight:700;border-color:var(--primary);}
+/* v75: tag chips + archived card style */
+.tc-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.tc-tag{font-size:10px;font-weight:600;color:var(--primary);background:rgba(124,58,237,.08);padding:2px 8px;border-radius:10px;}
+.trip-card.tc-archived{opacity:.7;filter:saturate(.6);}
+.trip-card.tc-archived .tc-cover{filter:grayscale(.4);}
+/* v75: sticker on trip cards */
+.trip-card .tc-cover{position:relative;}
+.tc-sticker{position:absolute;top:-6px;left:-6px;font-size:18px;transform:rotate(-12deg);filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));}
+/* v75: nav sort mode */
+.bottom-nav .bn-item.sorting{outline:2px dashed var(--primary);outline-offset:-2px;border-radius:10px;}
+.bottom-nav .bn-item.picked{background:var(--primary);color:#fff;border-radius:12px;}
+@keyframes navShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
 
 .trip-list{padding:14px 18px;}
 .trip-big{position:relative;border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);cursor:pointer;}
@@ -353,6 +365,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-trip-head .bth-dur{margin-left:auto;font-size:11px;color:var(--text-light);}
 
 .budget-cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 18px;margin-bottom:14px;}
+/* v75: daily spend bar chart */
+.daily-card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px;}
+.daily-card .dc-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;}
+.daily-chart{display:flex;align-items:flex-end;gap:8px;height:110px;}
+.daily-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;}
+.daily-bar{width:70%;max-width:34px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#A78BFA,#7C3AED);min-height:4px;transition:height .4s ease;position:relative;}
+.daily-bar.hot{background:linear-gradient(180deg,#FFB27A,#FF8C42);}
+.daily-bar .db-amt{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text-sec);white-space:nowrap;}
+.daily-bar-label{font-size:9px;color:var(--text-light);white-space:nowrap;}
 .budget-cat{background:#fff;border-radius:14px;padding:14px 6px;text-align:center;box-shadow:var(--shadow);}
 .budget-cat .bc-icon{font-size:24px;}
 .budget-cat .bc-amt{font-size:12px;font-weight:700;margin-top:4px;}
@@ -427,6 +448,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .photo-upload-area:hover{border-color:var(--primary);}
 .photo-upload-area .pu-icon{font-size:28px;margin-bottom:6px;}
 .photo-upload-area input{display:none;}
+/* v75: cover templates */
+.cover-tpl{flex:1;text-align:center;cursor:pointer;color:var(--text-sec);}
+.cover-tpl .ct-preview{aspect-ratio:3/2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:4px;border:2px solid transparent;transition:border-color .2s;}
+.cover-tpl:hover .ct-preview,.cover-tpl.sel .ct-preview{border-color:var(--primary);}
 
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
 .photo-grid .pg-item{aspect-ratio:1;border-radius:10px;background:#000;overflow:hidden;position:relative;}
@@ -489,6 +514,8 @@ img.photo-fade.loaded{opacity:1;}
 </style>
 </head>
 <body>
+<!-- v75: offline banner -->
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:#FEF3C7;color:#92400E;font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
 <div class="app">
 
   <!-- ====== HOME ====== -->
@@ -648,7 +675,9 @@ img.photo-fade.loaded{opacity:1;}
     <div class="trips-tabs">
       <div class="active" data-tab="upcoming" onclick="tripsTab(this,'upcoming')">即将出行</div>
       <div data-tab="all" onclick="tripsTab(this,'all')">全部行程</div>
+      <div data-tab="archived" onclick="tripsTab(this,'archived')">已归档</div>
     </div>
+    <div id="trips-tag-tabs"></div>
     <div class="trip-list" id="trip-list"></div>
   </section>
 
@@ -678,7 +707,7 @@ img.photo-fade.loaded{opacity:1;}
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
       <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点</span>
-      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">⚡ 智能排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span></span>
+      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
     </div>
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
@@ -697,6 +726,10 @@ img.photo-fade.loaded{opacity:1;}
     <div class="td-section">
       <h3>✨ 旅行感受</h3>
       <div id="td-feeling"></div>
+    </div>
+    <div class="td-section" id="td-summary-section" style="display:none;">
+      <h3>🧾 旅行总结</h3>
+      <div id="td-summary"></div>
     </div>
     <div class="td-section">
       <div class="td-toolbar">
@@ -746,6 +779,7 @@ img.photo-fade.loaded{opacity:1;}
       <div class="budget-stat"><div class="bs-icon">📋</div><div class="bs-amt plan" id="stat-plan">¥0</div><div class="bs-lab">计划额度</div></div>
     </div>
     <div class="budget-cat-grid" id="budget-cat-grid"></div>
+    <div id="budget-daily-chart" style="padding:0 18px;margin-bottom:14px;"></div>
     <div class="home-section">
       <div class="section-head"><h2>行程安排</h2></div>
       <div id="budget-trip-list"></div>
@@ -806,6 +840,7 @@ img.photo-fade.loaded{opacity:1;}
       <div class="pro-highlight"><div class="ph-v" id="ph-farthest">—</div><div class="ph-l">最远目的地</div></div>
       <div class="pro-highlight"><div class="ph-v" id="ph-photoday">—</div><div class="ph-l">照片最多的一天</div></div>
     </div>
+    <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,#F5F3FF,#FDF2F8);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div class="menu-card">
       <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
@@ -888,6 +923,11 @@ img.photo-fade.loaded{opacity:1;}
       </div>
     </div>
     <div class="form-row">
+      <label class="form-label">标签（逗号分隔，可空）</label>
+      <input class="form-input" id="tm-tags" placeholder="例如：蜜月, 美食, 海边" maxlength="100">
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">用标签给行程分类，行程页可按标签筛选。常用：蜜月 / 亲子 / 美食 / 海边 / 独自旅行 / 周末游</div>
+    </div>
+    <div class="form-row">
       <label class="form-label">封面图片（可选）</label>
       <div class="photo-upload-area" onclick="document.getElementById('tm-cover-input').click()">
         <div class="pu-icon">📷</div>
@@ -896,6 +936,13 @@ img.photo-fade.loaded{opacity:1;}
       </div>
       <div id="tm-cover-preview" style="margin-top:8px;display:none;">
         <img id="tm-cover-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:12px;">
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:8px;">或选一个封面模板（自动生成）</div>
+      <div style="display:flex;gap:8px;margin-top:6px;" id="tm-cover-templates">
+        <div class="cover-tpl" data-tpl="ink" onclick="applyCoverTemplate('ink')"><div class="ct-preview" style="background:linear-gradient(135deg,#7C3AED,#A78BFA);">🖋</div><div style="font-size:10px;">薄荷水墨</div></div>
+        <div class="cover-tpl" data-tpl="journal" onclick="applyCoverTemplate('journal')"><div class="ct-preview" style="background:linear-gradient(135deg,#F97316,#FBBF24);">📖</div><div style="font-size:10px;">旅行手账</div></div>
+        <div class="cover-tpl" data-tpl="minimal" onclick="applyCoverTemplate('minimal')"><div class="ct-preview" style="background:linear-gradient(135deg,#1F182E,#4C1D95);">⬛</div><div style="font-size:10px;">极简黑卡</div></div>
+        <div class="cover-tpl" data-tpl="ocean" onclick="applyCoverTemplate('ocean')"><div class="ct-preview" style="background:linear-gradient(135deg,#0EA5E9,#5BC0DE);">🌊</div><div style="font-size:10px;">海岛蓝天</div></div>
       </div>
     </div>
     <div class="modal-actions">
@@ -1203,7 +1250,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v74';
+var APP_VERSION='v75';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3149,6 +3196,114 @@ function tripCardWeather(t){
   }catch(e){}
   return '';
 }
+function updateOfflineBanner(){
+  try{
+    var b=document.getElementById('offline-banner');
+    if(b)b.style.display=navigator.onLine?'none':'block';
+  }catch(e){}
+}
+// v75: tab reorder — long-press a bottom tab to enter sort mode, then tap two
+// tabs to swap them. Order persists in localStorage.
+var NAV_ORDER_KEY='lattiao_nav_order';
+var NAV_SORTING=false,NAV_PICK=-1,NAV_LONG_TIMER=null;
+function applyNavOrder(){
+  try{
+    var order=JSON.parse(localStorage.getItem(NAV_ORDER_KEY)||'null');
+    if(!order||!order.length)return;
+    var items=document.querySelectorAll('.bottom-nav .bn-item');
+    var map={};
+    items.forEach(function(el){map[el.dataset.page]=el;});
+    var wrap=document.querySelector('.bottom-nav-items');
+    if(!wrap)return;
+    order.forEach(function(pg){
+      if(map[pg])wrap.appendChild(map[pg]);
+    });
+  }catch(e){}
+}
+function startNavSort(el){
+  if(NAV_SORTING){navPick(el);return;}
+  NAV_SORTING=true;NAV_PICK=-1;
+  document.querySelectorAll('.bottom-nav .bn-item').forEach(function(i){
+    i.classList.add('sorting');
+    i.style.animation='navShake .5s infinite';
+  });
+  showToast('排序模式：依次点两个 Tab 交换位置，点「完成」保存');
+  // add a done chip
+  var done=document.createElement('div');
+  done.id='nav-done';
+  done.style.cssText='position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:150;background:var(--primary);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);cursor:pointer;';
+  done.textContent='✓ 完成排序';
+  done.onclick=function(){endNavSort(true);};
+  document.body.appendChild(done);
+}
+function navPick(el){
+  var idx=Array.from(document.querySelectorAll('.bottom-nav .bn-item')).indexOf(el);
+  if(NAV_PICK<0){NAV_PICK=idx;el.classList.add('picked');}
+  else{
+    var items=document.querySelectorAll('.bottom-nav .bn-item');
+    var a=items[NAV_PICK],b=items[idx];
+    if(a&&b&&a!==b){
+      var wrap=document.querySelector('.bottom-nav-items');
+      if(idx>NAV_PICK)wrap.insertBefore(b,a);
+      else wrap.insertBefore(a,b);
+      // persist
+      var order=[];
+      wrap.querySelectorAll('.bn-item').forEach(function(i){order.push(i.dataset.page);});
+      try{localStorage.setItem(NAV_ORDER_KEY,JSON.stringify(order));}catch(e){}
+      showToast('已交换，点「完成」保存');
+    }
+    items.forEach(function(i){i.classList.remove('picked');});
+    NAV_PICK=-1;
+  }
+}
+function endNavSort(save){
+  NAV_SORTING=false;NAV_PICK=-1;
+  document.querySelectorAll('.bottom-nav .bn-item').forEach(function(i){
+    i.classList.remove('sorting','picked');
+    i.style.animation='';
+  });
+  var done=document.getElementById('nav-done');
+  if(done)done.remove();
+  if(save)showToast('Tab 顺序已保存');
+  else{applyNavOrder();showToast('已取消');}
+}
+// Long-press detection (touch + mouse)
+(function(){
+  var t0=0;
+  function down(e){
+    var el=e.target.closest?e.target.closest('.bn-item'):null;
+    if(!el)return;
+    t0=Date.now();
+    NAV_LONG_TIMER=setTimeout(function(){startNavSort(el);},600);
+  }
+  function up(){
+    clearTimeout(NAV_LONG_TIMER);
+    // if we entered sorting, don't also trigger page nav
+  }
+  document.addEventListener('touchstart',down,{passive:true});
+  document.addEventListener('touchend',function(){clearTimeout(NAV_LONG_TIMER);},{passive:true});
+  document.addEventListener('mousedown',down);
+  document.addEventListener('mouseup',function(){clearTimeout(NAV_LONG_TIMER);});
+})();
+// v75: offline banner reacts to network changes
+window.addEventListener('online',updateOfflineBanner);
+window.addEventListener('offline',updateOfflineBanner);
+
+// v75: trip-card sticker effect (tape piece on the cover corner)
+function tripSticker(t){
+  // deterministic pseudo-random sticker from trip id
+  var h=Math.abs(hashCode(t.id||''))%4;
+  var stickers=['🍀','🌸','⭐','✈️'];
+  return stickers[h];
+}
+// v75: location-type color helper (UI consistency across pages)
+function locTypeColor(type){
+  return {food:'#FF8C42',attraction:'#7C3AED',transport:'#0EA5E9',stay:'#5BC0DE',departure:'#F59E0B',checkin:'#10B981',return:'#6B7280',other:'#9A8FB5'}[type]||'#9A8FB5';
+}
+function locTypeIcon(type){
+  return {food:'🍜',attraction:'🏞',transport:'🚇',stay:'🏨',departure:'✈️',checkin:'📷',return:'🏠',other:'✨'}[type]||'✨';
+}
+
 function renderHome(){
   var city=getCityFromHero();
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
@@ -3172,7 +3327,7 @@ function renderHome(){
   // v73 fix: include in-progress trips too (startDate <= now <= endDate) — the
   // old filter (startDate >= now) hid a trip that had already started.
   var ups=data.trips.filter(function(t){
-    if(t.status==='done')return false;
+    if(t.status==='done'||t.status==='archived')return false;
     if(!t.startDate)return false;
     var s=parseDateStr(t.startDate);
     var e=parseDateStr(t.endDate)||s;
@@ -3359,6 +3514,7 @@ function calDayClick(y,m,d){calDate=new Date(y,m-1,d);renderCal();}
 
 // ============ Trips ============
 var tripsTabFilter='upcoming';
+var tripsTagFilter='all';
 function renderTrips(){
   var city=getCityFromHero();
   document.getElementById('trips-hero-title').textContent=city+'行程规划';
@@ -3367,10 +3523,27 @@ function renderTrips(){
   var now=new Date();now.setHours(0,0,0,0);
   var show=[];
   if(tripsTabFilter==='upcoming'){
-    show=data.trips.filter(function(t){return t.status!=='done'}).sort(function(a,b){return new Date(a.startDate||0)-new Date(b.startDate||0);});
+    show=data.trips.filter(function(t){return t.status!=='done'&&t.status!=='archived'}).sort(function(a,b){return new Date(a.startDate||0)-new Date(b.startDate||0);});
+  }else if(tripsTabFilter==='archived'){
+    show=data.trips.filter(function(t){return t.status==='archived'}).sort(function(a,b){return new Date(b.startDate||0)-new Date(a.startDate||0);});
   }else{
     show=data.trips.slice().sort(function(a,b){return new Date(b.startDate||0)-new Date(a.startDate||0);});
   }
+  // v75: tag filter tabs (dynamic from all trips)
+  var tagSet={};
+  (data.trips||[]).forEach(function(t){Array.isArray(t.tags)&&t.tags.forEach(function(tg){tagSet[tg]=1;});});
+  var tags=Object.keys(tagSet).sort();
+  var tagTabsHtml='';
+  if(tags.length){
+    tagTabsHtml='<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;"><div class="album-tab'+(tripsTagFilter==='all'?' active':'')+'" data-tag="all" onclick="setTripsTagFilter(\'all\')">全部</div>';
+    tags.forEach(function(tg){
+      tagTabsHtml+='<div class="album-tab'+(tripsTagFilter===tg?' active':'')+'" data-tag="'+escapeHTML(tg)+'" onclick="setTripsTagFilter(\''+escapeHTML(tg).replace(/'/g,"\\'")+'\')">#'+escapeHTML(tg)+'</div>';
+    });
+    tagTabsHtml+='</div>';
+    if(tripsTagFilter!=='all')show=show.filter(function(t){return Array.isArray(t.tags)&&t.tags.indexOf(tripsTagFilter)>=0;});
+  }
+  var tagTabsEl=document.getElementById('trips-tag-tabs');
+  if(tagTabsEl)tagTabsEl.innerHTML=tagTabsHtml;
   var html='';
   if(show.length===0){
     html='<div class="empty"><div class="e-icon">🧳</div><div class="e-title">还没有行程</div><div class="e-desc">开始规划你的第一段旅程</div><button class="btn btn-primary" onclick="openTripModal()">＋ 新建行程</button></div>';
@@ -3380,8 +3553,9 @@ function renderTrips(){
       var dur='';
       if(t.startDate&&t.endDate){var days=daysBetween(t.startDate,t.endDate)+1;dur=fmtDateShort(t.startDate)+' ~ '+fmtDateShort(t.endDate)+' · '+days+'天'+ (days>1?Math.floor(days/2)+'晚':'');}
       else if(t.startDate)dur=fmtDate(t.startDate);
-      html+='<div class="trip-card" onclick="openTrip(\''+t.id+'\')">'+
-        '<div class="tc-cover">'+cover+'</div>'+
+      var tagHtml=Array.isArray(t.tags)&&t.tags.length?('<div class="tc-tags">'+t.tags.map(function(tg){return '<span class="tc-tag">#'+escapeHTML(tg)+'</span>';}).join('')+'</div>'):'';
+      html+='<div class="trip-card'+(t.status==='archived'?' tc-archived':'')+'" onclick="openTrip(\''+t.id+'\')">'+
+        '<div class="tc-cover">'+cover+'<span class="tc-sticker">'+tripSticker(t)+'</span></div>'+
         '<div class="tc-body">'+
           '<div class="tc-title">'+escapeHTML(t.title)+'</div>'+
           '<div class="tc-meta">'+
@@ -3389,13 +3563,35 @@ function renderTrips(){
             (t.destination?'<span>📍 '+escapeHTML(t.destination)+'</span>':'')+
             '<span>📅 '+dur+'</span>'+
           '</div>'+
+          tagHtml+
         '</div></div>';
     });
   }
   document.getElementById('trip-list').innerHTML=html;
 }
+function setTripsTagFilter(tag){tripsTagFilter=tag;renderTrips();}
 function hashCode(s){var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return h;}
-function statusLabel(s){return s==='done'?'已完成':s==='ongoing'?'进行中':'即将出行';}
+function statusLabel(s){return s==='done'?'已完成':s==='ongoing'?'进行中':s==='archived'?'已归档':'即将出行';}
+// v75: auto-archive — trips that ended more than ARCHIVE_DAYS ago move out of
+// the default view so the app stays focused on the next journey.
+var ARCHIVE_DAYS=7;
+function autoArchiveTrips(){
+  try{
+    var changed=false;
+    var now=new Date();now.setHours(0,0,0,0);
+    (data.trips||[]).forEach(function(t){
+      if(t.status==='archived'||t.status==='done')return; // never touch user-marked done
+      if(!t.endDate)return;
+      var e=parseDateStr(t.endDate);
+      if(!e)return;
+      var diff=Math.round((now-e)/86400000);
+      if(diff>=ARCHIVE_DAYS){
+        t.status='archived';changed=true;
+      }
+    });
+    if(changed){saveDataLocal();}
+  }catch(e){}
+}
 function tripsTab(el,f){document.querySelectorAll('#page-trips .trips-tabs div').forEach(function(d){d.classList.remove('active');});el.classList.add('active');tripsTabFilter=f;renderTrips();}
 
 function openTripModal(id){
@@ -3414,11 +3610,13 @@ function openTripModal(id){
       document.getElementById('tm-end').value=t.endDate||'';
       document.getElementById('tm-budget').value=(t.budget&&t.budget.total)?t.budget.total.toFixed(2):'';
       document.getElementById('tm-aa').value=t.aaPeople||1;
+      document.getElementById('tm-tags').value=Array.isArray(t.tags)?t.tags.join(', '):'';
       if(t.cover){document.getElementById('tm-cover-img').src=t.cover;document.getElementById('tm-cover-preview').style.display='block';}
     }
   }else{
     ['tm-title','tm-destination','tm-start','tm-end','tm-budget'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('tm-aa').value=1;
+    document.getElementById('tm-tags').value='';
     document.getElementById('tm-status').value='upcoming';
   }
   document.getElementById('trip-modal').classList.add('active');
@@ -3427,6 +3625,33 @@ function handleCoverUpload(e){
   var f=e.target.files[0];if(!f)return;
   // v66: on slow networks compress harder so uploads are faster
   compressImage(f,isSlowNet()?800:1200,isSlowNet()?0.5:0.65,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});}
+// v75: generate a themed cover as an inline SVG data URL (no external assets)
+function applyCoverTemplate(tpl){
+  var title=document.getElementById('tm-title').value.trim()||'我的旅程';
+  var dest=document.getElementById('tm-destination').value.trim();
+  var svg=generateCoverSvg(tpl,title,dest);
+  document.getElementById('tm-cover-img').src=svg;
+  document.getElementById('tm-cover-preview').style.display='block';
+  document.querySelectorAll('#tm-cover-templates .cover-tpl').forEach(function(el){el.classList.toggle('sel',el.dataset.tpl===tpl);});
+  showToast('封面模板已应用');
+}
+function generateCoverSvg(tpl,title,dest){
+  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+  var bg,accent,deco='';
+  if(tpl==='ink'){bg='#7C3AED';accent='#EDE9FE';deco='<circle cx="300" cy="60" r="90" fill="#A78BFA" opacity=".5"/><path d="M0 300 L120 240 L240 270 L360 220 L500 250 L600 230 L600 400 L0 400 Z" fill="#C4B5FD" opacity=".6"/><path d="M60 330 L160 290 L280 320 L400 280 L520 310 L600 295" stroke="#EDE9FE" stroke-width="2" fill="none" opacity=".5"/>';}
+  else if(tpl==='journal'){bg='#F97316';accent='#FFFBEB';deco='<rect x="30" y="30" width="540" height="330" rx="18" fill="none" stroke="#FBBF24" stroke-width="3" opacity=".8"/><circle cx="420" cy="90" r="50" fill="#FBBF24" opacity=".5"/><path d="M0 300 Q150 260 300 290 T600 270 L600 400 L0 400 Z" fill="#FB923C" opacity=".4"/>';}
+  else if(tpl==='minimal'){bg='#1F182E';accent='#C4B5FD';deco='<rect x="40" y="40" width="520" height="320" fill="none" stroke="#7C3AED" stroke-width="2" opacity=".7"/><circle cx="500" cy="80" r="60" fill="none" stroke="#7C3AED" stroke-width="1.5" opacity=".5"/><path d="M40 350 L560 350" stroke="#7C3AED" stroke-width="1" opacity=".6"/>';}
+  else{bg='#0EA5E9';accent='#E0F2FE';deco='<circle cx="500" cy="70" r="50" fill="#FDE68A" opacity=".9"/><path d="M0 320 L120 260 L240 300 L360 240 L480 290 L600 250 L600 400 L0 400 Z" fill="#7DD3FC" opacity=".6"/><path d="M0 350 L160 300 L320 340 L500 290 L600 330 L600 400 L0 400 Z" fill="#38BDF8" opacity=".5"/>';}
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">'+
+    '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+bg+'"/><stop offset="1" stop-color="'+bg+'"/></linearGradient></defs>'+
+    '<rect width="600" height="400" fill="url(#bg)"/>'+deco+
+    '<text x="300" y="180" font-size="46" font-weight="700" fill="'+accent+'" text-anchor="middle" font-family="Songti SC,STSong,serif">'+esc(title)+'</text>'+
+    (dest?'<text x="300" y="230" font-size="26" fill="'+accent+'" opacity=".9" text-anchor="middle">📍 '+esc(dest)+'</text>':'')+
+    '<text x="300" y="370" font-size="18" fill="'+accent+'" opacity=".7" text-anchor="middle">🍃 薄荷旅行手账</text>'+
+    '</svg>'
+  );
+}
 function saveTrip(){
   var budgetInput=document.getElementById('tm-budget').value;
   var tripBudget=budgetInput===''?null:parseFloat(budgetInput)||0;
@@ -3442,7 +3667,8 @@ function saveTrip(){
     guide:'',
     feeling:'',
     budget:{total:tripBudget||0,items:[]},
-    aaPeople:Math.max(1,parseInt(document.getElementById('tm-aa').value,10)||1)
+    aaPeople:Math.max(1,parseInt(document.getElementById('tm-aa').value,10)||1),
+    tags:document.getElementById('tm-tags').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean)
   };
   if(!t.cover)t.cover='';
   // days
@@ -3634,8 +3860,10 @@ function renderTimeline(){
   }
   var html='';
   locs.forEach(function(l,idx){
-    var typeIcon={attraction:'🏞',food:'🍜',transport:'🚇',checkin:'📷',departure:'✈️',return:'🏠',stay:'🏨',other:'✨'}[l.type]||'📍';
+    var typeIcon=locTypeIcon(l.type);
     var dotClass=(l.type==='food'?'food':l.type==='transport'||l.type==='departure'||l.type==='return'?'transport':'');
+    // v75: type-color badge next to the name for visual consistency
+    var typeColor=locTypeColor(l.type);
     var photoThumbs='';
     if(l.photos&&l.photos.length){
       photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
@@ -3652,7 +3880,7 @@ function renderTimeline(){
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
       '<div class="tl-card">'+
-        '<div class="tl-name">'+typeIcon+' '+escapeHTML(l.name||'')+'</div>'+
+        '<div class="tl-name">'+typeIcon+' '+escapeHTML(l.name||'')+'<span style="font-size:9px;font-weight:600;color:#fff;background:'+typeColor+';padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;">'+(l.type||'other')+'</span></div>'+
         '<div class="tl-meta">'+
           (l.distance?('<span>📏 '+l.distance+' km</span>'):'')+
           (l.duration?('<span>⏱ '+l.duration+' 分钟</span>'):'')+
@@ -3675,10 +3903,16 @@ function sortLocations(mode){
   var day=t.days[currentTripDay]||t.days[0];
   if(!day||!day.locations)return;
   if(mode==='smart'){
-    day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+    // v75: route planning — sort by distance (closest first); fall back to time
+    // when distance is missing so the order still feels natural.
+    day.locations.sort(function(a,b){
+      var da=parseFloat(a.distance),db=parseFloat(b.distance);
+      if(!isNaN(da)&&!isNaN(db)&&(da!==db))return da-db;
+      return (a.time||'').localeCompare(b.time||'');
+    });
     saveData();
     renderTimeline();
-    showToast('已按时间智能排序');
+    showToast('已按路线排序（距离由近到远）');
   }else{
     showToast('点击地点卡片上的 ↑ ↓ 手动调整顺序');
   }
@@ -3979,6 +4213,41 @@ function renderTripDetailExtras(){
   }
   bEl.innerHTML=html;
 
+  // v75: end-of-trip questionnaire + saved summary
+  try{
+    var sumSec=document.getElementById('td-summary-section');
+    var sumEl=document.getElementById('td-summary');
+    if(sumSec&&sumEl){
+      var nowD=new Date();nowD.setHours(0,0,0,0);
+      var eDate=parseDateStr(t.endDate)||parseDateStr(t.startDate);
+      var ended=!eDate||nowD>eDate;
+      if(!ended){
+        sumSec.style.display='none';
+      }else if(t.summary&&(t.summary.best||t.summary.revisit||t.summary.perPerson)){
+        sumSec.style.display='block';
+        var sp=t.summary;
+        sumEl.innerHTML='<div style="background:linear-gradient(135deg,#F5F3FF,#FDF2F8);border:1px solid var(--border);border-radius:14px;padding:14px;">'+
+          '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;">💜 这段旅程的回忆</div>'+
+          (sp.best?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px;">🏆 <b>最棒：</b>'+escapeHTML(sp.best)+'</div>':'')+
+          (sp.revisit?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px;">📍 <b>想再去：</b>'+escapeHTML(sp.revisit)+'</div>':'')+
+          (sp.perPerson?'<div style="font-size:13px;line-height:1.7;">👥 <b>人均花费：</b>¥'+sp.perPerson+'</div>':'')+
+          '<div style="margin-top:10px;font-size:11px;color:var(--text-light);">随时可以点 ✎ 编辑行程重新填写</div>'+
+        '</div>';
+      }else{
+        sumSec.style.display='block';
+        sumEl.innerHTML='<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;">'+
+          '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;">✍️ 这趟旅行结束了，记下几句？</div>'+
+          '<div style="display:flex;flex-direction:column;gap:8px;">'+
+            '<input class="form-input" id="sum-best" placeholder="最棒的一件事…" maxlength="100">'+
+            '<input class="form-input" id="sum-revisit" placeholder="最想再去的地点…" maxlength="100">'+
+            '<div style="display:flex;gap:8px;align-items:center;"><input class="form-input" id="sum-per" type="number" step="0.01" placeholder="人均花费 ¥" style="flex:1;"><button class="btn btn-primary" style="padding:9px 16px;flex:none;" onclick="saveTripSummary()">保存</button></div>'+
+          '</div>'+
+          '<div style="font-size:10px;color:var(--text-light);margin-top:8px;">保存后会显示在行程详情 + 「我的」页</div>'+
+        '</div>';
+      }
+    }
+  }catch(e){}
+
   // route map — render a real path through the day's locations (not the placeholder bg)
   var mEl=document.getElementById('td-map');
   if(mEl){
@@ -4174,35 +4443,76 @@ function wrapText(ctx,text,maxW){
 }
 function shareCurrentTrip(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
-  if(!t)return;
-  if(!ghHasToken()){showToast('请先在设置中配置协作 Token');openSettings();return;}
-  // v71: Gitee repo is private → anonymous share links are NOT supported
-  // (a visitor without the token cannot read the shared file). Surface a clear
-  // message instead of generating a link that would 404 for the recipient.
-  showToast('私有云端暂不支持公开分享，可用「邀请协作」共享给好友');
-  return;
-  showToast('正在生成分享链接...');
-  var shareId='s_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  // v47+: share a TEXT-ONLY copy (KB-size) so the shared file is small, never
-  // truncated by GitHub, and loads fast over raw.githubusercontent.com in CN.
-  // The reader's device pulls photo chunks from the cloud on open.
-  var shareData=JSON.parse(JSON.stringify(t));
-  (shareData.days||[]).forEach(function(d){
-    (d.locations||[]).forEach(function(l){ if(l.photos&&l.photos.length){l._photoCount=l.photos.length;l.photos=[];} });
+  if(!t){showToast('没有当前行程');return;}
+  // v75: Gitee repo is private, so a server-side share link can't be read by
+  // people without a token. Instead we generate a SELF-CONTAINED HTML file with
+  // the trip embedded — send it anywhere (WeChat/email), opens read-only
+  // offline in any browser. No token needed.
+  try{
+    var html=buildTripHTML(t);
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    var file=new File([blob],'行程-'+(t.title||'分享')+'.html',{type:'text/html'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:t.title||'我的行程'}).catch(function(e){});
+    }else{
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;a.download='行程-'+(t.title||'分享')+'.html';a.click();
+      URL.revokeObjectURL(url);
+      showToast('已导出行程 HTML，发给朋友即可只读查看');
+    }
+  }catch(e){
+    console.error('share html err',e);
+    showToast('生成失败：'+e.message);
+  }
+}
+// v75: render a trip as a self-contained read-only HTML page (photos inlined).
+function buildTripHTML(t){
+  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+  var daysHtml='';
+  (t.days||[]).forEach(function(d){
+    if(!(d.locations||[]).length)return;
+    daysHtml+='<div class="day"><div class="day-title">📅 '+(d.date||'')+'</div>';
+    (d.locations||[]).forEach(function(l){
+      var photos=(l.photos||[]).map(function(p){return '<img src="'+p+'">';}).join('');
+      daysHtml+='<div class="loc"><div class="loc-head">'+(l.time?'<span class="time">'+esc(l.time)+'</span>':'')+'<b>'+esc(l.name||'')+'</b>'+(l.type?'<span class="tag">'+esc(l.type)+'</span>':'')+'</div>'+
+        (l.guide?'<div class="guide">📖 '+esc(l.guide)+'</div>':'')+
+        (l.feeling?'<div class="feel">💜 '+esc(l.feeling)+'</div>':'')+
+        (photos?'<div class="ph">'+photos+'</div>':'')+
+      '</div>';
+    });
+    daysHtml+='</div>';
   });
-  if(shareData.photos)shareData.photos=[];
-  shareData._sharedAt=new Date().toISOString();
-  shareData._sharedBy=ghUserId();
-  ghWriteFile('data/shared/'+shareId+'.json',shareData,'share: '+t.title,null).then(function(){
-    var link=location.origin+location.pathname+'?share='+shareId;
-    if(navigator.share){navigator.share({title:t.title,text:'看看我的旅行计划',url:link}).catch(function(e){/* user cancelled share sheet — silently ignore */});}
-    else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('分享链接已复制');});}
-    else{prompt('复制分享链接：',link);}
-  }).catch(function(e){
-    // User cancelling the share sheet surfaces an AbortError — not a failure.
-    if(e&&(e.name==='AbortError'||String(e.message).indexOf('aborted')>=0))return;
-    console.error(e);showToast('生成失败：'+e.message);
-  });
+  var budget=(function(){
+    var total=0,items=[];
+    (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){(l.budget&&l.budget.items||[]).forEach(function(it){total+=it.amt||0;items.push(it);});});});
+    if(!items.length)return '';
+    var ico={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
+    var icoN={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+    return '<div class="day"><div class="day-title">💰 花费 ¥'+total.toFixed(2)+(t.aaPeople>1?'（'+t.aaPeople+'人 AA，人均 ¥'+(total/t.aaPeople).toFixed(2)+'）':'')+'</div>'+
+      items.map(function(it){return '<div class="loc"><div class="loc-head"><span class="tag">'+ico[it.cat]+' '+(icoN[it.cat]||'')+'</span><b>¥'+esc(it.amt)+'</b></div>'+(it.note?'<div class="guide">'+esc(it.note)+'</div>':'')+'</div>';}).join('')+
+    '</div>';
+  })();
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(t.title)+'</title><style>'+
+    'body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#F5F3FF;margin:0;padding:16px;color:#1F182E;}'+
+    '.hero{background:linear-gradient(135deg,#7C3AED,#A78BFA);border-radius:18px;padding:22px 18px;color:#fff;margin-bottom:14px;}'+
+    '.hero h1{margin:0 0 6px;font-size:22px;}'+
+    '.hero p{margin:0;font-size:12px;opacity:.9;}'+
+    '.day{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 4px 16px rgba(124,58,237,.08);}'+
+    '.day-title{font-weight:700;margin-bottom:10px;color:#5B21B6;}'+
+    '.loc{border-top:1px dashed #E9D5FF;padding:10px 0;}'+
+    '.loc:first-child{border-top:none;}'+
+    '.loc-head{display:flex;align-items:center;gap:8px;}'+
+    '.time{background:#F3E8FF;color:#7C3AED;font-size:11px;padding:2px 8px;border-radius:10px;}'+
+    '.tag{background:#FFEEDD;color:#B45309;font-size:10px;padding:2px 8px;border-radius:10px;}'+
+    '.guide,.feel{font-size:13px;color:#6B5F7D;margin-top:6px;line-height:1.7;}'+
+    '.ph{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}'+
+    '.ph img{width:96px;height:96px;object-fit:cover;border-radius:10px;}'+
+    '.footer{text-align:center;font-size:11px;color:#9A8FB5;margin-top:20px;padding-bottom:20px;}'+
+    '</style></head><body>'+
+    '<div class="hero"><h1>'+esc(t.title)+'</h1><p>📍 '+esc(t.destination||'')+(t.startDate?' · '+esc(t.startDate)+(t.endDate?' ~ '+esc(t.endDate):''):'')+'</p></div>'+
+    daysHtml+budget+
+    '<div class="footer">🍃 由「薄荷旅行手账」生成 · '+esc(t.title)+' 只读分享</div>'+
+    '</body></html>';
 }
 function inviteCollaborator(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -4291,6 +4601,36 @@ function getTripSpent(t){
   });
   return spent;
 }
+// v75: daily spend bars — shows per-day spend across the filtered trips
+function renderDailyChart(trips){
+  var wrap=document.getElementById('budget-daily-chart');
+  if(!wrap)return;
+  // Aggregate spend by day date
+  var dayMap={};
+  trips.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      if(!d.date)return;
+      (d.locations||[]).forEach(function(l){
+        (l.budget&&l.budget.items||[]).forEach(function(it){
+          dayMap[d.date]=(dayMap[d.date]||0)+(it.amt||0);
+        });
+      });
+    });
+  });
+  var days=Object.keys(dayMap).sort();
+  if(!days.length){wrap.innerHTML='';return;}
+  var max=1;
+  days.forEach(function(d){if(dayMap[d]>max)max=dayMap[d];});
+  var html='<div class="daily-card"><div class="dc-title">📊 按天消费</div><div class="daily-chart">';
+  days.forEach(function(d){
+    var amt=dayMap[d];
+    var h=Math.max(6,Math.round((amt/max)*88));
+    var hot=amt>=max*0.8;
+    html+='<div class="daily-bar-wrap"><div class="daily-bar'+(hot?' hot':'')+'" style="height:'+h+'px;"><span class="db-amt">¥'+Math.round(amt)+'</span></div><div class="daily-bar-label">'+d.slice(5)+'</div></div>';
+  });
+  html+='</div></div>';
+  wrap.innerHTML=html;
+}
 function renderBudget(){
   var city=getCityFromHero();
   document.getElementById('budget-hero-title').textContent=city+'行程预算';
@@ -4375,6 +4715,8 @@ function renderBudget(){
     catHtml+='<div class="budget-cat"><div class="bc-icon">'+icons[c]+'</div><div class="bc-amt">¥'+(catTotals[c]||0).toFixed(0)+'</div><div class="bc-lab">'+({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物'}[c])+'</div></div>';
   });
   document.getElementById('budget-cat-grid').innerHTML=catHtml;
+  // v75: daily spend bar chart
+  renderDailyChart(trips);
   // trip list with budget detail
   var html='';
   trips.forEach(function(t){
@@ -4557,6 +4899,81 @@ function delFav(id){
 }
 
 // ============ Profile ============
+function saveTripSummary(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t)return;
+  var best=document.getElementById('sum-best');
+  var revisit=document.getElementById('sum-revisit');
+  var per=document.getElementById('sum-per');
+  if(!best||!revisit||!per)return;
+  t.summary={
+    best:(best.value||'').trim(),
+    revisit:(revisit.value||'').trim(),
+    perPerson:parseFloat(per.value)||0
+  };
+  t.updatedAt=new Date().toISOString();
+  saveData();
+  renderTripDetailExtras();
+  showToast('回忆已保存 💜');
+}
+// v75: auto-generate a short diary from feelings + weather per day
+function generateTripDiary(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t){showToast('没有当前行程');return;}
+  var lines=[];
+  lines.push('【'+t.title+'】'+(t.destination?' · '+t.destination:''));
+  lines.push('日期：'+(t.startDate||'')+(t.endDate?' ~ '+t.endDate:''));
+  (t.days||[]).forEach(function(d){
+    if(!(d.locations||[]).length)return;
+    lines.push('');
+    lines.push('—— '+(d.date||'')+' ——');
+    var cw=null;
+    try{if(d.date)cw=climatologyWeather((t.destination||'').trim()||getCityFromHero(),d.date);}catch(e){}
+    if(cw)lines.push('天气：'+(cw.icon||'')+' '+(cw.text||'')+' '+(Math.round((cw.tempMax+cw.tempMin)/2))+'°C');
+    (d.locations||[]).forEach(function(l){
+      var part='· '+(l.time||'')+' '+l.name;
+      if(l.feeling)part+='（'+l.feeling+'）';
+      lines.push(part);
+    });
+  });
+  var diary=lines.join('\n');
+  // Show in a modal + copy/download
+  var existing=document.getElementById('diary-modal');
+  if(existing)existing.remove();
+  var modal=document.createElement('div');
+  modal.className='modal-overlay active';
+  modal.id='diary-modal';
+  modal.innerHTML='<div class="modal"><div class="modal-handle"></div><div class="modal-title">📝 旅行日记（自动生成）</div>'+
+    '<textarea class="form-textarea" id="diary-text" style="height:300px;font-size:13px;line-height:1.8;" readonly>'+diary.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'+
+    '<div class="form-row" style="display:flex;gap:8px;margin-top:12px;"><button class="btn btn-ghost" style="flex:1;" onclick="copyDiary()">📋 复制</button><button class="btn btn-primary" style="flex:1;" onclick="downloadDiary()">⬇️ 下载</button><button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById(\'diary-modal\').remove()">关闭</button></div>'+
+    '<div style="font-size:10px;color:var(--text-light);margin-top:8px;text-align:center;">基于每天的天气 + 地点感受自动生成，可自行修改</div>'+
+  '</div>';
+  document.body.appendChild(modal);
+  window._diaryText=diary;
+}
+function copyDiary(){
+  var txt=window._diaryText||'';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){showToast('日记已复制');}).catch(function(){showToast('复制失败，请用下载');});
+  }else{prompt('复制日记：',txt);}
+}
+function downloadDiary(){
+  var txt=window._diaryText||'';
+  var blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='旅行日记.txt';a.click();
+  URL.revokeObjectURL(url);
+  showToast('日记已下载');
+}
+// v75: latest trip summary for the profile page
+function latestTripSummary(){
+  var best=null;
+  (data.trips||[]).forEach(function(t){
+    if(t.summary&&(t.summary.best||t.summary.revisit)&&(!best||(t.updatedAt||'')>(best.updatedAt||'')))best=t;
+  });
+  return best;
+}
+
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
   // Show the running app version so the user always knows which build they're on.
@@ -4616,6 +5033,23 @@ function renderProfile(){
     var dEl=document.getElementById('ph-photoday');
     if(dEl)dEl.textContent=bestDayN>0?(bestDay.slice(5)+' · '+bestDayN+' 张'):'—';
     if(hlWrap)hlWrap.style.display=(farthestKm>0||bestDayN>0)?'grid':'none';
+  }catch(e){}
+  // v75: latest trip summary card
+  try{
+    var sumCard=document.getElementById('pro-summary');
+    if(sumCard){
+      var latest=latestTripSummary();
+      if(latest&&latest.summary){
+        sumCard.style.display='block';
+        var sp=latest.summary;
+        sumCard.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">💜 「'+escapeHTML(latest.title||'')+'」的回忆</div>'+
+          (sp.best?'<div style="font-size:12px;line-height:1.6;margin-bottom:4px;">🏆 '+escapeHTML(sp.best)+'</div>':'')+
+          (sp.revisit?'<div style="font-size:12px;line-height:1.6;margin-bottom:4px;">📍 想再去：'+escapeHTML(sp.revisit)+'</div>':'')+
+          (sp.perPerson?'<div style="font-size:12px;line-height:1.6;">👥 人均 ¥'+sp.perPerson+'</div>':'');
+      }else{
+        sumCard.style.display='none';
+      }
+    }
   }catch(e){}
 }
 function dumpLocalState(){
@@ -5390,6 +5824,9 @@ function init(){
   ready.then(function(){
     applyAppearance();
     loadData();
+    autoArchiveTrips(); // v75: move finished trips to 已归档 after 7 days
+    applyNavOrder();    // v75: restore custom tab order
+    updateOfflineBanner();
     renderHome();
   });
   document.querySelectorAll('.bn-item').forEach(function(b){
