@@ -581,6 +581,24 @@ img.photo-fade.loaded{opacity:1;}
 <body>
 <!-- v75: offline banner -->
 <div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:#FEF3C7;color:#92400E;font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
+<!-- v82: prominent pending-push banner — shows when there are unsynced changes.
+     Bigger and more visible than the small sync-indicator pill, with two clear
+     actions: 立即重试 (resume the push) and 导出本地备份 (manual fallback for
+     friends to import). Iris repeatedly missed the small orange pill. -->
+<div id="pending-banner" style="display:none;background:linear-gradient(135deg,#FEF3C7,#FED7AA);color:#92400E;padding:14px 16px;border-bottom:2px solid #FB923C;box-shadow:0 4px 12px rgba(255,140,66,.15);">
+  <div style="display:flex;align-items:flex-start;gap:10px;max-width:480px;margin:0 auto;">
+    <div style="font-size:24px;line-height:1;">⚠️</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">云端同步未完成</div>
+      <div style="font-size:11px;line-height:1.5;opacity:.9;" id="pending-banner-detail">部分行程/照片暂存在本机，正在自动重试…</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" style="background:#fff;color:#92400E;padding:6px 12px;font-size:12px;font-weight:700;" onclick="syncPushNow()">🔄 立即重试</button>
+        <button class="btn btn-ghost" style="background:#fff;color:#92400E;padding:6px 12px;font-size:12px;font-weight:700;" onclick="exportFullBackup()">📤 导出本地备份</button>
+        <button class="btn btn-ghost" style="background:transparent;color:#92400E;padding:6px 8px;font-size:12px;" onclick="dismissPendingBanner()">知道了</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- v79: install-to-home-screen hint (once per device) -->
 <div id="a2hs-banner" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:300;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:14px 16px;width:calc(100% - 48px);max-width:360px;">
   <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">📲 添加到主屏幕</div>
@@ -1373,7 +1391,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v81';
+var APP_VERSION='v82';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2651,6 +2669,8 @@ function syncPushNow(){
       try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
       GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
       setSyncStatus('synced');
+      // v82: hide the prominent banner on success
+      if(typeof hidePendingBannerOnSync==='function')hidePendingBannerOnSync();
       // v61: give the user a confirmation that photos actually uploaded, so
       // collaborators know their pictures reached the cloud (this was the
       // silent gap: text synced but photo chunks failed without any feedback).
@@ -2673,11 +2693,11 @@ function syncPushNow(){
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
-      // v70: never give up — persist a "pending push" marker and auto-retry with
-      // exponential backoff until it succeeds. The data is already saved locally,
-      // so this is a pure delivery retry; the user never has to do anything.
+      // v82: persist + aggressive fast retry. Most Safari PWA "Load failed"
+      // are 1-5s hiccups — 8 quick retries within 24s catches them. After
+      // that we fall back to the slow exponential schedule.
       try{localStorage.setItem('lattiao_pending_push','1');}catch(e2){}
-      schedulePushRetry();
+      scheduleAggressiveRetry();
       setSyncStatus('pending');
       // Surface push failures so the user knows something is wrong, but only once
       // per failure mode to avoid spam.
@@ -2714,6 +2734,30 @@ function schedulePushRetry(){
     if(!ghHasToken())return;
     syncPushNow();
   },delay);
+  // v82: show a prominent banner so the user can act instead of just waiting
+  if(typeof showPendingBanner==='function')showPendingBanner();
+}
+// v82: aggressive fast retry — fire 8 attempts 3s apart to ride out a brief
+// Safari PWA "Load failed" (most such errors are 1-5 second hiccups, not real
+// outages). After 8 fast attempts, fall back to the slow exponential schedule.
+function scheduleAggressiveRetry(){
+  var attempt=0;
+  var maxFast=8;
+  function fire(){
+    attempt++;
+    if(!ghHasToken())return;
+    if(GH.pushing)return;
+    syncPushNow();
+    if(attempt<maxFast){
+      GH.aggressiveTimer=setTimeout(fire,3000);
+    }else{
+      // After 24s of fast retries, give up and let the slow schedule take over
+      GH.aggressiveTimer=null;
+      schedulePushRetry();
+    }
+  }
+  if(GH.aggressiveTimer){clearTimeout(GH.aggressiveTimer);GH.aggressiveTimer=null;}
+  fire();
 }
 // v81: wake-up triggers — when the user comes back to the app, or when the
 // network reconnects, attempt to flush a pending push immediately. iOS PWA
@@ -2736,6 +2780,41 @@ window.addEventListener('online',function(){
   maybeFlushPendingPush('online');
 });
 window.addEventListener('focus',function(){maybeFlushPendingPush('focus');});
+// v82: prominent pending-push banner — bigger than the corner pill, with
+// direct retry / export actions so the user has a way out if push keeps failing.
+var PENDING_BANNER_DISMISS_KEY='lattiao_pb_dismissed';
+function showPendingBanner(){
+  var b=document.getElementById('pending-banner');
+  if(!b)return;
+  // count unsynced items: photos with _photoCount, plus any trips with locations added since last push
+  var photoPending=0;
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        var inMem=(l.photos||[]).length;
+        if(inMem>0)photoPending+=inMem;
+        else if(l._photoCount)photoPending+=l._photoCount;
+      });
+    });
+  });
+  var detail='部分行程/照片暂存在本机，正在自动重试…';
+  if(photoPending>0)detail=photoPending+' 张照片待上传云端（朋友看不到），可点下方「立即重试」或「导出本地备份」手动分享给朋友';
+  var dEl=document.getElementById('pending-banner-detail');
+  if(dEl)dEl.textContent=detail;
+  // respect the user's previous "知道了" for this session only
+  if(sessionStorage.getItem(PENDING_BANNER_DISMISS_KEY)==='1')return;
+  b.style.display='block';
+}
+function dismissPendingBanner(){
+  var b=document.getElementById('pending-banner');
+  if(b)b.style.display='none';
+  try{sessionStorage.setItem(PENDING_BANNER_DISMISS_KEY,'1');}catch(e){}
+}
+function hidePendingBannerOnSync(){
+  var b=document.getElementById('pending-banner');
+  if(b)b.style.display='none';
+  try{sessionStorage.removeItem(PENDING_BANNER_DISMISS_KEY);}catch(e){}
+}
 // ============ Photo reconciliation (v63) ============
 // Background task: compare LOCAL photos (IndexedDB) against CLOUD photo chunks.
 // Any photo that exists locally but is missing from the cloud (e.g. a chunk
@@ -6565,6 +6644,9 @@ function init(){
   maybeCloudBackup(); // v76: daily cloud safety backup
   applyHeroBg();      // v77: apply saved hero background
   maybeShowInstallHint(); // v79: one-time PWA install hint
+  // v82: if a previous push was left pending (e.g. the user killed the app
+  // during a failure), surface the banner so they can act on it.
+  try{if(localStorage.getItem('lattiao_pending_push'))showPendingBanner();}catch(e){}
   renderHome();
   // Async photo hydration in the background
   if(typeof restorePhotosFromIndexedDB==='function'){
