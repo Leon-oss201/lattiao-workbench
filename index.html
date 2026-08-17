@@ -43,6 +43,10 @@
   --trip-mid-fg:var(--primary-dark);
   --muted-bg:var(--primary-light);
   --muted-fg:var(--text);
+  /* v87: bottom tab bar surface — white pill in light, deep purple in dark */
+  --nav-bg:rgba(255,255,255,.95);
+  --nav-icon:#867CA0;
+  --sync-synced-color:#5B21B6;
 }
 /* v73: dark mode — overrides all the design tokens above for night viewing */
 :root.dark,html.dark{
@@ -61,6 +65,10 @@
   --trip-mid-fg:#EDE9F8;
   --muted-bg:#3D2B5F;
   --muted-fg:#EDE9F8;
+  /* v87 dark nav bar + sync pill color */
+  --nav-bg:rgba(38,32,64,.95);
+  --nav-icon:#B6AECB;
+  --sync-synced-color:#C4B5FD;
 }
 /* v85: iOS 26 / Safari 17 — when the user picks "auto" (or hasn't picked at all
    and the system goes dark at night), honor prefers-color-scheme immediately
@@ -77,6 +85,9 @@
     --shadow-lg:0 10px 36px rgba(0,0,0,.6);
     --hero-grad:linear-gradient(135deg,#1F182E,#3D2B5F);
     --trip-mid-bg:linear-gradient(135deg,#3D2B5F,#4C3878);
+    --nav-bg:rgba(38,32,64,.95);
+    --nav-icon:#B6AECB;
+    --sync-synced-color:#C4B5FD;
     --trip-mid-fg:#EDE9F8;
     --muted-bg:#3D2B5F;
     --muted-fg:#EDE9F8;
@@ -107,7 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .btn-icon{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary-light);color:var(--primary-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
 
 /* Bottom Nav */
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:100;padding:6px 0 calc(6px + env(safe-area-inset-bottom));-webkit-transform:translate3d(-50%,0,0);transform:translate3d(-50%,0,0);}/* transform:translate3d forces GPU compositor layer on iOS Safari so the fixed nav stays put while inner .page scrolls */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--nav-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:100;padding:6px 0 calc(6px + env(safe-area-inset-bottom));-webkit-transform:translate3d(-50%,0,0);transform:translate3d(-50%,0,0);}/* transform:translate3d forces GPU compositor layer on iOS Safari so the fixed nav stays put while inner .page scrolls */
 .bottom-nav-items{display:flex;justify-content:space-around;flex-wrap:nowrap;width:100%;}
 .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--text-light);font-size:10px;user-select:none;transition:color .2s;position:relative;}
 .bn-item .bn-icon{font-size:20px;line-height:1;position:relative;display:flex;align-items:center;justify-content:center;width:26px;height:24px;}
@@ -123,7 +134,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .page-title{font-size:18px;font-weight:700;letter-spacing:.5px;}
 
 /* ==== HOME ==== */
-.home-hero{position:relative;height:300px;background:linear-gradient(180deg,#EDE9FE 0%,#DDD6FE 100%);overflow:hidden;border-bottom-left-radius:28px;border-bottom-right-radius:28px;}
+.home-hero{position:relative;height:300px;background:var(--hero-grad);overflow:hidden;border-bottom-left-radius:28px;border-bottom-right-radius:28px;}
 /* v77: hero background presets — set via JS by adding the class to .home-hero
    and hiding the default svg. Custom image data URLs are set as background-image
    inline (data-url stored in data.settings.heroBg). */
@@ -165,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
 .sync-syncing{animation:pulse 1.2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
-  .sync-synced{color:#5B21B6;}
+  .sync-synced{color:var(--sync-synced-color);}
   .sync-error{color:#E25C5C;}
   .sync-offline{color:#9A8FB5;}
   /* v81: pending = push failed and we're waiting to retry. Make it a clear
@@ -173,7 +184,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   .sync-pending{color:#fff;background:linear-gradient(135deg,#FF8C42,#FFA76B);box-shadow:0 4px 12px rgba(255,140,66,.4);animation:syncPulse 1.6s ease-in-out infinite;}
   @keyframes syncPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 .home-hero-text{position:absolute;top:36px;left:22px;z-index:2;}
-.home-hero h1{font-size:32px;font-weight:700;color:#4C1D95;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;word-break:break-word;overflow-wrap:break-word;max-width:calc(100% - 80px);}
+.home-hero h1{font-size:32px;font-weight:700;color:var(--text);letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;word-break:break-word;overflow-wrap:break-word;max-width:calc(100% - 80px);}
 .home-hero h1.editable-title{cursor:pointer;border-radius:8px;padding:2px 6px;margin:-2px -6px;transition:background .2s;}
 .home-hero h1.editable-title:hover{background:rgba(255,255,255,.55);}
 .home-hero h1.editable-title::after{content:"✎";font-size:14px;color:#7C3AED;opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
@@ -248,7 +259,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 /* ==== CALENDAR ==== */
 .cal-hero{position:relative;padding:18px 18px 14px;background:var(--hero-grad);overflow:hidden;}
-.cal-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.cal-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .cal-hero .cal-sub{font-size:11px;color:var(--text-sec);margin-top:4px;}
 .cal-hero svg.willow{position:absolute;right:0;top:0;height:100%;width:60px;opacity:.35;}
 
@@ -311,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 /* ==== TRIPS ==== */
 .trips-hero{padding:18px;background:var(--hero-grad);position:relative;overflow:hidden;}
-.trips-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.trips-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .trips-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
 .trips-hero svg.deco{position:absolute;right:-20px;bottom:-10px;height:140px;opacity:.4;}
 
@@ -430,7 +441,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 /* ==== BUDGET ==== */
 .budget-hero{padding:20px 18px;background:var(--hero-grad);position:relative;}
-.budget-hero h1{font-size:24px;font-weight:700;color:#4C1D95;letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
+.budget-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
 .budget-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
 
 .budget-summary{margin:-30px 18px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
@@ -487,7 +498,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* ==== PROFILE ==== */
 .profile-hero{padding:24px 18px;background:var(--hero-grad);display:flex;align-items:center;gap:14px;}
 .profile-avatar{width:60px;height:60px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:var(--shadow);}
-.profile-info .p-name{font-size:18px;font-weight:700;color:#4C1D95;}
+.profile-info .p-name{font-size:18px;font-weight:700;color:var(--text);}
 .profile-info .p-sub{font-size:11px;color:var(--text-sec);margin-top:2px;}
 .profile-info .p-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
 .profile-info .p-tag{font-size:10px;background:rgba(255,255,255,.6);padding:3px 8px;border-radius:8px;color:var(--primary-dark);}
@@ -1429,7 +1440,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v86';
+var APP_VERSION='v87';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3663,7 +3674,15 @@ function applyHeroBg(){
     hero.style.backgroundImage='';
     hero.style.backgroundSize='';
     hero.style.backgroundPosition='';
-    if(!v){return;} // default = current SVG illustration (薄荷水墨 deco)
+    // v87: default (no heroBg) now uses the .home-hero var(--hero-grad) gradient
+    // so dark mode gets a deep purple gradient. The hand-drawn SVG was always
+    // light-only (it doesn't react to color-scheme), so the default looked
+    // mismatched at night. Gradient respects the token in both themes.
+    if(!v){
+      // Hide the light-only SVG illustration; show the theme-aware gradient.
+      hero.classList.add('no-deco');
+      return;
+    }
     if(v.indexOf('data:')===0){
       hero.style.backgroundImage='url('+v+')';
       hero.style.backgroundSize='cover';
