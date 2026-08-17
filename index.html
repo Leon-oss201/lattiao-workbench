@@ -1081,7 +1081,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v68';
+var APP_VERSION='v69';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2192,26 +2192,41 @@ function syncPushNow(){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
     }).then(function(res){
       if(res&&res.content&&res.content.sha)GH.shaCache=res.content.sha;
-      // Now push photo chunks one at a time (each <1MB). Reuse the chunk cache
-      // to skip uploads of chunks we already pushed for this trip.
-      return photoChunks.reduce(function(chain,chunk){
-        return chain.then(function(){
-          // FIX (v65): chunk.data is {photos:[...]}, NOT a trips array —
-          // tripsFingerprint() calls .map() on it and threw
-          // "trips.map is not a function", which aborted the whole chunk
-          // upload loop silently (photos never reached the cloud even though
-          // trips.json text synced fine).
-          var fp2=JSON.stringify(chunk.data);
-          if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2)return Promise.resolve();
-          // chunk file may already exist on GitHub → must pass its sha or PUT 422s
-          return ghGetSha(chunk.path).then(function(sha){
-            return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,sha);
-          }).then(function(res2){
-            if(!GH.photoChunkFp)GH.photoChunkFp={};
-            GH.photoChunkFp[chunk.path]=fp2;
-          });
+      // v69: upload photo chunks in PARALLEL (3 at a time) with per-chunk retry.
+      // Old code uploaded chunks one-by-one with no retry — on flaky networks a
+      // single timeout aborted that chunk and photos silently never reached the
+      // cloud. Parallelism turns 6 chunks ≈ 12s serial into ~4s; the 2 retries
+      // (2s apart) absorb transient GitHub timeouts.
+      var toUpload=photoChunks.filter(function(chunk){
+        var fp2=JSON.stringify(chunk.data);
+        return !(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2);
+      });
+      function uploadChunk(chunk,retries){
+        var fp2=JSON.stringify(chunk.data);
+        // chunk file may already exist on GitHub → must pass its sha or PUT 422s
+        return ghGetSha(chunk.path).then(function(sha){
+          return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,sha);
+        }).then(function(){
+          if(!GH.photoChunkFp)GH.photoChunkFp={};
+          GH.photoChunkFp[chunk.path]=fp2;
+        }).catch(function(e){
+          // 409 = concurrent-write conflict; let the outer attempt() re-run it.
+          if(retries>0&&String(e).indexOf('409')<0){
+            return new Promise(function(r){setTimeout(r,2000);}).then(function(){
+              return uploadChunk(chunk,retries-1);
+            });
+          }
+          throw e;
         });
-      },Promise.resolve());
+      }
+      var chunkJobs=toUpload.map(function(c){
+        return function(){
+          return uploadChunk(c,2).catch(function(e){
+            console.warn('chunk upload failed',c.path,e);
+          });
+        };
+      });
+      return runWithLimit(chunkJobs,3);
     }).then(function(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
       GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
