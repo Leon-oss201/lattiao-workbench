@@ -1166,6 +1166,10 @@ img.photo-fade.loaded{opacity:1;}
       <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">如果文字乱码/数据异常，点这个按钮会清除手机上的本地数据缓存，然后从云端重新下载正确数据。已同步到云端的内容不会丢。</div>
     </div>
+    <div class="form-row">
+      <button class="btn btn-ghost" style="width:100%;background:#EFF6FF;color:#1D4ED8;font-weight:600;" onclick="restoreFromSnapshot()">💾 从本地备份恢复（最后一条安全快照）</button>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">每次保存时 App 都会在 IndexedDB 里留一份快照。如果本地数据异常/被误清，点这个按钮找回最后一份完整快照。App 每天还会自动备份一份到云端。</div>
+    </div>
     <div class="form-row" style="display:flex;gap:8px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="copyLocalState()">📋 复制本地数据</button>
       <button class="btn btn-ghost" style="flex:1;" onclick="exportLocalState()">⬇️ 导出本地数据</button>
@@ -1250,7 +1254,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v75';
+var APP_VERSION='v76';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1267,7 +1271,31 @@ var budgetFilterTripId='all';
 function loadData(){
   try{
     var raw=localStorage.getItem(STORAGE_KEY);
-    if(raw){var d=JSON.parse(raw);if(d)Object.assign(data,d);}
+    var parsedOk=false;
+    if(raw){
+      try{
+        var d=JSON.parse(raw);
+        if(d&&d.trips){Object.assign(data,d);parsedOk=true;}
+      }catch(pe){console.warn('[load] localStorage corrupt, trying IndexedDB snapshot');}
+    }
+    // v76: localStorage missing/corrupt → recover from the IndexedDB snapshot
+    // (fires async; meanwhile the UI renders with default/empty data and gets
+    // re-rendered once the snapshot arrives).
+    if(!parsedOk){
+      snapGet().then(function(snap){
+        if(!snap)return;
+        console.log('[load] recovered from IndexedDB snapshot');
+        data.trips=Array.isArray(snap.trips)?snap.trips:[];
+        data.settings=snap.settings||data.settings;
+        data.tombstones=snap.tombstones||data.tombstones||{};
+        data.locTombstones=snap.locTombstones||data.locTombstones||{};
+        data.guides=snap.guides||data.guides||[];
+        data.favorites=snap.favorites||data.favorites||[];
+        try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}
+        renderAll();
+        showToast('已从本地备份恢复数据');
+      }).catch(function(){});
+    }
     if(!data.settings) data.settings={};
     if(!data.tombstones) data.tombstones={};
     if(!data.locTombstones) data.locTombstones={};
@@ -1451,6 +1479,9 @@ function saveDataLocal(){
         (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
       });
       localStorage.setItem(STORAGE_KEY,JSON.stringify(slim));
+      // v76: second copy into IndexedDB so a localStorage wipe/overflow can't
+      // take the text data with it.
+      snapPut(slim);
     }catch(e){console.warn('[save] local save failed',e);}
   }catch(e){}
 }
@@ -2087,6 +2118,73 @@ function photoCachePut(locKey,photos){
     });
   }).catch(function(){});
 }
+// v76: IndexedDB data snapshot — the second line of defense behind localStorage.
+// localStorage can be evicted by iOS under storage pressure or cleared by
+// "clear site data"; IndexedDB is far more durable. Every local save writes a
+// text-only snapshot here; loadData falls back to it when localStorage is corrupt.
+var SNAP_DB_NAME='lattiao_snapshots';
+var snapDBPromise=null,snapDB=null;
+function snapDBOpen(){
+  if(snapDBPromise)return snapDBPromise;
+  snapDBPromise=new Promise(function(resolve,reject){
+    if(snapDB){resolve(snapDB);return;}
+    if(typeof indexedDB==='undefined'){reject(new Error('no idb'));return;}
+    var req=indexedDB.open(SNAP_DB_NAME,1);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('data'))db.createObjectStore('data',{keyPath:'key'});
+    };
+    req.onsuccess=function(){snapDB=req.result;resolve(snapDB);};
+    req.onerror=function(){snapDBPromise=null;reject(req.error);};
+  });
+  return snapDBPromise;
+}
+function snapPut(d){
+  return snapDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      try{
+        var slim=JSON.parse(JSON.stringify(d));
+        (slim.trips||[]).forEach(function(t){t.photos=[];if(t.cover)t.cover='';(t.days||[]).forEach(function(dy){(dy.locations||[]).forEach(function(l){l.photos=[];});});});
+        var tx=db.transaction('data','readwrite');
+        tx.objectStore('data').put({key:'last',data:slim,ts:Date.now()});
+        tx.oncomplete=function(){resolve(true);};
+        tx.onerror=function(){resolve(false);};
+      }catch(e){resolve(false);}
+    });
+  }).catch(function(){return false;});
+}
+function snapGet(){
+  return snapDBOpen().then(function(db){
+    return new Promise(function(resolve){
+      try{
+        var tx=db.transaction('data','readonly');
+        var req=tx.objectStore('data').get('last');
+        req.onsuccess=function(){resolve(req.result?req.result.data:null);};
+        req.onerror=function(){resolve(null);};
+      }catch(e){resolve(null);}
+    });
+  }).catch(function(){return null;});
+}
+// v76: daily cloud backup — text-only copy of all data to Gitee
+// data/backup/YYYY-MM-DD.json. Runs once per day, throttled in localStorage so
+// it never spams the API. Silent failure is fine (main trips.json is the source
+// of truth; this is a rollback safety net).
+var BACKUP_KEY='lattiao_last_backup';
+function maybeCloudBackup(){
+  try{
+    if(!ghHasToken())return;
+    var today=new Date().toISOString().slice(0,10);
+    var last=localStorage.getItem(BACKUP_KEY);
+    if(last===today)return;
+    var slim=JSON.parse(JSON.stringify(data));
+    (slim.trips||[]).forEach(function(t){t.photos=[];if(t.cover)t.cover='';(t.days||[]).forEach(function(dy){(dy.locations||[]).forEach(function(l){l.photos=[];});});});
+    slim._backupAt=new Date().toISOString();
+    geWrite('data/backup/'+today+'.json',slim,'backup: '+today).then(function(){
+      try{localStorage.setItem(BACKUP_KEY,today);}catch(e){}
+      console.log('[backup] daily backup done',today);
+    }).catch(function(e){console.warn('[backup] failed',e);});
+  }catch(e){}
+}
 function photoCacheGet(locKey){
   // v65: 4s timeout fallback. If the IndexedDB transaction never fires its
   // callbacks (can happen under heavy concurrent access / on some browsers),
@@ -2633,12 +2731,21 @@ function saveData(){
   syncPush();
 }
 
+// v76: coalesce burst renders — several saveData()→renderAll() calls in the
+// same tick (e.g. typing a budget number fires per keystroke) now collapse into
+// a single pass on the next tick, so rapid editing doesn't jank the UI.
+var _renderQueued=false;
 function renderAll(){
-  if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-home')renderHome();
-  if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-calendar')renderCalendar();
-  if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-trips')renderTrips();
-  if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-budget')renderBudget();
-  if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-profile')renderProfile();
+  if(_renderQueued)return;
+  _renderQueued=true;
+  setTimeout(function(){
+    _renderQueued=false;
+    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-home')renderHome();
+    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-calendar')renderCalendar();
+    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-trips')renderTrips();
+    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-budget')renderBudget();
+    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-profile')renderProfile();
+  },0);
 }
 
 function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
@@ -5460,8 +5567,27 @@ function reconcileManual(){
     showToast('对账失败：网络不佳，稍后会自动重试');
   });
 }
+function restoreFromSnapshot(){
+  // v76: restore text data from the last IndexedDB snapshot (does NOT touch
+  // photos — they live in their own store and stay intact).
+  if(!confirm('用本地备份快照恢复文字数据？'))return;
+  showToast('正在从本地备份恢复…');
+  snapGet().then(function(snap){
+    if(!snap){showToast('没有找到本地备份快照');return;}
+    data.trips=Array.isArray(snap.trips)?snap.trips:[];
+    data.settings=snap.settings||data.settings;
+    data.tombstones=snap.tombstones||{};
+    data.locTombstones=snap.locTombstones||{};
+    data.guides=snap.guides||[];
+    data.favorites=snap.favorites||[];
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}
+    renderAll();
+    showToast('已从本地备份恢复 ✓');
+  }).catch(function(){showToast('恢复失败');});
+}
 function onlyPullPhotos(){
   showToast('正在拉取所有云端照片块…');
+
   var jobs=[];
   // Iterate ALL locations (not just ones with _photoCount>0 — the marker may
   // be stale/absent on this device after the migration). ensureLocationPhotos
@@ -5637,7 +5763,8 @@ function renderAlbum(){
     (t.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
         if(l&&l.id&&(l._photoCount||0)>0&&(!l.photos||!l.photos.length)){
-          jobs.push(ensureLocationPhotos(t.id,l,false).catch(function(){return[];}));
+          // v76: thunk + concurrency pool so the album never hammers the API
+          jobs.push(function(){return ensureLocationPhotos(t.id,l,false).catch(function(){return[];});});
         }
       });
     });
@@ -5665,7 +5792,7 @@ function renderAlbum(){
   };
   if(!jobs.length){draw();return;}
   draw(); // show what we have now, refresh when more photos arrive
-  Promise.all(jobs).then(function(){draw();});
+  runWithLimit(jobs,Math.max(3,Math.min(PREFETCH_CONCURRENCY,4))).then(function(){draw();});
 }
 
 // ============ Duplicate Trip (v73) ============
@@ -5816,19 +5943,22 @@ function setFontScale(v){
 }
 
 function init(){
-  // v47+: wait for IndexedDB photo cache to load BEFORE first render, so
-  // photos aren't blank for the first frame after upgrade.
-  var ready=typeof restorePhotosFromIndexedDB==='function'
-    ?restorePhotosFromIndexedDB().catch(function(){})
-    :Promise.resolve();
-  ready.then(function(){
-    applyAppearance();
-    loadData();
-    autoArchiveTrips(); // v75: move finished trips to 已归档 after 7 days
-    applyNavOrder();    // v75: restore custom tab order
-    updateOfflineBanner();
-    renderHome();
-  });
+  // v76: render FIRST, then hydrate photos — waiting for the full IndexedDB
+  // read before the first paint makes startup feel slow with many photos.
+  // Text appears instantly; photos fade in via the existing skeleton/onload.
+  applyAppearance();
+  loadData();
+  autoArchiveTrips(); // v75: move finished trips to 已归档 after 7 days
+  applyNavOrder();    // v75: restore custom tab order
+  updateOfflineBanner();
+  maybeCloudBackup(); // v76: daily cloud safety backup
+  renderHome();
+  // Async photo hydration in the background
+  if(typeof restorePhotosFromIndexedDB==='function'){
+    restorePhotosFromIndexedDB().then(function(){
+      renderAll();
+    }).catch(function(){});
+  }
   document.querySelectorAll('.bn-item').forEach(function(b){
     b.addEventListener('click',function(){showPage(b.dataset.page);});
   });
