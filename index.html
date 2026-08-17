@@ -1391,7 +1391,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v82';
+var APP_VERSION='v83';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2180,8 +2180,16 @@ function locPhotoChunkCount(loc){
 // stays under the 1MB GitHub Contents API read limit. The chunk index in the
 // filename is just sequential (0,1,2…) — readers scan until 404, so this is
 // compatible regardless of how chunks were originally created.
-var PHOTO_CHUNK_TARGET=600000;
-var PHOTO_CHUNK_MAX=900000;
+// v83: Gitee's Contents API hard-caps file size at 1MB *of base64*. base64 is
+// 1.33× the raw JSON, so a 900KB JSON chunk (the old MAX) became 1.2MB base64
+// and got rejected → the "TypeError: Load failed" Iris kept hitting. New caps:
+//   target 250KB JSON (~333KB base64), hard max 350KB JSON (~466KB base64) —
+//   comfortably under 1MB even with JSON escaping overhead.
+var PHOTO_CHUNK_TARGET=250000;
+var PHOTO_CHUNK_MAX=300000; // v83b: 350→300 — with compressImage's three-stage
+                            // net (single photos cap at ~600KB base64 ≈ 450KB
+                            // JSON), a lone photo fits alone in one chunk under
+                            // this cap; base64 never approaches Gitee's 1MB.
 function buildPhotoChunksForLoc(tripId,loc){
   var out=[];
   if(!loc||!loc.id||!(loc.photos&&loc.photos.length))return out;
@@ -2631,6 +2639,11 @@ function syncPushNow(){
               return uploadChunk(chunk,retries-1);
             });
           }
+          // v83: a 413 means the chunk exceeded Gitee's 1MB(base64) cap. We
+          // can't re-split inside the numbered-chunk scheme (readers scan
+          // _0.._n sequentially), so we flag it and let the user's next save
+          // rebuild smaller chunks (compressImage now three-stage guarantees
+          // singles <600KB base64, and buildPhotoChunksForLoc caps at 300KB JSON).
           throw e;
         });
       }
@@ -3064,20 +3077,34 @@ function compressImage(file,maxWidth,quality,cb){
     var img=new Image();
     img.onload=function(){
       var w=img.width,h=img.height;
-      var mw=maxWidth||1200;
+      var mw=maxWidth||1000; // v83: 1200→1000 — Gitee Contents API caps files at 1MB (base64), and 1200px/q0.65 photos often bust that after chunking
       // Only downscale if the source is larger than the target — never upscale
       // a small source (which would only make the base64 blob bigger).
       if(w>mw){h=h*(mw/w);w=mw;}
-      var q=quality||0.65;
+      var q=quality||0.6;
       var c=document.createElement('canvas');c.width=w;c.height=h;
       var ctx=c.getContext('2d');
       ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
       ctx.drawImage(img,0,0,w,h);
       var out=c.toDataURL('image/jpeg',q);
-      // If a single photo still exceeds ~300KB of base64, re-encode harder so the
-      // shared trips.json doesn't balloon and slow every sync down.
-      if(out.length>420000){
+      // v83: three-stage safety net so a single photo can NEVER blow past the
+      // Gitee 1MB file limit (base64 = JSON×1.33):
+      //   >400KB → shrink to 800px @0.45
+      //   >600KB → shrink to 600px @0.4 (last resort, still fine for phone viewing)
+      // Original full-res stays in local IndexedDB, so the user keeps HD copies.
+      if(out.length>400000){
+        var w2=Math.min(w,800),h2=h*(w2/w);
+        c.width=w2;c.height=h2;
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w2,h2);
+        ctx.drawImage(img,0,0,w2,h2);
         out=c.toDataURL('image/jpeg',0.45);
+      }
+      if(out.length>600000){
+        var w3=Math.min(w,600),h3=h*(w3/w);
+        c.width=w3;c.height=h3;
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w3,h3);
+        ctx.drawImage(img,0,0,w3,h3);
+        out=c.toDataURL('image/jpeg',0.4);
       }
       cb(out);
     };
