@@ -1017,6 +1017,7 @@ img.photo-fade.loaded{opacity:1;}
       <div class="menu-row" onclick="exportData()"><div class="mr-icon">📤</div><div class="mr-label">导出数据</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
       <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
+      <div class="menu-row" onclick="manualDedupeTrips()"><div class="mr-icon">🧹</div><div class="mr-label">合并重复行程</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="showAbout()"><div class="mr-icon">ℹ️</div><div class="mr-label">关于</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" style="cursor:default;"><div class="mr-icon">🔖</div><div class="mr-label">当前版本</div><div class="mr-arrow" id="app-version">—</div></div>
       <div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>
@@ -1440,7 +1441,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v87';
+var APP_VERSION='v88';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1569,28 +1570,92 @@ function countLocations(t){
   (t&&t.days||[]).forEach(function(d){n+=(d.locations||[]).length;});
   return n;
 }
+function mergeLocationsById(a,b){
+  // Union two location arrays, dedupe by id (keep richer copy). v88 used to
+  // skip locations with no id, which let two near-identical trips survive
+  // merge and double the count on screen. Now anything with a matching id (or
+  // matching name+time when both lack ids) collapses.
+  var out=[];
+  var seen={};
+  function add(l){
+    if(!l)return;
+    var key=l.id||('n:'+(l.name||'')+':'+(l.time||''));
+    if(seen[key]){
+      var old=seen[key];
+      if((l.photos||[]).length>(old.photos||[]).length)old.photos=l.photos.slice();
+      if((l.guide||'').length>(old.guide||'').length)old.guide=l.guide;
+      if((l.feeling||'').length>(old.feeling||'').length)old.feeling=l.feeling;
+      return;
+    }
+    seen[key]=JSON.parse(JSON.stringify(l));
+    out.push(seen[key]);
+  }
+  (a||[]).forEach(add);
+  (b||[]).forEach(add);
+  return out;
+}
+function mergeTripDuplicates(keep,t){
+  // Two trips with the same name + destination + nearby dates → collapse their
+  // days by date and locations by id. Pick the earliest start date and the
+  // latest updatedAt to keep the most data.
+  keep.startDate=[keep.startDate,t.startDate].filter(Boolean).sort()[0]||keep.startDate;
+  keep.endDate=[keep.endDate,t.endDate].filter(Boolean).sort().slice(-1)[0]||keep.endDate;
+  if((t.updatedAt||0)>(keep.updatedAt||0)){
+    keep.title=t.title||keep.title;
+    keep.destination=t.destination||keep.destination;
+    keep.status=t.status||keep.status;
+    keep.cover=t.cover||keep.cover;
+    keep.updatedAt=t.updatedAt;
+  }
+  // Merge days by date
+  var byDate={};
+  (keep.days||[]).forEach(function(d){if(d&&d.date)byDate[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))};});
+  (t.days||[]).forEach(function(d){
+    if(!d||!d.date)return;
+    if(!byDate[d.date]){
+      byDate[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))};
+      return;
+    }
+    byDate[d.date].weather=byDate[d.date].weather||d.weather||'';
+    byDate[d.date].locations=mergeLocationsById(byDate[d.date].locations,d.locations||[]);
+  });
+  keep.days=Object.keys(byDate).sort().map(function(k){return byDate[k];});
+  // Merge trip-level photos
+  var pset={};
+  (keep.photos||[]).forEach(function(p){if(p)pset[p]=true;});
+  (t.photos||[]).forEach(function(p){if(p)pset[p]=true;});
+  keep.photos=Object.keys(pset);
+  // Merge guide/feeling: keep the longer non-empty text
+  if((t.guide||'').length>(keep.guide||'').length)keep.guide=t.guide;
+  if((t.feeling||'').length>(keep.feeling||'').length)keep.feeling=t.feeling;
+  // Budget: keep max total
+  var kt=parseFloat((keep.budget&&keep.budget.total)||0);
+  var tt=parseFloat((t.budget&&t.budget.total)||0);
+  if(!keep.budget||typeof keep.budget!=='object')keep.budget={total:0,items:[]};
+  if(!Array.isArray(keep.budget.items))keep.budget.items=[];
+  if(tt>kt)keep.budget.total=tt;
+  // Union budget items by time
+  var imap={};
+  (keep.budget.items||[]).forEach(function(it){if(it&&it.time)imap[it.time]=it;});
+  ((t.budget&&t.budget.items)||[]).forEach(function(it){if(it&&it.time&&!imap[it.time])imap[it.time]=it;});
+  keep.budget.items=Object.keys(imap).sort(function(a,b){return a.time-b.time;}).map(function(k){return imap[k];});
+  return keep;
+}
+function manualDedupeTrips(){var before=data.trips.length;dedupeTrips();var after=data.trips.length;renderAll();showToast(before>after?("已合并 "+(before-after)+" 个重复行程"):"没有发现重复");if(before!==after){saveData();}if(typeof scheduleAggressiveRetry==='function')scheduleAggressiveRetry();}
 function dedupeTrips(){
   if(!Array.isArray(data.trips))return;
   var keep=[];
   var dropped={};
   data.trips.forEach(function(t){
     if(!t||!t.id||dropped[t.id])return;
-    var dup=keep.find(function(k){return tripsSameTrip(k,t);});
-    if(!dup){keep.push(t);return;}
-    // Same trip appears twice with different ids (created on two devices).
-    // Only collapse when exactly one copy is empty and the other has data —
-    // two populated trips with the same name are kept (they may be real, distinct trips).
-    var tl=countLocations(t), dl=countLocations(dup);
-    if(tl>0&&dl>0){keep.push(t);return;}
-    if(tl===0&&dl===0){keep.push(t);return;}
-    // One is empty, the other populated → keep the populated one.
-    if(tl>dl){
-      var idx=keep.indexOf(dup);
-      keep[idx]=t;
-      dropped[dup.id]=true;
-    }else{
-      dropped[t.id]=true;
-    }
+    var dupIdx=keep.findIndex(function(k){return tripsSameTrip(k,t);});
+    if(dupIdx<0){keep.push(t);return;}
+    // v88: instead of leaving two populated copies side-by-side (Iris's 37 vs
+    // her friend's 29 bug), merge their days/locations/photos into one. Keeps
+    // the union of all data so neither side loses anything.
+    var merged=mergeTripDuplicates(keep[dupIdx],t);
+    keep[dupIdx]=merged;
+    dropped[t.id]=true;
   });
   if(keep.length!==data.trips.length){
     console.warn('[dedupe] collapsed',data.trips.length-keep.length,'duplicate trip(s)');
@@ -4347,7 +4412,10 @@ function applyTripTemplate(key){
   var perDay=Math.ceil(tpl.locations.length/tpl.days);
   for(var i=0;i<tpl.days;i++){
     var locs=tpl.locations.slice(i*perDay,i*perDay+perDay).map(function(p){
-      return {name:p[0],type:p[1],time:'',distance:null,duration:null,guide:'',feeling:'',photos:[],budget:{total:0,items:[]}};
+      // v88: every template location gets its own uid up front. Previously these
+      // were saved with no .id, so dedupe / merge on a friend's device silently
+      // skipped them → "37 vs 29 locations" mismatch with collaborators.
+      return {id:uid(),name:p[0],type:p[1],time:'',distance:null,duration:null,guide:'',feeling:'',photos:[],budget:{total:0,items:[]}};
     });
     window._templateDays.push({date:d2(new Date(s.getTime()+i*86400000)),weather:'',locations:locs});
   }
