@@ -71,10 +71,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* Bottom Nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:100;padding:6px 0 calc(6px + env(safe-area-inset-bottom));-webkit-transform:translate3d(-50%,0,0);transform:translate3d(-50%,0,0);}/* transform:translate3d forces GPU compositor layer on iOS Safari so the fixed nav stays put while inner .page scrolls */
 .bottom-nav-items{display:flex;justify-content:space-around;flex-wrap:nowrap;width:100%;}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--text-light);font-size:10px;user-select:none;transition:color .2s;}
-.bn-item .bn-icon{font-size:20px;line-height:1;}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--text-light);font-size:10px;user-select:none;transition:color .2s;position:relative;}
+.bn-item .bn-icon{font-size:20px;line-height:1;position:relative;}
 .bn-item.active{color:var(--primary);font-weight:600;}
 .bn-item.active .bn-icon{transform:scale(1.1);}
+/* v74: sync status dot on tabs */
+.bn-dot{display:none;position:absolute;top:-3px;right:-8px;width:9px;height:9px;border-radius:50%;background:#E25C5C;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.bn-dot.on{display:block;animation:dotPulse 1.6s ease-in-out infinite;}
+@keyframes dotPulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 
 /* Page Header (shared) */
 .page-header{padding:14px 18px 6px;display:flex;align-items:center;justify-content:space-between;}
@@ -428,6 +432,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .photo-grid .pg-item{aspect-ratio:1;border-radius:10px;background:#000;overflow:hidden;position:relative;}
 .photo-grid .pg-item img{width:100%;height:100%;object-fit:cover;}
 .photo-grid .pg-item .pg-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+/* v74: photo skeleton shimmer */
+.photo-skeleton{position:relative;overflow:hidden;background:#EDE9FE;}
+.photo-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shimmer 1.3s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+img.photo-fade{opacity:0;transition:opacity .35s ease;}
+img.photo-fade.loaded{opacity:1;}
 
 .spend-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAF5FF;border-radius:12px;margin-bottom:8px;}
 .spend-row .sr-cat{font-size:18px;width:30px;flex-shrink:0;}
@@ -812,11 +822,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <!-- ===== Bottom Nav ===== -->
   <nav class="bottom-nav">
     <div class="bottom-nav-items">
-      <div class="bn-item active" data-page="home"><div class="bn-icon">🏠</div>首页</div>
-      <div class="bn-item" data-page="calendar"><div class="bn-icon">📅</div>日历</div>
-      <div class="bn-item" data-page="trips"><div class="bn-icon">🧳</div>行程</div>
-      <div class="bn-item" data-page="budget"><div class="bn-icon">💰</div>预算</div>
-      <div class="bn-item" data-page="profile"><div class="bn-icon">👤</div>我的</div>
+      <div class="bn-item active" data-page="home"><div class="bn-icon">🏠<span class="bn-dot" id="dot-home"></span></div>首页</div>
+      <div class="bn-item" data-page="calendar"><div class="bn-icon">📅<span class="bn-dot" id="dot-calendar"></span></div>日历</div>
+      <div class="bn-item" data-page="trips"><div class="bn-icon">🧳<span class="bn-dot" id="dot-trips"></span></div>行程</div>
+      <div class="bn-item" data-page="budget"><div class="bn-icon">💰<span class="bn-dot" id="dot-budget"></span></div>预算</div>
+      <div class="bn-item" data-page="profile"><div class="bn-icon">👤<span class="bn-dot" id="dot-profile"></span></div>我的</div>
     </div>
   </nav>
 
@@ -871,6 +881,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div>
         <label class="form-label">可用预算 (¥)</label>
         <input class="form-input" id="tm-budget" type="number" step="0.01" placeholder="留空不变，0 表示清零">
+      </div>
+      <div>
+        <label class="form-label">AA 分摊人数</label>
+        <input class="form-input" id="tm-aa" type="number" min="1" step="1" placeholder="1 = 不分摊" value="1">
       </div>
     </div>
     <div class="form-row">
@@ -1189,7 +1203,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v73';
+var APP_VERSION='v74';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2540,6 +2554,31 @@ function setSyncStatus(s){
       el.title='点击立即同步';
     }
   }
+  // v74: red dot on the 行程 tab when something needs attention
+  updateTabDots(s);
+}
+// v74: show a pulsing red dot on the trips tab when the sync has problems or
+// there are pending downloads — the top-right sync chip is easy to miss.
+function updateTabDots(s){
+  var on=(s==='error'||s==='retrying'||s==='pending');
+  if(s==='synced'){
+    // also light up when some photos are still pending download
+    try{
+      var pending=0;
+      (data.trips||[]).forEach(function(t){
+        (t.days||[]).forEach(function(d){
+          (d.locations||[]).forEach(function(l){
+            if((l._photoCount||0)>0&&(!l.photos||!l.photos.length))pending++;
+          });
+        });
+      });
+      if(pending>0)on=true;
+    }catch(e){}
+  }
+  ['dot-home','dot-calendar','dot-trips','dot-budget','dot-profile'].forEach(function(id){
+    var d=document.getElementById(id);
+    if(d)d.classList.toggle('on',on);
+  });
 }
 
 function saveData(){
@@ -3160,7 +3199,7 @@ function renderHome(){
       var cls=tripCountdown(t)&&tripCountdown(t).type==='done'?' trip-row-card trc-finished':' trip-row-card';
       html+='<div class="'+cls+'" onclick="openTrip(\''+t.id+'\')">'+
         cdBadge+
-        '<div class="trc-cover">'+cover+'</div>'+
+        '<div class="trc-cover'+(t.cover?'':' photo-skeleton')+'">'+(t.cover?'<img loading="lazy" class="photo-fade" src="'+t.cover+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');">':'🧳')+'</div>'+
         '<div class="trc-body">'+
           '<div class="trc-name">'+escapeHTML(t.title)+chip+'</div>'+
           '<div class="trc-dates">📅 '+dur+'</div>'+
@@ -3374,10 +3413,12 @@ function openTripModal(id){
       document.getElementById('tm-start').value=t.startDate||'';
       document.getElementById('tm-end').value=t.endDate||'';
       document.getElementById('tm-budget').value=(t.budget&&t.budget.total)?t.budget.total.toFixed(2):'';
+      document.getElementById('tm-aa').value=t.aaPeople||1;
       if(t.cover){document.getElementById('tm-cover-img').src=t.cover;document.getElementById('tm-cover-preview').style.display='block';}
     }
   }else{
     ['tm-title','tm-destination','tm-start','tm-end','tm-budget'].forEach(function(i){document.getElementById(i).value='';});
+    document.getElementById('tm-aa').value=1;
     document.getElementById('tm-status').value='upcoming';
   }
   document.getElementById('trip-modal').classList.add('active');
@@ -3400,7 +3441,8 @@ function saveTrip(){
     photos:[],
     guide:'',
     feeling:'',
-    budget:{total:tripBudget||0,items:[]}
+    budget:{total:tripBudget||0,items:[]},
+    aaPeople:Math.max(1,parseInt(document.getElementById('tm-aa').value,10)||1)
   };
   if(!t.cover)t.cover='';
   // days
@@ -4297,6 +4339,12 @@ function renderBudget(){
   var total=plan;
   var left=plan-paid;
   var over=left<0;
+  // v74: AA per-person total (each trip's spend ÷ its headcount)
+  var aaTotal=0;
+  trips.forEach(function(t){
+    var n=Math.max(1,parseInt(t.aaPeople,10)||1);
+    aaTotal+=getTripSpent(t)/n;
+  });
   document.getElementById('budget-total').textContent='¥'+plan.toFixed(0);
   document.getElementById('budget-total').style.color=over?'var(--danger)':'var(--primary-dark)';
   document.getElementById('stat-spent').textContent='¥'+paid.toFixed(0);
@@ -4317,7 +4365,9 @@ function renderBudget(){
     '<div class="bs-meta-row"><span><span class="dot" style="background:#FF8C42;"></span>餐饮</span><b>'+pct(catTotals.food)+'%</b></div>'+
     '<div class="bs-meta-row"><span><span class="dot" style="background:#B07AB8;"></span>购物</span><b>'+pct(catTotals.shop)+'%</b></div>'+
     '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+pct(catTotals.ticket)+'%</b></div>'+
-    (over?'<div class="bs-meta-row" style="color:var(--danger);"><span>⚠️ 已超支</span><b>¥'+Math.abs(left).toFixed(0)+'</b></div>':'<div class="bs-meta-row" style="color:var(--primary);"><span>✅ 剩余预算</span><b>¥'+left.toFixed(0)+'</b></div>');
+    (over?'<div class="bs-meta-row" style="color:var(--danger);"><span>⚠️ 已超支</span><b>¥'+Math.abs(left).toFixed(0)+'</b></div>':'<div class="bs-meta-row" style="color:var(--primary);"><span>✅ 剩余预算</span><b>¥'+left.toFixed(0)+'</b></div>')+
+    // v74: AA — per-person share across all filtered trips
+    '<div class="bs-meta-row" style="border-top:1px dashed var(--border);padding-top:8px;margin-top:2px;"><span>👥 AA 人均</span><b>¥'+aaTotal.toFixed(0)+'</b></div>';
   // cats
   var catHtml='';
   var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
@@ -4344,7 +4394,17 @@ function renderBudget(){
         '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">可用预算</div><div style="font-size:14px;font-weight:700;color:var(--primary-dark);">¥'+tripPlan.toFixed(0)+'</div></div>'+
         '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">已花费</div><div style="font-size:14px;font-weight:700;color:var(--accent);">¥'+tripTotal.toFixed(0)+'</div></div>'+
         '<div style="flex:1;background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">剩余</div><div style="font-size:14px;font-weight:700;color:'+(tripLeft<0?'var(--danger)':(tripLeft<=tripPlan*0.2?'var(--accent)':'var(--primary)'))+';">¥'+tripLeft.toFixed(0)+'</div></div>'+
-      '</div>';
+      '</div>'+
+      // v74: AA line per trip
+      (function(){
+        var n=Math.max(1,parseInt(t.aaPeople,10)||1);
+        if(n<=1)return '';
+        var per=tripTotal/n;
+        return '<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:12px;">'+
+          '<span>👥</span><span style="color:var(--text-sec);flex:1;">'+n+' 人分摊</span>'+
+          '<span style="color:#166534;font-weight:700;">人均 ¥'+per.toFixed(0)+'</span>'+
+        '</div>';
+      })();
     // per trip detail items
     var tripItems=[];
     (t.days||[]).forEach(function(d){
@@ -5158,7 +5218,7 @@ function renderAlbum(){
     var g='<div class="album-grid">';
     photos.forEach(function(p,i){
       var info=p.locName||'';
-      g+='<div class="album-cell" data-i="'+i+'"><img loading="lazy" src="'+p.src+'"><div class="album-info">'+escapeHTML(info)+'</div></div>';
+      g+='<div class="album-cell photo-skeleton" data-i="'+i+'"><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(info)+'</div></div>';
     });
     g+='</div>';
     wrap.innerHTML=g;
@@ -5196,6 +5256,60 @@ function duplicateCurrentTrip(){
   syncPushNow().catch(function(){});
   // Navigate into the new trip
   setTimeout(function(){openTrip(copy.id);showPage('trip-detail');},300);
+}
+
+// v74: departure-day reminder — asks for notification permission on first use,
+// then checks on launch + every 6h whether a trip departs within the next 24h.
+// Shows a system notification once per trip (tracked in localStorage).
+var NOTIF_KEY='lattiao_notified_trips';
+function requestNotifyPermission(){
+  if(!('Notification' in window))return Promise.resolve('unsupported');
+  if(Notification.permission==='granted')return Promise.resolve('granted');
+  if(Notification.permission==='denied')return Promise.resolve('denied');
+  return Notification.requestPermission();
+}
+function checkDepartureReminders(silent){
+  try{
+    if(!('Notification' in window))return;
+    if(Notification.permission!=='granted')return; // never bug the user implicitly
+    var now=new Date();now.setHours(0,0,0,0);
+    var tomorrow=new Date(now);tomorrow.setDate(tomorrow.getDate()+1);
+    var notified={};
+    try{notified=JSON.parse(localStorage.getItem(NOTIF_KEY)||'{}');}catch(e){}
+    (data.trips||[]).forEach(function(t){
+      if(!t.startDate)return;
+      var s=parseDateStr(t.startDate);
+      if(!s)return;
+      // Only notify when departure is today or tomorrow (within 24h)
+      var diff=Math.round((s-now)/86400000);
+      if(diff<0||diff>1)return;
+      if(notified[t.id])return;
+      notified[t.id]=1;
+      try{localStorage.setItem(NOTIF_KEY,JSON.stringify(notified));}catch(e){}
+      var msg=diff===0?'今天出发去「'+(t.destination||t.title||'')+'」，一路平安 🧳'
+        :'明天出发去「'+(t.destination||t.title||'')+'」，记得收拾行李 ✈️';
+      try{
+        var n=new Notification('🎒 '+(t.title||'旅行提醒'),{body:msg,icon:'./icon-192.png',tag:'depart-'+t.id});
+        if(n.onclick){n.onclick=function(){window.focus();openTrip(t.id);n.close();};}
+      }catch(e){}
+    });
+  }catch(e){}
+}
+function maybeEnableDepartureReminders(){
+  // Ask for permission lazily only when the user has an upcoming trip soon
+  try{
+    var hasSoon=false;
+    var now=new Date();now.setHours(0,0,0,0);
+    (data.trips||[]).forEach(function(t){
+      if(!t.startDate)return;
+      var s=parseDateStr(t.startDate);
+      if(s){
+        var diff=Math.round((s-now)/86400000);
+        if(diff>=0&&diff<=3)hasSoon=true;
+      }
+    });
+    if(hasSoon)requestNotifyPermission().then(function(){checkDepartureReminders(true);});
+  }catch(e){}
 }
 
 // ============ Favorite → Add to Trip (v73) ============
@@ -5294,6 +5408,9 @@ function init(){
   });
   document.getElementById('photo-viewer').addEventListener('click',function(){closePhotoViewer();});
   if(ghHasToken()){syncStart();}else{setSyncStatus('offline');}
+  // v74: departure reminder — check on launch, then every 6h
+  setTimeout(function(){maybeEnableDepartureReminders();},4000);
+  setInterval(function(){checkDepartureReminders(true);},6*3600000);
   var params=new URLSearchParams(location.search);
   var shareId=params.get('share');
   var joinId=params.get('join');
