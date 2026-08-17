@@ -127,9 +127,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
 .sync-syncing{animation:pulse 1.2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
-.sync-synced{color:#5B21B6;}
-.sync-error{color:#E25C5C;}
-.sync-offline{color:#9A8FB5;}
+  .sync-synced{color:#5B21B6;}
+  .sync-error{color:#E25C5C;}
+  .sync-offline{color:#9A8FB5;}
+  /* v81: pending = push failed and we're waiting to retry. Make it a clear
+     orange pill so Iris knows there are unsynced changes, not "silent". */
+  .sync-pending{color:#fff;background:linear-gradient(135deg,#FF8C42,#FFA76B);box-shadow:0 4px 12px rgba(255,140,66,.4);animation:syncPulse 1.6s ease-in-out infinite;}
+  @keyframes syncPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 .home-hero-text{position:absolute;top:36px;left:22px;z-index:2;}
 .home-hero h1{font-size:32px;font-weight:700;color:#4C1D95;letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;word-break:break-word;overflow-wrap:break-word;max-width:calc(100% - 80px);}
 .home-hero h1.editable-title{cursor:pointer;border-radius:8px;padding:2px 6px;margin:-2px -6px;transition:background .2s;}
@@ -1369,7 +1373,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v80';
+var APP_VERSION='v81';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2685,9 +2689,10 @@ function syncPushNow(){
         // v68: ANY other failure (timeout / 5xx / network) must be loud —
         // a silent failure is how photos looked "uploaded" while never reaching
         // the cloud. The data IS saved locally; it will retry automatically.
+        // v81: explicitly call out the orange sync pill + tell the user to tap it
         if(!GH.pushFailWarnedAt||Date.now()-GH.pushFailWarnedAt>30000){
           GH.pushFailWarnedAt=Date.now();
-          showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。已保存到本机，将自动重试');
+          showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。点右上角橙色【待上传】按钮立即重试（切回 App 也会自动重试）');
         }
       }
     });
@@ -2699,7 +2704,9 @@ function syncPushNow(){
 // background until the cloud accepts the data.
 function schedulePushRetry(){
   if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
-  var delay=GH.pushBackoff?Math.min(GH.pushBackoff*2,480000):30000;
+  // v81: shorter first retry (5s) so a transient Safari glitch doesn't strand
+  // the upload for 30s+. Cap at 4 min so we don't hammer.
+  var delay=GH.pushBackoff?Math.min(GH.pushBackoff*2,240000):5000;
   GH.pushBackoff=delay;
   setSyncStatus('pending');
   GH.pushRetryTimer=setTimeout(function(){
@@ -2708,6 +2715,27 @@ function schedulePushRetry(){
     syncPushNow();
   },delay);
 }
+// v81: wake-up triggers — when the user comes back to the app, or when the
+// network reconnects, attempt to flush a pending push immediately. iOS PWA
+// suspends setTimeout when backgrounded, so visibilitychange is the most
+// reliable way to kick a pending push.
+function maybeFlushPendingPush(reason){
+  try{
+    if(!localStorage.getItem('lattiao_pending_push'))return;
+    if(GH.pushing)return;
+    if(!ghHasToken())return;
+    if(reason)console.log('flush pending push:',reason);
+    syncPushNow();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible')maybeFlushPendingPush('visibilitychange');
+});
+window.addEventListener('online',function(){
+  updateOfflineBanner();
+  maybeFlushPendingPush('online');
+});
+window.addEventListener('focus',function(){maybeFlushPendingPush('focus');});
 // ============ Photo reconciliation (v63) ============
 // Background task: compare LOCAL photos (IndexedDB) against CLOUD photo chunks.
 // Any photo that exists locally but is missing from the cloud (e.g. a chunk
@@ -2846,7 +2874,11 @@ function setSyncStatus(s){
       el.title=marked>downloaded?'云端还有 '+(marked-downloaded)+' 张照片未下载' :'点击立即同步';
     }else{
       el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
-      el.title='点击立即同步';
+      // v81: make pending VERY clear — orange pill that pulses. "已保存到本机" was
+      // too subtle and the user thought it was fully synced.
+      if(s==='pending')el.title='有未上传的行程/照片，点这里立即重试（App 切回前台也会自动重试）';
+      else if(s==='error')el.title='同步失败，点这里重试';
+      else el.title='点击立即同步';
     }
   }
   // v74: red dot on the 行程 tab when something needs attention
