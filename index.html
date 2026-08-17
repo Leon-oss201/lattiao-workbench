@@ -470,7 +470,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
         <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4"/>
       </svg>
       <button class="corner-btn" onclick="openSettings()">⚙️</button>
-      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true)" title="点击立即同步">📴 离线</div>
+      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步">📴 离线</div>
       <div class="hero-decor">✨</div>
       <div class="home-hero-text">
         <h1 id="hero-title">杭州旅行计划</h1>
@@ -1081,7 +1081,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v69';
+var APP_VERSION='v70';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1308,7 +1308,9 @@ var GH={
   tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
   tokenWarned:false,     // one-time toast flag for the token hint
   mergeConflicts:0,      // v66: count of same-location edits by both sides in the last merge
-  pushFailWarnedAt:0     // v68: throttle for the loud push-failure toast (30s)
+  pushFailWarnedAt:0,    // v68: throttle for the loud push-failure toast (30s)
+  pushBackoff:0,         // v70: exponential backoff for auto-retrying a failed push
+  pushRetryTimer:null    // v70: timer handle for the automatic push retry
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -2229,6 +2231,10 @@ function syncPushNow(){
       return runWithLimit(chunkJobs,3);
     }).then(function(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
+      // v70: push succeeded → clear pending flag + stop the retry schedule
+      if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
+      GH.pushBackoff=0;
+      try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
       GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
       setSyncStatus('synced');
       // v61: give the user a confirmation that photos actually uploaded, so
@@ -2253,6 +2259,12 @@ function syncPushNow(){
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
+      // v70: never give up — persist a "pending push" marker and auto-retry with
+      // exponential backoff until it succeeds. The data is already saved locally,
+      // so this is a pure delivery retry; the user never has to do anything.
+      try{localStorage.setItem('lattiao_pending_push','1');}catch(e2){}
+      schedulePushRetry();
+      setSyncStatus('pending');
       // Surface push failures so the user knows something is wrong, but only once
       // per failure mode to avoid spam.
       var msg=String(e);
@@ -2265,12 +2277,26 @@ function syncPushNow(){
         // the cloud. The data IS saved locally; it will retry automatically.
         if(!GH.pushFailWarnedAt||Date.now()-GH.pushFailWarnedAt>30000){
           GH.pushFailWarnedAt=Date.now();
-          showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。数据已保存在本机，联网后自动重试');
+          showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。已保存到本机，将自动重试');
         }
       }
     });
   };
   return attempt(false);
+}
+// v70: auto-retry a failed push with exponential backoff (30s → 1m → 2m → 4m → 8m cap).
+// The user never needs to manually re-upload — the app keeps trying in the
+// background until the cloud accepts the data.
+function schedulePushRetry(){
+  if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
+  var delay=GH.pushBackoff?Math.min(GH.pushBackoff*2,480000):30000;
+  GH.pushBackoff=delay;
+  setSyncStatus('pending');
+  GH.pushRetryTimer=setTimeout(function(){
+    GH.pushRetryTimer=null;
+    if(!ghHasToken())return;
+    syncPushNow();
+  },delay);
 }
 // ============ Photo reconciliation (v63) ============
 // Background task: compare LOCAL photos (IndexedDB) against CLOUD photo chunks.
@@ -2342,6 +2368,11 @@ function reconcileLocalPhotos(){
 
 function syncStart(){
   syncPull();
+  // v70: if a previous push failed and was persisted as pending, resume it right
+  // away (exponential backoff restarts from 30s) — covers "app closed mid-retry".
+  try{
+    if(ghHasToken()&&localStorage.getItem('lattiao_pending_push'))schedulePushRetry();
+  }catch(e){}
   // Auto-pull every 60s ONLY when the user has a working token — incremental
   // pull (sha skip) makes each poll a tiny metadata request. Without a token
   // we'd burn the 60 req/h anonymous limit, so stay at 120s.
@@ -2378,7 +2409,7 @@ function setSyncStatus(s){
   GH.status=s;
   var el=document.getElementById('sync-indicator');
   if(el){
-    var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败',retrying:'🔄 重试中…'};
+    var map={offline:'📴 离线',syncing:'⏳ 同步中…',synced:'✅ 已同步',error:'⚠️ 同步失败',retrying:'🔄 重试中…',pending:'⏫ 待上传'};
     if(s==='synced'){
       // v66: sync summary — show what was actually synced
       var locCount=0,downloaded=0,marked=0;
