@@ -1441,7 +1441,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v88';
+var APP_VERSION='v89';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1770,6 +1770,7 @@ var GH={
   pushFailWarnedAt:0,    // v68: throttle for the loud push-failure toast (30s)
   pushBackoff:0,         // v70: exponential backoff for auto-retrying a failed push
   pushRetryTimer:null,   // v70: timer handle for the automatic push retry
+  pushPending:false,     // v89: an edit landed while a push was running → re-push when done
   coverFp:null           // v71: {tripId: cover-length} cache to skip re-uploading covers
 };
 function ghUserId(){
@@ -2710,7 +2711,16 @@ function ensureTripCovers(){
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
-  if(GH.pushing)return Promise.resolve();
+  // v89: if a push is already running, DON'T silently drop this request. Mark
+  // it pending and the finishing push will re-run. Previously rapid edits
+  // (e.g. adding 10+ locations in quick succession, or a location save racing
+  // a photo push) had their later updates eaten by the lock — collaborators
+  // never saw the newest locations or text. This was the root cause of Iris's
+  // "B pushed but cloud only has the template defaults" bug.
+  if(GH.pushing){
+    GH.pushPending=true;
+    return Promise.resolve();
+  }
   // Incremental push: if nothing changed since the last successful upload, skip
   // the whole round-trip (avoids re-uploading a 2MB+ photo payload for no reason).
   var fp=tripsFingerprint(data.trips);
@@ -2793,6 +2803,12 @@ function syncPushNow(){
       });
     }).then(function(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
+      // v89: if edits landed while this push was running, re-push immediately
+      // so the cloud never lags behind (previously the lock swallowed them).
+      if(GH.pushPending){
+        GH.pushPending=false;
+        setTimeout(function(){syncPushNow();},250);
+      }
       // v70: push succeeded → clear pending flag + stop the retry schedule
       if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
       GH.pushBackoff=0;
@@ -2823,6 +2839,9 @@ function syncPushNow(){
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
+      // v89: re-run for pending edits even on failure (the retry schedule also
+      // fires, but pending must not be lost)
+      if(GH.pushPending)GH.pushPending=false;
       // v82: persist + aggressive fast retry. Most Safari PWA "Load failed"
       // are 1-5s hiccups — 8 quick retries within 24s catches them. After
       // that we fall back to the slow exponential schedule.
