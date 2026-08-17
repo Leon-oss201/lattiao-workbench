@@ -31,7 +31,21 @@
   --shadow-lg:0 10px 36px rgba(124,58,237,.16);
   --radius:18px;--radius-sm:12px;--radius-xs:8px;
   --warn:#F4A940;--danger:#E25C5C;--success:#52B788;
+  --font-size-base:14px;--font-scale:1;
 }
+/* v73: dark mode — overrides all the design tokens above for night viewing */
+:root.dark,html.dark{
+  --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
+  --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
+  --bg:#1A1530;--card:#262040;
+  --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#867CA0;
+  --border:#3D2B5F;
+  --shadow:0 4px 16px rgba(0,0,0,.4);
+  --shadow-md:0 6px 24px rgba(0,0,0,.5);
+  --shadow-lg:0 10px 36px rgba(0,0,0,.6);
+}
+/* v73: font scaling (set in JS via --font-scale) */
+html{font-size:calc(var(--font-size-base) * var(--font-scale));}
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;font-size:14px;line-height:1.5;}
@@ -119,14 +133,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .section-head h2{font-size:16px;font-weight:700;}
 .section-head .more{font-size:12px;color:var(--text-sec);cursor:pointer;}
 
-.trip-row-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:flex;gap:12px;margin-bottom:12px;cursor:pointer;}
+.trip-row-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:flex;gap:12px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;}
 .trip-row-card:active{transform:scale(.99);}
 .trip-row-card .trc-cover{width:90px;height:72px;border-radius:12px;background:linear-gradient(135deg,#C4B5FD,#A78BFA);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;}
 .trip-row-card .trc-cover img{width:100%;height:100%;object-fit:cover;}
 .trip-row-card .trc-body{flex:1;min-width:0;}
-.trip-row-card .trc-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+.trip-row-card .trc-name{font-size:15px;font-weight:700;margin-bottom:4px;padding-right:56px;}
 .trip-row-card .trc-dates{font-size:11px;color:var(--text-light);margin-bottom:4px;}
-.trip-row-card .trc-loc{font-size:11px;color:var(--text-sec);display:flex;align-items:center;gap:4px;}
+.trip-row-card .trc-loc{font-size:11px;color:var(--text-sec);display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+/* v73: countdown badge (top-right) */
+.trc-countdown{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#ECFEFF;color:#0E7490;}
+.trc-countdown.done{background:#F1F5F9;color:#64748B;}
+.trc-countdown.live{background:#FEF3C7;color:#B45309;}
+/* v73: status chip + weather tag on card */
+.trc-chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(124,58,237,.08);color:var(--primary);margin-left:6px;vertical-align:1px;}
+.trc-chip.live{background:rgba(16,185,129,.12);color:#047857;}
+.trc-chip.done{background:rgba(148,163,184,.15);color:#64748B;}
+.trc-weather{font-size:11px;color:var(--text-sec);display:flex;align-items:center;gap:3px;margin-left:auto;}
+.trc-weather .tw-ico{font-size:13px;}
+/* v73: faded card for finished trips */
+.trip-row-card.trc-finished{opacity:.82;}
+.trip-row-card.trc-finished .trc-cover{filter:saturate(.55);}
+/* v73: mini stats under profile */
+.pro-highlights{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px;}
+.pro-highlight{background:#F9F8FF;border:1px solid #EDE9FE;border-radius:12px;padding:10px 12px;}
+.pro-highlight .ph-v{font-size:13px;font-weight:700;color:var(--primary-dark);line-height:1.5;}
+.pro-highlight .ph-l{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 /* FAB */
 .fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#fff;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
@@ -411,6 +443,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .photo-viewer.active{display:flex;}
 .photo-viewer img{max-width:100%;max-height:90vh;}
 .photo-viewer .pv-close{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;border:none;font-size:18px;cursor:pointer;}
+.photo-viewer .pv-prev,.photo-viewer .pv-next{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;border:none;font-size:22px;cursor:pointer;}
+.photo-viewer .pv-prev{left:14px;}
+.photo-viewer .pv-next{right:14px;}
+.photo-viewer .pv-counter{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:10px;}
+/* v73: photo album page */
+.album-hero{padding:18px 18px 8px;background:linear-gradient(180deg,#F5F3FF,#EDE9FE);border-radius:0 0 var(--radius) var(--radius);}
+.album-hero h1{font-size:20px;font-weight:700;color:var(--primary-dark);margin-bottom:4px;}
+.album-hero p{font-size:12px;color:var(--text-sec);margin-bottom:10px;}
+.album-tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 18px 12px;background:transparent;scrollbar-width:none;}
+.album-tabs::-webkit-scrollbar{display:none;}
+.album-tab{flex:0 0 auto;padding:6px 14px;border-radius:18px;background:#fff;color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;border:1px solid #EDE9FE;transition:all .2s;}
+.album-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.album-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 12px 14px;}
+.album-cell{aspect-ratio:1;background:linear-gradient(135deg,#C4B5FD,#A78BFA);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
+.album-cell img{width:100%;height:100%;object-fit:cover;}
+.album-cell .album-emo{font-size:32px;opacity:.5;}
+.album-cell .album-info{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));color:#fff;font-size:10px;font-weight:500;}
+.album-empty{padding:60px 20px;text-align:center;color:var(--text-light);}
 
 /* Toast */
 .toast{position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(31,45,33,.92);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;}
@@ -598,6 +648,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <button class="td-back" onclick="showPage('trips')">‹</button>
       <div class="td-actions">
         <button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button>
+        <button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>
         <button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>
         <button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>
       </div>
@@ -741,8 +792,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="pro-stat"><div class="ps-v" id="ps-photos">0</div><div class="ps-l">张照片</div></div>
       <div class="pro-stat"><div class="ps-v" id="ps-km">0</div><div class="ps-l">公里足迹</div></div>
     </div>
+    <div class="pro-highlights" id="pro-highlights" style="display:none;">
+      <div class="pro-highlight"><div class="ph-v" id="ph-farthest">—</div><div class="ph-l">最远目的地</div></div>
+      <div class="pro-highlight"><div class="ph-v" id="ph-photoday">—</div><div class="ph-l">照片最多的一天</div></div>
+    </div>
     <div class="menu-card">
       <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="exportData()"><div class="mr-icon">📤</div><div class="mr-label">导出数据</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
       <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
@@ -763,6 +819,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <div class="bn-item" data-page="profile"><div class="bn-icon">👤</div>我的</div>
     </div>
   </nav>
+
+  <!-- v73: photo album page (inside .app so layout works) -->
+  <section class="page page-album" id="page-album">
+    <div class="album-hero">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h1 style="margin:0;">📷 行程相册</h1>
+        <button class="btn-icon" onclick="showPage('home')" style="background:rgba(255,255,255,.7);">‹</button>
+      </div>
+      <p id="album-summary">所有行程的照片，按时间倒序</p>
+    </div>
+    <div class="album-tabs" id="album-tabs"></div>
+    <div id="album-grid-wrap"></div>
+  </section>
 </div>
 
 <!-- ===== Modals ===== -->
@@ -983,6 +1052,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <label class="form-label">默认城市</label>
       <input class="form-input" id="set-city" placeholder="城市" maxlength="100">
     </div>
+    <div class="form-row form-row-flex">
+      <div>
+        <label class="form-label">主题</label>
+        <select class="form-select" id="set-dark" onchange="setDarkMode(this.value)">
+          <option value="auto">跟随系统</option>
+          <option value="on">深色</option>
+          <option value="off">浅色</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">字号</label>
+        <select class="form-select" id="set-fontscale" onchange="setFontScale(this.value)">
+          <option value="0.85">小</option>
+          <option value="1">标准</option>
+          <option value="1.15">大</option>
+          <option value="1.3">特大</option>
+        </select>
+      </div>
+    </div>
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
       <div style="display:flex;gap:6px;align-items:center;">
@@ -1038,7 +1126,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 <div class="photo-viewer" id="photo-viewer">
   <button class="pv-close" onclick="closePhotoViewer()">✕</button>
+  <button class="pv-prev" onclick="pvNav(-1)">‹</button>
+  <button class="pv-next" onclick="pvNav(1)">›</button>
   <img id="pv-img">
+  <div class="pv-counter" id="pv-counter"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1098,7 +1189,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v72.3';
+var APP_VERSION='v73';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2988,6 +3079,37 @@ function refreshTripDayWeather(){
 }
 
 // ============ Home ============
+// v73: countdown + status helpers shared by home cards
+function tripCountdown(t){
+  var now=new Date();now.setHours(0,0,0,0);
+  if(!t.startDate)return null;
+  var s=parseDateStr(t.startDate);if(!s)return null;
+  var diff=Math.round((s-now)/86400000);
+  var end=parseDateStr(t.endDate)||s;
+  if(diff>0)return {type:'upcoming',text:'还有 '+diff+' 天出发'};
+  if(now>=s&&now<=end)return {type:'live',text:'旅行进行中'};
+  var gone=Math.round((now-end)/86400000);
+  return {type:'done',text:'已结束 · '+(gone<=0?0:gone)+' 天前'};
+}
+function tripStatusChip(t){
+  var c=tripCountdown(t);
+  if(!c)return '';
+  if(c.type==='live')return '<span class="trc-chip live">● 进行中</span>';
+  if(c.type==='upcoming')return '<span class="trc-chip">即将出发</span>';
+  return '<span class="trc-chip done">已结束</span>';
+}
+// v73: destination weather shown directly on the home trip card — pure local
+// climatology (no network, no flicker), mirroring trip-detail behavior.
+function tripCardWeather(t){
+  var dest=(t.destination||'').trim();
+  if(!dest)return '';
+  var d=t.startDate||new Date().toISOString().slice(0,10);
+  try{
+    var cw=climatologyWeather(dest,d);
+    if(cw&&cw.text)return '<span class="trc-weather"><span class="tw-ico">'+cw.icon+'</span>'+cw.text+' '+Math.round((cw.tempMax+cw.tempMin)/2)+'°</span>';
+  }catch(e){}
+  return '';
+}
 function renderHome(){
   var city=getCityFromHero();
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
@@ -3008,7 +3130,16 @@ function renderHome(){
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
-  var ups=data.trips.filter(function(t){return t.status!=='done' && t.startDate && parseDateStr(t.startDate)>=now;}).slice(0,3);
+  // v73 fix: include in-progress trips too (startDate <= now <= endDate) — the
+  // old filter (startDate >= now) hid a trip that had already started.
+  var ups=data.trips.filter(function(t){
+    if(t.status==='done')return false;
+    if(!t.startDate)return false;
+    var s=parseDateStr(t.startDate);
+    var e=parseDateStr(t.endDate)||s;
+    if(!s)return false;
+    return s>=now||(s<=now&&now<=e);
+  }).slice(0,3);
   if(ups.length===0){
     ups=data.trips.slice().sort(function(a,b){return (parseDateStr(b.startDate)||0)-(parseDateStr(a.startDate)||0);}).slice(0,2);
   }
@@ -3021,12 +3152,19 @@ function renderHome(){
       var dur='';
       if(t.startDate&&t.endDate)dur=fmtDate(t.startDate).slice(5)+' ~ '+fmtDate(t.endDate).slice(5);
       else if(t.startDate)dur=fmtDate(t.startDate);
-      html+='<div class="trip-row-card" onclick="openTrip(\''+t.id+'\')">'+
+      // v73: countdown badge + status chip + weather tag + finished fade
+      var cd=tripCountdown(t);
+      var cdBadge=cd?('<span class="trc-countdown'+(cd.type==='done'?' done':cd.type==='live'?' live':'')+'">'+cd.text+'</span>'):'';
+      var chip=tripStatusChip(t);
+      var wx=tripCardWeather(t);
+      var cls=tripCountdown(t)&&tripCountdown(t).type==='done'?' trip-row-card trc-finished':' trip-row-card';
+      html+='<div class="'+cls+'" onclick="openTrip(\''+t.id+'\')">'+
+        cdBadge+
         '<div class="trc-cover">'+cover+'</div>'+
         '<div class="trc-body">'+
-          '<div class="trc-name">'+escapeHTML(t.title)+'</div>'+
+          '<div class="trc-name">'+escapeHTML(t.title)+chip+'</div>'+
           '<div class="trc-dates">📅 '+dur+'</div>'+
-          '<div class="trc-loc">📍 '+(t.destination?city+'·'+escapeHTML(t.destination):'未设置目的地')+'</div>'+
+          '<div class="trc-loc">📍 '+(t.destination?city+'·'+escapeHTML(t.destination):'未设置目的地')+wx+'</div>'+
         '</div></div>';
     });
   }
@@ -3410,7 +3548,7 @@ function openTrip(id){
   }
 }
 function renderOpenTripChrome(t){
-  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
+  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
     document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
@@ -3871,6 +4009,127 @@ function deleteCurrentTrip(){
   showPage('trips');
   showToast('已删除');
 }
+// v73: generate a beautiful share poster for the current trip. Renders to
+// canvas with header (cover + title), date strip, location list, footer.
+// Output: image/png dataURL → download or share via navigator.share.
+function shareTripPoster(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t){showToast('没有当前行程');return;}
+  showToast('正在生成海报...');
+  // Build poster async (cover image may need to load)
+  var img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=function(){renderPosterToCanvas(t,img);};
+  img.onerror=function(){renderPosterToCanvas(t,null);};
+  if(t.cover)img.src=t.cover;
+  else renderPosterToCanvas(t,null);
+}
+function renderPosterToCanvas(t,coverImg){
+  var W=750,H=1100; // 750x1100 is a good Instagram Story / 朋友圈 ratio
+  var c=document.createElement('canvas');c.width=W;c.height=H;
+  var ctx=c.getContext('2d');
+  // Background gradient
+  var bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#F5F3FF');bg.addColorStop(1,'#E9D5FF');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // Decorative top blobs
+  ctx.fillStyle='rgba(124,58,237,0.08)';
+  ctx.beginPath();ctx.arc(-30,-30,150,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(W+30,80,120,0,Math.PI*2);ctx.fill();
+  // Header band (cover or gradient)
+  var topH=380;
+  if(coverImg){
+    try{
+      // Crop to cover entire header
+      var ratio=Math.max(W/coverImg.width,topH/coverImg.height);
+      var w=coverImg.width*ratio,h=coverImg.height*ratio;
+      ctx.drawImage(coverImg,(W-w)/2,(topH-h)/2,w,h);
+      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(0,0,W,topH);
+    }catch(e){
+      ctx.fillStyle='#7C3AED';ctx.fillRect(0,0,W,topH);
+    }
+  }else{
+    var grd=ctx.createLinearGradient(0,0,W,topH);
+    grd.addColorStop(0,'#7C3AED');grd.addColorStop(1,'#A78BFA');
+    ctx.fillStyle=grd;ctx.fillRect(0,0,W,topH);
+  }
+  // Title (cover or default)
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='bold 56px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textBaseline='top';
+  ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=8;
+  var titleLines=wrapText(ctx,t.title||'我的行程',W-80);
+  var y=200;
+  titleLines.slice(0,2).forEach(function(line){
+    ctx.fillText(line,40,y);
+    y+=72;
+  });
+  ctx.shadowBlur=0;
+  // Date & destination
+  ctx.font='28px "PingFang SC","Microsoft YaHei",sans-serif';
+  var subtitle=[];
+  if(t.startDate)subtitle.push('📅 '+fmtDate(t.startDate)+(t.endDate?' ~ '+fmtDate(t.endDate):''));
+  if(t.destination)subtitle.push('📍 '+t.destination);
+  y=330;
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  subtitle.forEach(function(s){ctx.fillText(s,40,y);y+=40;});
+  // Locations list (top 8)
+  ctx.fillStyle='#1F182E';
+  ctx.font='bold 32px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('行程地点',40,440);
+  ctx.font='24px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle='#5B21B6';
+  var locs=[];
+  (t.days||[]).forEach(function(d){
+    (d.locations||[]).forEach(function(l){locs.push({date:d.date,name:l.name,time:l.time,type:l.type});});
+  });
+  var y2=490;
+  locs.slice(0,8).forEach(function(l){
+    var typeIcon=l.type==='food'?'🍜':l.type==='attraction'?'🏞':l.type==='transport'?'🚇':l.type==='stay'?'🏨':'✨';
+    ctx.fillText(typeIcon+' '+(l.time||'')+' '+(l.name||'-'),40,y2);
+    y2+=42;
+  });
+  if(locs.length>8){
+    ctx.fillStyle='#9A8FB5';
+    ctx.fillText('…还有 '+(locs.length-8)+' 个地点',40,y2);
+    y2+=42;
+  }
+  // Footer
+  ctx.fillStyle='#7C3AED';
+  ctx.font='bold 28px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('🍃 薄荷旅行手账',40,H-120);
+  ctx.fillStyle='#9A8FB5';
+  ctx.font='20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('记录每一段旅程',40,H-80);
+  ctx.fillText(new Date().toISOString().slice(0,10),W-180,H-80);
+  // Done — fetch as blob and trigger download / share
+  c.toBlob(function(blob){
+    if(!blob){showToast('生成失败');return;}
+    var file=new File([blob],'trip-'+(t.title||'poster')+'.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:t.title||'我的行程'}).catch(function(e){/* user cancelled */});
+    }else{
+      // Fallback: download
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;a.download='trip-'+(t.title||'poster')+'.png';a.click();
+      URL.revokeObjectURL(url);
+      showToast('海报已下载，可发小红书/朋友圈');
+    }
+  },'image/png');
+}
+function wrapText(ctx,text,maxW){
+  // Simple greedy line wrap for Chinese + ASCII
+  var chars=Array.from(text);
+  var lines=[];var line='';
+  for(var i=0;i<chars.length;i++){
+    var test=line+chars[i];
+    if(ctx.measureText(test).width>maxW&&line.length>0){
+      lines.push(line);line=chars[i];
+    }else line=test;
+  }
+  if(line)lines.push(line);
+  return lines;
+}
 function shareCurrentTrip(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
@@ -4267,6 +4526,37 @@ function renderProfile(){
   document.getElementById('ps-trips').textContent=data.trips.length;
   document.getElementById('ps-photos').textContent=photoCount;
   document.getElementById('ps-km').textContent=Math.round(totalKm);
+  // v73: highlights — farthest destination + most-photographed day
+  try{
+    var hlWrap=document.getElementById('pro-highlights');
+    var destKm={};
+    var dayPhotos={};
+    data.trips.forEach(function(t){
+      var dest=(t.destination||'').trim();
+      if(!dest)dest=(t.title||'').trim();
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          var dn=parseFloat(l.distance);
+          if(dest&&!isNaN(dn)&&dn>0)destKm[dest]=(destKm[dest]||0)+dn;
+          var ph=(l.photos||[]).length+(l._photoCount||0);
+          if(d&&d.date&&ph>0)dayPhotos[d.date]=(dayPhotos[d.date]||0)+ph;
+        });
+      });
+    });
+    var farthestDest='—',farthestKm=0;
+    Object.keys(destKm).forEach(function(d){
+      if(destKm[d]>farthestKm){farthestKm=destKm[d];farthestDest=d;}
+    });
+    var bestDay='—',bestDayN=0;
+    Object.keys(dayPhotos).forEach(function(dt){
+      if(dayPhotos[dt]>bestDayN){bestDayN=dayPhotos[dt];bestDay=dt;}
+    });
+    var fEl=document.getElementById('ph-farthest');
+    if(fEl)fEl.textContent=farthestDest+' · '+Math.round(farthestKm)+'km';
+    var dEl=document.getElementById('ph-photoday');
+    if(dEl)dEl.textContent=bestDayN>0?(bestDay.slice(5)+' · '+bestDayN+' 张'):'—';
+    if(hlWrap)hlWrap.style.display=(farthestKm>0||bestDayN>0)?'grid':'none';
+  }catch(e){}
 }
 function dumpLocalState(){
   // Trim photos/base64 so the dump fits in a clipboard paste / screenshot share.
@@ -4415,6 +4705,13 @@ function openSettings(){
   document.getElementById('set-slogan').value=data.settings.slogan||'';
   document.getElementById('set-city').value=data.settings.city||'';
   document.getElementById('set-token').value=ghToken()||'';
+  // v73: dark mode + font scale dropdowns
+  var dark=data.settings.darkMode||'auto';
+  var darkEl=document.getElementById('set-dark');
+  if(darkEl)darkEl.value=dark;
+  var fs=data.settings.fontScale||'1';
+  var fsEl=document.getElementById('set-fontscale');
+  if(fsEl)fsEl.value=String(fs);
   // Show current token health at a glance — saves the user from re-typing a bad token.
   var t=ghToken();
   var el=document.getElementById('token-status');
@@ -4760,7 +5057,216 @@ function viewPhoto(src){
 }
 function closePhotoViewer(){document.getElementById('photo-viewer').classList.remove('active');}
 
+// v73: multi-photo viewer with left/right swipe. Photos are pre-loaded into
+// memory (from IndexedDB or cloud chunks) — we just walk an in-memory array.
+var PV_LIST=[];var PV_IDX=0;
+function viewPhotos(list,startIdx){
+  PV_LIST=list||[];PV_IDX=startIdx||0;
+  pvRender();
+  document.getElementById('photo-viewer').classList.add('active');
+}
+function pvNav(delta){
+  if(!PV_LIST.length)return;
+  PV_IDX=(PV_IDX+delta+PV_LIST.length)%PV_LIST.length;
+  pvRender();
+}
+function pvRender(){
+  var cur=PV_LIST[PV_IDX];
+  if(!cur)return;
+  document.getElementById('pv-img').src=typeof cur==='string'?cur:cur.src;
+  var c=document.getElementById('pv-counter');
+  if(c)c.textContent=PV_LIST.length>1?((PV_IDX+1)+' / '+PV_LIST.length):'';
+}
+// Lightweight swipe support on the viewer
+(function(){
+  document.addEventListener('DOMContentLoaded',function(){
+    var viewer=document.getElementById('photo-viewer');
+    if(!viewer)return;
+    var sx=0,sy=0;
+    viewer.addEventListener('touchstart',function(e){sx=e.touches[0].clientx;sy=e.touches[0].clienty;},{passive:true});
+    viewer.addEventListener('touchend',function(e){
+      var dx=(e.changedTouches[0].clientx-sx);
+      var dy=(e.changedTouches[0].clienty-sy);
+      if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.5){
+        pvNav(dx<0?1:-1);
+      }
+    },{passive:true});
+  });
+})();
+
+// ============ Photo Album (v73) ============
+var ALBUM_FILTER='all';
+function openAlbum(){
+  showPage('album');
+  renderAlbum();
+}
+// Flatten all photos in a trip into [{src, tripId, tripTitle, locName, date, idx}]
+function collectAlbumPhotos(filter){
+  var list=[];
+  (data.trips||[]).forEach(function(t){
+    if(filter!=='all'&&t.id!==filter)return;
+    (t.days||[]).forEach(function(day){
+      (day.locations||[]).forEach(function(l){
+        (l.photos||[]).forEach(function(p,idx){
+          list.push({src:p,tripId:t.id,tripTitle:t.title||'',locName:l.name||'',d:day.date||'',idx:idx});
+        });
+      });
+    });
+  });
+  // Newest first (by date desc, then idx desc)
+  list.sort(function(a,b){
+    if(a.d!==b.d)return (b.d||'').localeCompare(a.d||'');
+    return (b.idx||0)-(a.idx||0);
+  });
+  return list;
+}
+function renderAlbum(){
+  var tabsEl=document.getElementById('album-tabs');
+  var wrap=document.getElementById('album-grid-wrap');
+  if(!tabsEl||!wrap)return;
+  // Build tabs
+  var html='<div class="album-tab'+(ALBUM_FILTER==='all'?' active':'')+'" data-filter="all">全部</div>';
+  (data.trips||[]).forEach(function(t){
+    html+='<div class="album-tab'+(ALBUM_FILTER===t.id?' active':'')+'" data-filter="'+escapeHTML(t.id)+'">'+escapeHTML(t.title||'未命名')+'</div>';
+  });
+  tabsEl.innerHTML=html;
+  tabsEl.querySelectorAll('.album-tab').forEach(function(el){
+    el.addEventListener('click',function(){
+      ALBUM_FILTER=el.dataset.filter;
+      renderAlbum();
+    });
+  });
+  // Collect photos; first load missing chunks so in-memory is complete
+  var tripsToLoad=(data.trips||[]).filter(function(t){return ALBUM_FILTER==='all'||t.id===ALBUM_FILTER;});
+  var jobs=[];
+  tripsToLoad.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.id&&(l._photoCount||0)>0&&(!l.photos||!l.photos.length)){
+          jobs.push(ensureLocationPhotos(t.id,l,false).catch(function(){return[];}));
+        }
+      });
+    });
+  });
+  var draw=function(){
+    var photos=collectAlbumPhotos(ALBUM_FILTER);
+    document.getElementById('album-summary').textContent=photos.length?'共 '+photos.length+' 张照片':'还没有照片';
+    if(!photos.length){
+      wrap.innerHTML='<div class="album-empty"><div style="font-size:40px;margin-bottom:10px;">📷</div><div>还没有照片</div><div style="font-size:11px;margin-top:6px;">去每个地点选照片保存，就会出现在这里</div></div>';
+      return;
+    }
+    var g='<div class="album-grid">';
+    photos.forEach(function(p,i){
+      var info=p.locName||'';
+      g+='<div class="album-cell" data-i="'+i+'"><img loading="lazy" src="'+p.src+'"><div class="album-info">'+escapeHTML(info)+'</div></div>';
+    });
+    g+='</div>';
+    wrap.innerHTML=g;
+    wrap.querySelectorAll('.album-cell').forEach(function(c){
+      c.addEventListener('click',function(){
+        var i=parseInt(c.dataset.idx||c.dataset.i,10)||0;
+        viewPhotos(photos.map(function(x){return x.src;}),i);
+      });
+    });
+  };
+  if(!jobs.length){draw();return;}
+  draw(); // show what we have now, refresh when more photos arrive
+  Promise.all(jobs).then(function(){draw();});
+}
+
+// ============ Duplicate Trip (v73) ============
+function duplicateCurrentTrip(){
+  if(!currentTripId){showToast('没有当前行程');return;}
+  var src=data.trips.find(function(t){return t.id===currentTripId;});
+  if(!src){showToast('找不到源行程');return;}
+  var copy=JSON.parse(JSON.stringify(src));
+  copy.id='id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  copy.title=(src.title||'未命名')+'（副本）';
+  copy.startDate='';copy.endDate='';copy.status='upcoming';
+  copy.cover='';copy.photos=[];
+  copy.updatedAt=Date.now();
+  // clone: days only — strip _photoCount/photos (用户自己重选以免双倍占用云端)
+  copy.days=(src.days||[]).map(function(d){
+    return {date:'',weather:'',locations:(d.locations||[]).map(function(l){
+      return {id:'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),name:l.name,time:l.time||'',type:l.type||'food',distance:null,duration:null,guide:l.guide||'',feeling:l.feeling||'',photos:[],budget:l.budget?JSON.parse(JSON.stringify(l.budget)):{total:0,items:[]}};
+    })};
+  });
+  data.trips.push(copy);
+  saveData();
+  syncPushNow().catch(function(){});
+  // Navigate into the new trip
+  setTimeout(function(){openTrip(copy.id);showPage('trip-detail');},300);
+}
+
+// ============ Favorite → Add to Trip (v73) ============
+function addFavoriteToTrip(favId){
+  var fav=(data.favorites||[]).find(function(f){return f.id===favId;});
+  if(!fav){showToast('收藏不存在');return;}
+  if(!data.trips.length){showToast('请先创建行程');return;}
+  // Build trip picker — minimal modal so we don't bloat the codebase
+  var existing=document.getElementById('fav-trip-picker-modal');
+  if(existing)existing.remove();
+  var opts=data.trips.map(function(t){return '<option value="'+escapeHTML(t.id)+'">'+escapeHTML(t.title||'未命名')+'</option>';}).join('');
+  var modal=document.createElement('div');
+  modal.className='modal-overlay active';
+  modal.id='fav-trip-picker-modal';
+  modal.innerHTML='<div class="modal"><div class="modal-handle"></div><div class="modal-title">把收藏加入行程</div><div class="form-row"><label class="form-label">选择行程</label><select class="form-select" id="ftp-trip">'+opts+'</select></div><div style="font-size:11px;color:var(--text-light);margin-bottom:12px;">将以「'+escapeHTML(fav.name||'收藏')+'」为名加入该行程第一天</div><div class="form-row" style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById(\'fav-trip-picker-modal\').remove()">取消</button><button class="btn btn-primary" style="flex:1;" onclick="confirmFavToTrip(\''+escapeHTML(favId)+'\')">加入</button></div></div>';
+  document.body.appendChild(modal);
+}
+function confirmFavToTrip(favId){
+  var tripId=document.getElementById('ftp-trip').value;
+  var fav=(data.favorites||[]).find(function(f){return f.id===favId;});
+  if(!fav||!tripId){showToast('参数缺失');return;}
+  var trip=data.trips.find(function(t){return t.id===tripId;});
+  if(!trip){showToast('行程不存在');return;}
+  if(!trip.days||!trip.days.length){
+    var today=new Date().toISOString().slice(0,10);
+    trip.days=[{date:today,weather:'',locations:[]}];
+  }
+  // Insert at top of day 1 as a new attraction location
+  var loc={
+    id:'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),
+    name:fav.name||'收藏地点',type:'attraction',time:'',
+    distance:null,duration:null,
+    guide:fav.note||'',feeling:'',
+    photos:[],budget:{total:0,items:[]}
+  };
+  trip.days[0].locations=trip.days[0].locations||[];
+  trip.days[0].locations.unshift(loc);
+  saveData();
+  document.getElementById('fav-trip-picker-modal').remove();
+  showToast('已加入「'+(trip.title||'行程')+'」第一天');
+  renderAll();
+}
+
 // ============ Init ============
+// v73: dark mode + font scaling — apply the user's saved preference before
+// the first render so we don't get a light → dark flash.
+function applyAppearance(){
+  var s=data.settings||{};
+  // Dark mode: 'auto' follows OS, 'on'/'off' explicit
+  var darkPref=s.darkMode||'auto';
+  var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var dark=darkPref==='on'||(darkPref==='auto'&&prefersDark);
+  document.documentElement.classList.toggle('dark',dark);
+  // Font scale: 0.85 / 1 / 1.15 / 1.3
+  var scale=parseFloat(s.fontScale||'1');
+  if(isNaN(scale)||scale<0.7||scale>1.5)scale=1;
+  document.documentElement.style.setProperty('--font-scale',String(scale));
+}
+function setDarkMode(v){
+  data.settings=data.settings||{};
+  data.settings.darkMode=v;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  applyAppearance();
+}
+function setFontScale(v){
+  data.settings=data.settings||{};
+  data.settings.fontScale=String(v);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  applyAppearance();
+}
+
 function init(){
   // v47+: wait for IndexedDB photo cache to load BEFORE first render, so
   // photos aren't blank for the first frame after upgrade.
@@ -4768,6 +5274,7 @@ function init(){
     ?restorePhotosFromIndexedDB().catch(function(){})
     :Promise.resolve();
   ready.then(function(){
+    applyAppearance();
     loadData();
     renderHome();
   });
