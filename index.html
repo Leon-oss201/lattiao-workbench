@@ -1094,7 +1094,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v72.1';
+var APP_VERSION='v72.2';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4375,7 +4375,21 @@ function testCurrentToken(){
     GH.tokenInvalid=true;
     var msg=e&&e.message||'未知错误';
     var human={NO_TOKEN:'未填 Token',TOKEN_INVALID:'Token 无效（错误或已过期）',TOKEN_FORBIDDEN:'权限不足，请勾选 projects 权限',REPO_NOT_FOUND:'找不到该仓库，请确认仓库名',HTTP_0:'网络异常'};
-    var code=human[msg]||(msg.indexOf('TIMEOUT')>=0?'请求超时（网络慢）':msg);
+    var code=human[msg];
+    if(!code){
+      // Safari iOS PWA reports "Load failed" / "NetworkError" / "TypeError" when
+      // fetch is interrupted (background→foreground, WiFi↔4G switch, SW hiccup).
+      // navigator.onLine tells us whether to blame the device vs. Gitee.
+      if(msg.indexOf('TIMEOUT')>=0){
+        code='请求超时（网络慢或 Safari 中断）';
+      }else if(e&&e.offline){
+        code='设备当前离线';
+      }else if(msg.indexOf('Load failed')>=0||msg==='Failed to fetch'||msg.indexOf('NetworkError')>=0||/TypeError.*fetch/i.test(msg)){
+        code=navigator.onLine?'Safari 中断了请求，再试一次':'设备离线，请连 WiFi';
+      }else{
+        code=msg;
+      }
+    }
     if(el){el.textContent='❌ '+code;el.style.color='#dc2626';}
     showToast('Token 无效：'+code);
   });
@@ -4510,8 +4524,17 @@ function forceResync(){
       saveDataLocal();
       ghCacheWrite(remote);
       setSyncStatus('synced');
-      var locCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){locCount+=(d.locations||[]).length;});
-      var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=((l._photoCount||0)+(l.photos||[]).length);});});
+      var locCount=0,photoCount=0;
+      (data.trips[0]&&data.trips[0].days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          locCount++;
+          // Mirror the dedupe in setSyncStatus (v67): in-memory photos.length and
+          // _photoCount marker describe the SAME set. Adding both would inflate
+          // the toast (e.g. 3 photos + marker=3 → 6 reported).
+          var pInMem=(l.photos||[]).length;
+          photoCount+=pInMem>0?pInMem:(l._photoCount||0);
+        });
+      });
       showToast('已同步 '+locCount+' 个地点 · '+photoCount+' 张照片');
       if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
       setTimeout(function(){location.reload();},1200);
