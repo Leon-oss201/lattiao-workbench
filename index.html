@@ -1081,7 +1081,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v67';
+var APP_VERSION='v68';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1307,7 +1307,8 @@ var GH={
   payloadWarned:false,   // one-time toast flag so we don't nag the user on every sync
   tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
   tokenWarned:false,     // one-time toast flag for the token hint
-  mergeConflicts:0       // v66: count of same-location edits by both sides in the last merge
+  mergeConflicts:0,      // v66: count of same-location edits by both sides in the last merge
+  pushFailWarnedAt:0     // v68: throttle for the loud push-failure toast (30s)
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -2243,6 +2244,14 @@ function syncPushNow(){
       if(msg.indexOf('401')>=0){showToast('推送失败：GitHub Token 已失效，请在「我的 → 设置」更新');}
       else if(msg.indexOf('413')>=0||/too large/i.test(msg)){
         if(!GH.tooBigWarned){GH.tooBigWarned=true;showToast('数据超过 GitHub 上限，建议在「我的 → 设置」中关闭「省流量」或拆分照片');}
+      }else{
+        // v68: ANY other failure (timeout / 5xx / network) must be loud —
+        // a silent failure is how photos looked "uploaded" while never reaching
+        // the cloud. The data IS saved locally; it will retry automatically.
+        if(!GH.pushFailWarnedAt||Date.now()-GH.pushFailWarnedAt>30000){
+          GH.pushFailWarnedAt=Date.now();
+          showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。数据已保存在本机，联网后自动重试');
+        }
       }
     });
   };
