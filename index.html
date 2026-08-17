@@ -984,6 +984,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌">
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步行程（云端：Gitee 私有仓库，国内访问快）。留空则只读模式。<a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank" style="color:var(--primary);">去 Gitee 生成令牌</a><br>生成步骤：① 登录 Gitee → 头像 → 设置 → 私人令牌 ② 权限勾选「projects」③ 点生成，复制令牌粘贴到这里。两人填同一仓库的令牌即可互相同步。</div>
     </div>
+    <div class="form-row" style="display:flex;gap:8px;align-items:center;">
+      <span id="token-status" style="flex:1;font-size:12px;color:var(--text-light);">⌛ 未测试</span>
+      <button class="btn btn-ghost" style="flex:1;background:#ECFEFF;color:#0E7490;font-weight:600;" onclick="testCurrentToken()">🔍 测试 Token</button>
+    </div>
     <div class="form-row" style="display:flex;gap:8px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
       <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()">☁️ 立即推送本地</button>
@@ -1081,7 +1085,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v71';
+var APP_VERSION='v72';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1330,19 +1334,25 @@ function ghToken(){return localStorage.getItem('lattiao_gh_token')||'';}
 function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
 
 function ghHasToken(){return !!ghToken();}
-// ---- Gitee API helpers (v71) ----
+// ---- Gitee API helpers (v71+) ----
 function geUrl(path){return GH.apiBase+'/contents/'+path;}
-function geHeaders(){return {'User-Agent':'Mozilla/5.0','Content-Type':'application/json'};}
+function geHeaders(){
+  return {
+    'User-Agent':'Mozilla/5.0 (lattiao-workbench)',
+    'Accept':'application/json',
+    'Content-Type':'application/json'
+  };
+}
 // GET a file → {sha, content(base64)} or null if missing.
 // Gitee returns: object for a file, array for a dir, [] when missing (no 404).
 function geGetRaw(path,timeout){
   var t=ghToken();
   var qs='access_token='+encodeURIComponent(t||'');
-  return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders()},timeout||20000)
+  return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders()},timeout||20000,'GET '+path)
     .then(function(r){
-      if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('ge 401');}
+      if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
       if(r.status===404)return null;
-      if(!r.ok)throw new Error('ge-get '+r.status);
+      if(!r.ok)throw new Error('HTTP_'+r.status);
       return r.json();
     })
     .then(function(j){
@@ -1350,6 +1360,27 @@ function geGetRaw(path,timeout){
       var item=Array.isArray(j)?(j[0]||null):j; // dir→array, file→object
       if(!item)return null;
       return {sha:item.sha||null, content:item.content||null};
+    });
+}
+// Lightweight token probe — fetch repo metadata to verify a token is valid.
+// Returns {ok:true} on success, throws on failure with a precise error code.
+// If called with no arg, falls back to the stored token (so testCurrentToken
+// doesn't have to know where the live value lives).
+function geTestToken(token){
+  var t=arguments.length>0?token:ghToken();
+  if(!t)return Promise.reject(new Error('NO_TOKEN'));
+  var url=GH.apiBase+'?access_token='+encodeURIComponent(t);
+  return ghFetchTimeout(url,{headers:geHeaders()},12000,'TEST token')
+    .then(function(r){
+      if(r.status===401)throw new Error('TOKEN_INVALID');
+      if(r.status===403)throw new Error('TOKEN_FORBIDDEN');
+      if(r.status===404)throw new Error('REPO_NOT_FOUND');
+      if(!r.ok)throw new Error('HTTP_'+r.status);
+      return r.json();
+    })
+    .then(function(j){
+      if(!j||!j.id)throw new Error('UNEXPECTED_RESPONSE');
+      return {ok:true,fullName:j.full_name||(j.namespace&&j.namespace.full_name||''),private:!!j.private,defaultBranch:j.default_branch||'master'};
     });
 }
 // Write a file: exists→PUT(sha), missing→POST. Returns new sha.
@@ -1360,9 +1391,10 @@ function geWrite(path,obj,msg){
     var body={access_token:t,content:b64,message:msg||'sync'};
     if(cur&&cur.sha)body.sha=cur.sha;
     var method=cur?'PUT':'POST';
-    return ghFetchTimeout(geUrl(path),{method:method,headers:geHeaders(),body:JSON.stringify(body)},30000)
+    return ghFetchTimeout(geUrl(path),{method:method,headers:geHeaders(),body:JSON.stringify(body)},30000,'WRITE '+path)
       .then(function(r){
-        if(!r.ok){if(r.status===401){GH.tokenInvalid=true;}throw new Error('ge-write '+r.status);}
+        if(r.status===401){GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
+        if(!r.ok)throw new Error('HTTP_'+r.status);
         return r.json();
       })
       .then(function(res){
@@ -1377,15 +1409,17 @@ function geDelete(path,msg){
   return geGetRaw(path,15000).then(function(cur){
     if(!cur||!cur.sha)return null;
     var body={access_token:t,message:msg||'del',sha:cur.sha};
-    return ghFetchTimeout(geUrl(path),{method:'DELETE',headers:geHeaders(),body:JSON.stringify(body)},30000)
-      .then(function(r){if(!r.ok)throw new Error('ge-del '+r.status);return true;});
+    return ghFetchTimeout(geUrl(path),{method:'DELETE',headers:geHeaders(),body:JSON.stringify(body)},30000,'DELETE '+path)
+      .then(function(r){if(r.status===401){GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}if(!r.ok)throw new Error('HTTP_'+r.status);return true;});
   });
 }
 
 function ghB64(str){return btoa(unescape(encodeURIComponent(str)));}
 
-// fetch with a hard timeout so a flaky network never leaves the UI stuck on "syncing"
-function ghFetchTimeout(url,opts,ms){
+// fetch with a hard timeout so a flaky network never leaves the UI stuck on "syncing".
+// 'label' is included in the thrown AbortError so logs/toasts can tell which call timed out
+// (Safari iOS PWA + flaky Gitee routing can hit this — we want the user to see WHICH call).
+function ghFetchTimeout(url,opts,ms,label){
   var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
   var timer=ctrl?setTimeout(function(){ctrl.abort();},ms||10000):null;
   opts=opts||{};
@@ -1395,6 +1429,18 @@ function ghFetchTimeout(url,opts,ms){
     return r;
   },function(e){
     if(timer)clearTimeout(timer);
+    var name=(e&&e.name)||'';
+    if(name==='AbortError'){
+      var err=new Error('TIMEOUT_'+ms+'ms_'+(label||'fetch'));
+      err.timeout=true;
+      err.label=label||'';
+      throw err;
+    }
+    if(!navigator.onLine){
+      var e2=new Error('OFFLINE');
+      e2.offline=true;
+      throw e2;
+    }
     throw e;
   });
 }
@@ -1437,10 +1483,10 @@ function ghReadTrips(){
       if(m.sha===GH.lastSha)return {skip:true,sha:m.sha};
       GH.lastSha=m.sha;
     }
-    if(!m.content)throw new Error('ge empty content');
+    if(!m.content)throw new Error('EMPTY_REMOTE');
     var raw=atob(m.content.replace(/\s/g,''));
     var json=decodeURIComponent(escape(raw));
-    try{return JSON.parse(json);}catch(e){throw new Error('ge parse');}
+    try{return JSON.parse(json);}catch(e){throw new Error('PARSE_FAILED');}
   });
 }
 function ghGetSha(path){
@@ -1728,7 +1774,7 @@ function syncPull(force){
       GH.nextPullAt=Date.now()+GH.pullBackoff;
       if(GH.tokenInvalid&&!GH.tokenWarned){
         GH.tokenWarned=true;
-        showToast('GitHub Token 已失效，请在「我的 → 设置」中更新');
+        showToast('Gitee Token 已失效，请到「我的 → 设置」重新填入');
       }
       var cache=ghCacheRead();
       if(cache&&cache.data&&cache.data.trips&&cache.ts&&cache.ts>0&&!GH.tokenInvalid){
@@ -1736,7 +1782,7 @@ function syncPull(force){
       }else{
         setSyncStatus('error');
       }
-      showToast('网络不佳，3 次重试仍失败。下次 1 分钟后再试。');
+      showToast('3 次重试仍失败：'+(GH.tokenInvalid?'Token 已失效':'网络问题')+'。下次 1 分钟后再试。');
     });
   }
   return doOnce();
@@ -2219,7 +2265,7 @@ function syncPushNow(){
       // Surface push failures so the user knows something is wrong, but only once
       // per failure mode to avoid spam.
       var msg=String(e);
-      if(msg.indexOf('401')>=0){showToast('推送失败：GitHub Token 已失效，请在「我的 → 设置」更新');}
+      if(msg.indexOf('401')>=0||msg.indexOf('TOKEN_INVALID')>=0){showToast('推送失败：Gitee Token 已失效，请在「我的 → 设置」更新');}
       else if(msg.indexOf('413')>=0||/too large/i.test(msg)){
         if(!GH.tooBigWarned){GH.tooBigWarned=true;showToast('数据超过 GitHub 上限，建议在「我的 → 设置」中关闭「省流量」或拆分照片');}
       }else{
@@ -4274,7 +4320,47 @@ function openSettings(){
   document.getElementById('set-slogan').value=data.settings.slogan||'';
   document.getElementById('set-city').value=data.settings.city||'';
   document.getElementById('set-token').value=ghToken()||'';
+  // Show current token health at a glance — saves the user from re-typing a bad token.
+  var t=ghToken();
+  var el=document.getElementById('token-status');
+  if(el){
+    if(!t){el.textContent='⚠️ 未配置 Token';el.style.color='var(--accent)';}
+    else if(GH.tokenInvalid){el.textContent='❌ Token 已失效（请重新填）';el.style.color='#dc2626';}
+    else{el.textContent='✅ Token 已配置（未测试）';el.style.color='#16a34a';}
+  }
   document.getElementById('settings-modal').classList.add('active');
+}
+// v72: lightweight live token probe so the user can verify before saving.
+// Returns success → flips the status badge to green + fills in repo info.
+function testCurrentToken(){
+  var el=document.getElementById('token-status');
+  var input=document.getElementById('set-token');
+  // Always test the value currently in the input box — don't silently fall
+  // back to the saved token (otherwise a cleared input looks "valid" because
+  // we re-tested the old token, which masks the user's real intent).
+  var tok=(input&&input.value||'').trim();
+  if(!tok){
+    if(el){el.textContent='⚠️ 请先粘贴 Token';el.style.color='var(--accent)';}
+    return;
+  }
+  if(el){el.textContent='⏳ 测试中…';el.style.color='var(--text-light)';}
+  // Persist the in-progress value first so geTestToken uses it
+  ghSetToken(tok);
+  GH.tokenInvalid=false;
+  geTestToken(tok).then(function(info){
+    if(el){
+      el.textContent='✅ 有效 · '+(info.fullName||'仓库')+(info.private?'（私有）':'');
+      el.style.color='#16a34a';
+    }
+    showToast('Token 有效 ✓');
+  }).catch(function(e){
+    GH.tokenInvalid=true;
+    var msg=e&&e.message||'未知错误';
+    var human={NO_TOKEN:'未填 Token',TOKEN_INVALID:'Token 无效（错误或已过期）',TOKEN_FORBIDDEN:'权限不足，请勾选 projects 权限',REPO_NOT_FOUND:'找不到该仓库，请确认仓库名',HTTP_0:'网络异常'};
+    var code=human[msg]||(msg.indexOf('TIMEOUT')>=0?'请求超时（网络慢）':msg);
+    if(el){el.textContent='❌ '+code;el.style.color='#dc2626';}
+    showToast('Token 无效：'+code);
+  });
 }
 function saveSettings(){
   var name=document.getElementById('set-name').value.trim()||'Iris';
@@ -4369,7 +4455,14 @@ function forceResync(){
   // stuck on an older local snapshot. To guarantee they get the latest cloud
   // copy with all photos/guides, this now runs the same hard-reset logic as
   // forceRescue: wipe local trip data and ghCache, then rebuild from cloud.
+  // v72: 3 retries (2s/5s/10s) — first attempt alone was too fragile on Safari
+  // iOS PWA where the very first fetch after a long idle gets aborted.
   closeModal('settings-modal');
+  if(!ghHasToken()){
+    showToast('请先在「协作 Token」里填 Gitee 私人令牌');
+    setTimeout(openSettings,800);
+    return;
+  }
   showToast('正在从云端拉取（首次可能需要 30–90 秒）…');
   // Reset every incremental-pull cache before we even try.
   GH.lastSha=null;
@@ -4379,30 +4472,63 @@ function forceResync(){
   GH.pullBackoff=0;
   GH.nextPullAt=0;
   GH.lastPushFp=null;
-  ghReadTrips().then(function(remote){
-    if(!remote||!remote.trips){showToast('拉取失败：云端无响应（已重试 3 次）。本地数据已保留。');return;}
-    try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
-    try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
-    var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
-    if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
-    if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
-    data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
-    applyLocTombstonesToTrips(data.trips,data.locTombstones);
-    repairTrips();
-    saveDataLocal();
-    ghCacheWrite(remote);
-    var locCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){locCount+=(d.locations||[]).length;});
-    // v47+: photos now live in separate chunk files; count via _photoCount markers
-    var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=((l._photoCount||0)+(l.photos||[]).length);});});
-    showToast('已同步 '+locCount+' 个地点 · '+photoCount+' 张照片');
-    // Kick off photo-chunk downloads in the background; UI will re-render as they land
-    if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
-    setTimeout(function(){location.reload();},1200);
-  }).catch(function(e){
-    console.error('forceResync failed',e);
-    showToast('拉取失败：网络不佳。本地数据已保留。');
-  });
+  setSyncStatus('retrying');
+  var attempt=0;
+  var delays=[0,2000,5000,10000];
+  function attemptOnce(){
+    attempt++;
+    if(attempt>1)showToast('网络不稳定，第 '+(attempt-1)+'/3 次重试…');
+    return ghReadTrips().then(function(remote){
+      if(!remote||!remote.trips){throw new Error('EMPTY_REMOTE');}
+      try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
+      try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
+      var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
+      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
+      if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
+      if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
+      data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
+      applyLocTombstonesToTrips(data.trips,data.locTombstones);
+      repairTrips();
+      saveDataLocal();
+      ghCacheWrite(remote);
+      setSyncStatus('synced');
+      var locCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){locCount+=(d.locations||[]).length;});
+      var photoCount=0;(data.trips[0]&&data.trips[0].days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){photoCount+=((l._photoCount||0)+(l.photos||[]).length);});});
+      showToast('已同步 '+locCount+' 个地点 · '+photoCount+' 张照片');
+      if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
+      setTimeout(function(){location.reload();},1200);
+    });
+  }
+  function chain(){
+    return attemptOnce().catch(function(e){
+      console.error('forceResync attempt '+attempt+' failed',e);
+      if(attempt<3){
+        var d=delays[attempt]||10000;
+        return new Promise(function(r){setTimeout(function(){r(chain());},d);});
+      }
+      // All 3 attempts exhausted — surface the SPECIFIC failure mode so the user
+      // knows whether to reconfigure the token, check their network, or retry.
+      var msg=e&&e.message||'';
+      if(msg==='TOKEN_INVALID'){
+        GH.tokenInvalid=true;
+        showToast('Token 无效或已过期，请重新填入 Gitee 私人令牌');
+        setTimeout(openSettings,800);
+      }else if(msg==='REPO_NOT_FOUND'){
+        showToast('仓库不存在，请确认 Token 已加入 zyl_Leon/lattiao-workbench');
+        setTimeout(openSettings,800);
+      }else if(e&&e.timeout){
+        showToast('网络太慢，Gitee 没在 '+(e.label||'')+' 内响应。建议切 WiFi/4G 再试');
+      }else if(e&&e.offline){
+        showToast('设备当前离线，请检查网络');
+      }else if(msg==='EMPTY_REMOTE'){
+        showToast('云端无响应或为空，本地数据已保留');
+      }else{
+        showToast('拉取失败：'+(msg||'网络异常')+'。本地数据已保留。');
+      }
+      setSyncStatus('error');
+    });
+  }
+  chain();
 }
 function reconcileManual(){
   if(!ghHasToken()){showToast('请先配置 Token');openSettings();return;}
