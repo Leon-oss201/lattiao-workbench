@@ -104,7 +104,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .bg-thumb:hover{transform:scale(1.02);}
 .bg-thumb.sel{border-color:var(--primary);}
 .bg-thumb-label{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;font-weight:600;color:#1F182E;background:rgba(255,255,255,.75);padding:2px 0;}
-.bg-thumb.bg-night .bg-thumb-label{color:#fff;background:rgba(0,0,0,.5);}
+/* v78: trip template chips */
+.tpl-chip{flex:0 0 auto;padding:8px 14px;border-radius:18px;background:var(--primary-lighter);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--primary-dark);cursor:pointer;transition:all .15s;}
+.tpl-chip:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+/* v78: explored cities card on home */
+.cities-scroll{display:flex;gap:10px;overflow-x:auto;padding:12px 16px;scrollbar-width:none;}
+.cities-scroll::-webkit-scrollbar{display:none;}
+.city-chip{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px 14px;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s;}
+.city-chip:hover{transform:scale(1.04);}
+.city-chip .cc-emoji{font-size:22px;}
+.city-chip .cc-name{font-size:12px;font-weight:600;color:var(--text);}
+.city-chip .cc-count{font-size:10px;color:var(--text-light);}
 /* v77: settings accordion */
 .set-acc{background:rgba(124,58,237,.04);border-radius:12px;padding:10px 14px;}
 .set-acc summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--primary-dark);list-style:none;display:flex;align-items:center;justify-content:space-between;}
@@ -640,6 +650,12 @@ img.photo-fade.loaded{opacity:1;}
       <div id="home-upcoming"></div>
     </div>
 
+    <!-- v78: explored cities -->
+    <div class="home-section" id="home-cities-section" style="display:none;">
+      <div class="section-head"><h2>🌍 去过的地方</h2><span class="more" onclick="openAlbum()">相册 →</span></div>
+      <div class="cities-scroll" id="home-cities"></div>
+    </div>
+
     <button class="fab" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" title="新增行程">＋</button>
   </section>
 
@@ -704,6 +720,10 @@ img.photo-fade.loaded{opacity:1;}
       <div data-tab="archived" onclick="tripsTab(this,'archived')">已归档</div>
     </div>
     <div id="trips-tag-tabs"></div>
+    <!-- v78: city search bar (filled when tapping an explored-city chip) -->
+    <div style="padding:10px 16px 0;" id="trip-city-search-wrap">
+      <input class="form-input" id="trip-city-search" placeholder="🔍 搜索目的地…" oninput="citySearchTyped(this.value)" style="border-radius:20px;">
+    </div>
     <div class="trip-list" id="trip-list"></div>
   </section>
 
@@ -713,6 +733,7 @@ img.photo-fade.loaded{opacity:1;}
       <button class="td-back" onclick="showPage('trips')">‹</button>
       <div class="td-actions">
         <button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button>
+        <button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>
         <button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>
         <button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>
         <button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>
@@ -781,6 +802,18 @@ img.photo-fade.loaded{opacity:1;}
         <span style="color:var(--primary);">▼</span>
       </div>
       <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;"></div>
+      <!-- v78: fx conversion — fixed rates, no network needed -->
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+        <span style="font-size:12px;color:var(--text-sec);">💱 换算</span>
+        <select class="form-select" id="fx-select" onchange="setFxRate(this.value)" style="flex:1;">
+          <option value="1">人民币 ¥</option>
+          <option value="0.14">美元 $（1¥≈$0.14）</option>
+          <option value="0.13">欧元 €（1¥≈€0.13）</option>
+          <option value="0.05">日元 ₩（1¥≈¥0.05）</option>
+          <option value="1.09">港币 HK$（1¥≈HK$1.09）</option>
+          <option value="0.19">新币 S$（1¥≈S$0.19）</option>
+        </select>
+      </div>
     </div>
     <div class="budget-summary">
       <div class="donut">
@@ -910,6 +943,16 @@ img.photo-fade.loaded{opacity:1;}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="trip-modal-title">新建行程</div>
+    <!-- v78: trip templates — one tap to scaffold a full itinerary -->
+    <div id="tm-template-row" style="display:none;margin-bottom:4px;">
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:6px;">🧩 用模板快速开始（地点框架可改）</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
+        <div class="tpl-chip" onclick="applyTripTemplate('weekend')">🏞 周末 2 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('family')">👨‍👩‍👧 亲子 5 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('honey')">💑 蜜月 7 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('city')">🏙 城市 3 日</div>
+      </div>
+    </div>
     <div class="form-row">
       <label class="form-label">行程标题</label>
       <input class="form-input" id="tm-title" placeholder="例如：杭州三日游" maxlength="100">
@@ -1286,7 +1329,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v77';
+var APP_VERSION='v78';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3580,6 +3623,36 @@ function renderHome(){
     });
   }
   document.getElementById('home-upcoming').innerHTML=html;
+  // v78: explored cities — one chip per destination, tap → trips page filtered
+  try{
+    var cSec=document.getElementById('home-cities-section');
+    var cEl=document.getElementById('home-cities');
+    if(cSec&&cEl){
+      var cityMap={};
+      (data.trips||[]).forEach(function(t){
+        var d=(t.destination||'').trim();
+        if(!d)return;
+        if(!cityMap[d])cityMap[d]=0;
+        cityMap[d]++;
+      });
+      var cityNames=Object.keys(cityMap);
+      var emoji=['🏔','🏛','🏖','🌉','🎡','⛰','🏯','🌊','🗼','🏝','🌋','🏞'];
+      var chips=cityNames.sort().slice(0,8).map(function(d,i){
+        var h=Math.abs(hashCode(d||''))%emoji.length;
+        return '<div class="city-chip" onclick="showPage(\'trips\');setTripsTagFilter(\'all\');setCitySearch(\''+escapeHTML(d).replace(/'/g,"\\'")+'\')">'+
+          '<div class="cc-emoji">'+emoji[h]+'</div>'+
+          '<div class="cc-name">'+escapeHTML(d)+'</div>'+
+          '<div class="cc-count">'+cityMap[d]+' 次</div>'+
+        '</div>';
+      }).join('');
+      if(cityNames.length){
+        cSec.style.display='block';
+        cEl.innerHTML=chips;
+      }else{
+        cSec.style.display='none';
+      }
+    }
+  }catch(e){}
 }
 
 // ============ Calendar ============
@@ -3746,6 +3819,10 @@ function renderTrips(){
   }else{
     show=data.trips.slice().sort(function(a,b){return new Date(b.startDate||0)-new Date(a.startDate||0);});
   }
+  // v78: city search filter (from explored-cities chip)
+  if(CITY_SEARCH){
+    show=show.filter(function(t){return (t.destination||'').trim()===CITY_SEARCH;});
+  }
   // v75: tag filter tabs (dynamic from all trips)
   var tagSet={};
   (data.trips||[]).forEach(function(t){Array.isArray(t.tags)&&t.tags.forEach(function(tg){tagSet[tg]=1;});});
@@ -3787,6 +3864,20 @@ function renderTrips(){
   document.getElementById('trip-list').innerHTML=html;
 }
 function setTripsTagFilter(tag){tripsTagFilter=tag;renderTrips();}
+// v78: tap an explored-city chip → trips page, all tab, filter to that city
+var CITY_SEARCH='';
+function setCitySearch(city){
+  CITY_SEARCH=city||'';
+  tripsTabFilter='all';
+  tripsTagFilter='all';
+  var citySearchInput=document.getElementById('trip-city-search');
+  if(citySearchInput)citySearchInput.value=city;
+  renderTrips();
+}
+function citySearchTyped(v){
+  CITY_SEARCH=(v||'').trim();
+  renderTrips();
+}
 function hashCode(s){var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return h;}
 function statusLabel(s){return s==='done'?'已完成':s==='ongoing'?'进行中':s==='archived'?'已归档':'即将出行';}
 // v77: auto-archive — the moment a trip's endDate is before today, it moves
@@ -3812,12 +3903,65 @@ function autoArchiveTrips(){
 }
 function tripsTab(el,f){document.querySelectorAll('#page-trips .trips-tabs div').forEach(function(d){d.classList.remove('active');});el.classList.add('active');tripsTabFilter=f;renderTrips();}
 
+// v78: scaffold a trip skeleton from a template — fills the modal (title,
+// dates, days with starter locations) so the user just edits names & times.
+var TRIP_TEMPLATES={
+  weekend:{title:'周末两日游',days:2,dest:'',locations:[
+    ['🚄 出发','attraction'],['🏞 地标景点','attraction'],['🍜 当地美食','food'],['🏨 入住酒店','stay'],
+    ['🏞 景点','attraction'],['🛍 逛街/市集','other'],['🍜 晚餐','food'],['🏠 返程','return']
+  ]},
+  family:{title:'亲子五日游',days:5,dest:'',locations:[
+    ['🚄 出发','departure'],['🎡 主题乐园','attraction'],['🍜 午餐','food'],['🏨 入住亲子酒店','stay'],
+    ['🦒 动物园','attraction'],['🍜 午餐','food'],['🎨 手工体验','other'],
+    ['🏖 海边/公园','attraction'],['🍦 甜品','food'],['🎪 晚间演出','attraction'],
+    ['🏛 博物馆','attraction'],['🍜 午餐','food'],['🛍 买特产','other'],
+    ['🍜 早茶','food'],['🚄 返程','return']
+  ]},
+  honey:{title:'蜜月七日游',days:7,dest:'',locations:[
+    ['✈️ 出发','departure'],['🏨 入住海景房','stay'],['🌅 海边日落','checkin'],
+    ['🏞 打卡地标','attraction'],['🍽 浪漫晚餐','food'],['🌌 夜游','other'],
+    ['🏖 沙滩一日','attraction'],['🍹 下午茶','food'],
+    ['🛶 出海/浮潜','attraction'],['📸 旅拍','checkin'],
+    ['🏔 一日游','attraction'],['🥂 晚餐','food'],
+    ['🛍 买礼物','other'],['🎁 收拾行李','other'],
+    ['✈️ 返程','return']
+  ]},
+  city:{title:'城市三日游',days:3,dest:'',locations:[
+    ['🚄 出发','departure'],['🏛 城市地标','attraction'],['🍜 午餐','food'],['🏨 入住','stay'],
+    ['🏞 文化景点','attraction'],['🍜 晚餐','food'],['🌃 夜景','checkin'],
+    ['🛍 特色街区','other'],['🍜 午茶','food'],['🚄 返程','return']
+  ]}
+};
+function applyTripTemplate(key){
+  var tpl=TRIP_TEMPLATES[key];if(!tpl)return;
+  document.getElementById('tm-title').value=tpl.title;
+  // compute date range
+  var today=new Date();
+  var s=new Date(today);s.setDate(s.getDate()+7); // start a week out by default
+  var e=new Date(s);e.setDate(e.getDate()+tpl.days-1);
+  var d2=function(d){return d.toISOString().slice(0,10);};
+  document.getElementById('tm-start').value=d2(s);
+  document.getElementById('tm-end').value=d2(e);
+  // pre-build days in a temp slot (applied on save)
+  window._templateDays=[];
+  var perDay=Math.ceil(tpl.locations.length/tpl.days);
+  for(var i=0;i<tpl.days;i++){
+    var locs=tpl.locations.slice(i*perDay,i*perDay+perDay).map(function(p){
+      return {name:p[0],type:p[1],time:'',distance:null,duration:null,guide:'',feeling:'',photos:[],budget:{total:0,items:[]}};
+    });
+    window._templateDays.push({date:d2(new Date(s.getTime()+i*86400000)),weather:'',locations:locs});
+  }
+  showToast('模板已填入，可修改日期/地点后保存');
+}
 function openTripModal(id){
   currentEditingTripId=id||null;
   document.getElementById('trip-modal-title').textContent=id?'编辑行程':'新建行程';
   document.getElementById('tm-del-btn').style.display=id?'inline-flex':'none';
   document.getElementById('tm-cover-preview').style.display='none';
   document.getElementById('tm-cover-img').src='';
+  window._templateDays=null; // v78: templates only apply to fresh trips
+  var tplRow=document.getElementById('tm-template-row');
+  if(tplRow)tplRow.style.display=id?'none':'block';
   if(id){
     var t=data.trips.find(function(x){return x.id===id;});
     if(t){
@@ -3895,7 +4039,18 @@ function saveTrip(){
     if(s){
       var e=t.endDate?parseDateStr(t.endDate):new Date(s);
       var n=Math.max(1,daysBetween(dateKey(s),dateKey(e))+1);
-      for(var i=0;i<n;i++)t.days.push({date:addDaysStr(dateKey(s),i),weather:'',locations:[]});
+      for(var i=0;i<n;i++){
+        // v78: template scaffold wins for the matching day (date follows the
+        // modal's startDate, not the template's original guess)
+        var tplDay=window._templateDays&&window._templateDays[i];
+        if(tplDay){
+          var c=JSON.parse(JSON.stringify(tplDay));
+          c.date=addDaysStr(dateKey(s),i);
+          t.days.push(c);
+        }else{
+          t.days.push({date:addDaysStr(dateKey(s),i),weather:'',locations:[]});
+        }
+      }
     }
   }
   if(currentEditingTripId){
@@ -3929,6 +4084,11 @@ function saveTrip(){
     }
   }else{
     t.id=uid();
+    // v78: if a template scaffold was prepared, use its days instead of the
+    // empty-date-based skeleton
+    if(window._templateDays&&window._templateDays.length){
+      t.days=window._templateDays;
+    }
     t.updatedAt=new Date().toISOString();
     data.trips.push(t);
   }
@@ -4034,7 +4194,7 @@ function openTrip(id){
   }
 }
 function renderOpenTripChrome(t){
-  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
+  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button><button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
     document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
@@ -4063,6 +4223,32 @@ function renderDayPills(){
   document.getElementById('td-day-pills').innerHTML=html;
 }
 function selectTripDay(i){currentTripDay=i;renderDayPills();renderTimeline();renderTripDetailExtras();refreshTripDayWeather();}
+// v78: swipe the day-pills bar left/right to change day (iOS-friendly)
+(function(){
+  document.addEventListener('DOMContentLoaded',function(){
+    var bar=document.getElementById('td-day-pills');
+    if(!bar)return;
+    var sx=0,sy=0,sw=0;
+    bar.addEventListener('touchstart',function(e){
+      sx=e.touches[0].clientX;sy=e.touches[0].clientY;sw=0;
+    },{passive:true});
+    bar.addEventListener('touchmove',function(e){
+      sw=Math.abs(e.touches[0].clientX-sx);
+    },{passive:true});
+    bar.addEventListener('touchend',function(e){
+      var dx=e.changedTouches[0].clientX-sx;
+      var dy=e.changedTouches[0].clientY-sy;
+      if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
+        var t=data.trips.find(function(x){return x.id===currentTripId;});
+        var n=(t&&t.days)?t.days.length:0;
+        if(n>1){
+          var next=currentTripDay+(dx<0?1:-1);
+          if(next>=0&&next<n)selectTripDay(next);
+        }
+      }
+    },{passive:true});
+  });
+})();
 function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
@@ -4082,6 +4268,10 @@ function renderTimeline(){
     var dotClass=(l.type==='food'?'food':l.type==='transport'||l.type==='departure'||l.type==='return'?'transport':'');
     // v75: type-color badge next to the name for visual consistency
     var typeColor=locTypeColor(l.type);
+    // v78: time-of-day tint on the card border — 早(06-12) 午(12-18) 晚(18+)
+    var hour=parseInt(String(l.time||'').split(':')[0],10);
+    var periodColor='transparent';
+    if(!isNaN(hour)){if(hour>=6&&hour<12)periodColor='#FBBF24';else if(hour>=12&&hour<18)periodColor='#FB923C';else if(hour>=18)periodColor='#A78BFA';}
     var photoThumbs='';
     if(l.photos&&l.photos.length){
       photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
@@ -4094,7 +4284,7 @@ function renderTimeline(){
         '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#EDE9FE,#F5F3FF);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">📷 '+l._photoCount+'</div>'+
         '</div>';
     }
-    html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')">'+
+    html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
       '<div class="tl-card">'+
@@ -4659,6 +4849,18 @@ function wrapText(ctx,text,maxW){
   if(line)lines.push(line);
   return lines;
 }
+// v78: export the trip as PDF — opens a print-ready window with the same
+// self-contained HTML (photos inlined), user picks "Save as PDF".
+function exportTripPdf(){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  if(!t){showToast('没有当前行程');return;}
+  showToast('正在打开打印窗口…');
+  var win=window.open('','_blank');
+  if(!win){showToast('请允许弹出窗口后重试');return;}
+  win.document.write(buildTripHTML(t));
+  win.document.close();
+  setTimeout(function(){try{win.print();}catch(e){}},900);
+}
 function shareCurrentTrip(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t){showToast('没有当前行程');return;}
@@ -4849,6 +5051,26 @@ function renderDailyChart(trips){
   html+='</div></div>';
   wrap.innerHTML=html;
 }
+// v78: fx conversion for the budget page (fixed indicative rates, no network)
+function setFxRate(v){
+  data.settings=data.settings||{};
+  data.settings.fxRate=parseFloat(v)||1;
+  saveData();
+  renderBudget();
+}
+function fxConvert(rmb){
+  var r=parseFloat(data.settings&&data.settings.fxRate)||1;
+  return rmb*r;
+}
+function fxSymbol(){
+  var r=parseFloat(data.settings&&data.settings.fxRate)||1;
+  if(r===0.14)return '$';
+  if(r===0.13)return '€';
+  if(r===0.05)return '¥J';
+  if(r===1.09)return 'HK$';
+  if(r===0.19)return 'S$';
+  return '¥';
+}
 function renderBudget(){
   var city=getCityFromHero();
   document.getElementById('budget-hero-title').textContent=city+'行程预算';
@@ -4903,12 +5125,21 @@ function renderBudget(){
     var n=Math.max(1,parseInt(t.aaPeople,10)||1);
     aaTotal+=getTripSpent(t)/n;
   });
-  document.getElementById('budget-total').textContent='¥'+plan.toFixed(0);
+  // v78: fx — show converted amounts when a foreign currency is selected
+  var fxOn=(parseFloat(data.settings&&data.settings.fxRate)||1)!==1;
+  var sym=fxSymbol();
+  var fmt=function(rmb){return (fxOn?sym:'¥')+Math.round(fxConvert(rmb));};
+  document.getElementById('budget-total').textContent=fmt(plan);
   document.getElementById('budget-total').style.color=over?'var(--danger)':'var(--primary-dark)';
-  document.getElementById('stat-spent').textContent='¥'+paid.toFixed(0);
-  document.getElementById('stat-left').textContent='¥'+left.toFixed(0);
+  document.getElementById('stat-spent').textContent=fmt(paid);
+  document.getElementById('stat-left').textContent=fmt(left);
   document.getElementById('stat-left').style.color=over?'var(--danger)':(left<=plan*0.2?'var(--accent)':'var(--primary)');
-  document.getElementById('stat-plan').textContent='¥'+plan.toFixed(0);
+  document.getElementById('stat-plan').textContent=fmt(plan);
+  // keep the fx select in sync with saved settings
+  try{
+    var fxSel=document.getElementById('fx-select');
+    if(fxSel)fxSel.value=String(parseFloat(data.settings&&data.settings.fxRate)||1);
+  }catch(e){}
   // donut (based on plan)
   var C=2*Math.PI*48;
   var cum=0;
@@ -6095,8 +6326,23 @@ function init(){
   var params=new URLSearchParams(location.search);
   var shareId=params.get('share');
   var joinId=params.get('join');
+  var sc=params.get('shortcut');
   if(shareId){initShareView(shareId);}
   else if(joinId){initJoinView(joinId);}
+  // v78: Android app-shortcut targets (manifest.json shortcuts)
+  else if(sc==='countdown'){
+    setTimeout(function(){
+      var upcoming=(data.trips||[]).filter(function(t){return t.status!=='done'&&t.status!=='archived'&&t.startDate;}).sort(function(a,b){return parseDateStr(a.startDate)-parseDateStr(b.startDate);});
+      if(upcoming.length){openTrip(upcoming[0].id);showPage('trip-detail');}
+      else{showPage('trips');}
+    },300);
+  }
+  else if(sc==='album'){
+    setTimeout(function(){openAlbum();},300);
+  }
+  else if(sc==='newtrip'){
+    setTimeout(function(){openTripModal();},300);
+  }
 }
 init();
 </script>
