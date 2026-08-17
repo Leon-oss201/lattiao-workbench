@@ -1395,7 +1395,14 @@ img.photo-fade.loaded{opacity:1;}
 // even when Safari cached an old index.html.
 (function(){
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').catch(function(e){
+    // v90: updateViaCache:'none' — iOS Safari caches sw.js for 24h by default,
+    // so a stale SW kept serving the old index.html even after we deployed a
+    // newer build (Iris was stuck on v88 for hours). This forces the SW update
+    // check to hit the network every launch, and we also call reg.update() to
+    // pull the newest sw.js immediately.
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(function(reg){
+      try{if(reg&&reg.update)reg.update();}catch(e){}
+    }).catch(function(e){
       console.warn('SW register failed',e);
     });
   }
@@ -1435,13 +1442,25 @@ function showUpdateBanner(latest){
     bar.id='update-banner';
     bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;max-width:480px;margin:0 auto;background:linear-gradient(135deg,#7C3AED,#FF8C42);color:#fff;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(124,58,237,.35);cursor:pointer;';
     bar.innerHTML='✨ 发现新版本 '+latest+'<span style="margin-left:auto;background:rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-size:12px;">点击刷新</span>';
-    bar.onclick=function(){location.reload();};
+    // v90: before reloading, nudge the service worker to re-download sw.js so
+    // the new SW takes over on the next load (a reload alone could otherwise
+    // still be served by the cached old SW).
+    bar.onclick=function(){
+      try{
+        if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){
+          navigator.serviceWorker.getRegistration().then(function(reg){
+            if(reg&&reg.update)reg.update();
+            setTimeout(function(){location.reload();},700);
+          }).catch(function(){location.reload();});
+        }else{location.reload();}
+      }catch(e){location.reload();}
+    };
     document.body.appendChild(bar);
   }catch(e){console.warn('update banner error',e);}
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v89';
+var APP_VERSION='v90';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
