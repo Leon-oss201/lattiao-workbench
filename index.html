@@ -981,8 +981,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     </div>
     <div class="form-row">
       <label class="form-label">协作 Token（用于数据同步）</label>
-      <input class="form-input" id="set-token" type="password" placeholder="github_pat_ 开头">
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步 &amp; 分享行程。留空则只读模式。<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--primary);">去生成 Token</a><br>生成步骤：① 登录 GitHub → 右上角头像 → Settings → Developer settings → Fine-grained tokens → Generate new token ② Token name 随便填，Repository access 选「Only select repositories」→ 勾选 lattiao-workbench ③ Permissions → Repository permissions → Contents 选「Read and write」④ 点 Generate token，复制 github_pat_ 开头的字符串粘贴到上面。两人填同一个仓库的 Token 即可互相同步。</div>
+      <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌">
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步行程（云端：Gitee 私有仓库，国内访问快）。留空则只读模式。<a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank" style="color:var(--primary);">去 Gitee 生成令牌</a><br>生成步骤：① 登录 Gitee → 头像 → 设置 → 私人令牌 ② 权限勾选「projects」③ 点生成，复制令牌粘贴到这里。两人填同一仓库的令牌即可互相同步。</div>
     </div>
     <div class="form-row" style="display:flex;gap:8px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
@@ -1081,7 +1081,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v70';
+var APP_VERSION='v71';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1286,12 +1286,20 @@ function saveDataLocal(){
   }catch(e){}
 }
 
-// ============ GitHub Sync ============
+// ============ Cloud Sync (Gitee backend, v71) ============
+// v71: migrated from GitHub API to Gitee API v5 (mainland-friendly). Function
+// signatures are unchanged so every caller keeps working; only the transport
+// changed. Gitee specifics:
+//   - auth via access_token (query/body), NOT Authorization header
+//   - GET /contents/{path} returns an ARRAY for a dir, a single OBJECT for a
+//     file, and [] (empty array) when the file does not exist (no 404)
+//   - create=POST, update=PUT(needs sha), delete=DELETE(needs sha)
+//   - private repos have no raw/CDN fallback → all reads go through the API
 var GH={
-  rawBase:'https://raw.githubusercontent.com/Leon-oss201/lattiao-workbench/main/',
-  cdnBase:'https://cdn.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/',
-  apiBase:'https://api.github.com/repos/Leon-oss201/lattiao-workbench',
-  branch:'main',
+  owner:'zyl_Leon',
+  repo:'lattiao-workbench',
+  apiBase:'https://gitee.com/api/v5/repos/zyl_Leon/lattiao-workbench',
+  branch:'master', // Gitee default branch
   status:'offline',
   lastSync:0,
   syncTimer:null,
@@ -1310,7 +1318,8 @@ var GH={
   mergeConflicts:0,      // v66: count of same-location edits by both sides in the last merge
   pushFailWarnedAt:0,    // v68: throttle for the loud push-failure toast (30s)
   pushBackoff:0,         // v70: exponential backoff for auto-retrying a failed push
-  pushRetryTimer:null    // v70: timer handle for the automatic push retry
+  pushRetryTimer:null,   // v70: timer handle for the automatic push retry
+  coverFp:null           // v71: {tripId: cover-length} cache to skip re-uploading covers
 };
 function ghUserId(){
   var id=localStorage.getItem('lattiao_uid');
@@ -1319,7 +1328,60 @@ function ghUserId(){
 }
 function ghToken(){return localStorage.getItem('lattiao_gh_token')||'';}
 function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
+
 function ghHasToken(){return !!ghToken();}
+// ---- Gitee API helpers (v71) ----
+function geUrl(path){return GH.apiBase+'/contents/'+path;}
+function geHeaders(){return {'User-Agent':'Mozilla/5.0','Content-Type':'application/json'};}
+// GET a file → {sha, content(base64)} or null if missing.
+// Gitee returns: object for a file, array for a dir, [] when missing (no 404).
+function geGetRaw(path,timeout){
+  var t=ghToken();
+  var qs='access_token='+encodeURIComponent(t||'');
+  return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders()},timeout||20000)
+    .then(function(r){
+      if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('ge 401');}
+      if(r.status===404)return null;
+      if(!r.ok)throw new Error('ge-get '+r.status);
+      return r.json();
+    })
+    .then(function(j){
+      if(!j)return null;
+      var item=Array.isArray(j)?(j[0]||null):j; // dir→array, file→object
+      if(!item)return null;
+      return {sha:item.sha||null, content:item.content||null};
+    });
+}
+// Write a file: exists→PUT(sha), missing→POST. Returns new sha.
+function geWrite(path,obj,msg){
+  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+  var b64=ghB64(JSON.stringify(obj));
+  return geGetRaw(path,15000).then(function(cur){
+    var body={access_token:t,content:b64,message:msg||'sync'};
+    if(cur&&cur.sha)body.sha=cur.sha;
+    var method=cur?'PUT':'POST';
+    return ghFetchTimeout(geUrl(path),{method:method,headers:geHeaders(),body:JSON.stringify(body)},30000)
+      .then(function(r){
+        if(!r.ok){if(r.status===401){GH.tokenInvalid=true;}throw new Error('ge-write '+r.status);}
+        return r.json();
+      })
+      .then(function(res){
+        var c=res&&res.content?res.content:null;
+        return c&&c.sha?c.sha:null;
+      });
+  });
+}
+// Delete a file (no-op if missing). Returns true if deleted, null if gone.
+function geDelete(path,msg){
+  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+  return geGetRaw(path,15000).then(function(cur){
+    if(!cur||!cur.sha)return null;
+    var body={access_token:t,message:msg||'del',sha:cur.sha};
+    return ghFetchTimeout(geUrl(path),{method:'DELETE',headers:geHeaders(),body:JSON.stringify(body)},30000)
+      .then(function(r){if(!r.ok)throw new Error('ge-del '+r.status);return true;});
+  });
+}
+
 function ghB64(str){return btoa(unescape(encodeURIComponent(str)));}
 
 // fetch with a hard timeout so a flaky network never leaves the UI stuck on "syncing"
@@ -1367,171 +1429,36 @@ function tripsFingerprint(trips){
 }
 
 function ghReadTrips(){
-  // Read strategy: GitHub API (real-time) -> jsDelivr CDN cache.
-  // GitHub API can fail two ways on large files (>=1MB):
-  //   1. JSON view returns content=null, or
-  //   2. the JSON response itself can be blocked by intermediaries
-  // In either case we fall back to mediaType=raw which streams the file body
-  // directly without base64 encoding — works for any file size.
-  // The repo is public, so the API still works without a token (just 60 req/h),
-  // which is the safety net when a user's token has been revoked.
-  // raw.githubusercontent.com is omitted because it's reliably blocked in mainland China.
-  var readApiJson=function(){
-    var t=ghToken();
-    var headers={'Accept':'application/vnd.github+json'};
-    if(t)headers['Authorization']='token '+t;
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},20000)
-      .then(function(r){
-        if(r.status===404)return null;
-        if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('api 401');}
-        if(!r.ok)throw new Error('api '+r.status);
-        return r.json();
-      })
-      .then(function(m){
-        if(!m)return null;
-        // ALWAYS remember the cloud sha, even if content was stripped (>1MB).
-        // The next sync can then short-circuit on sha match without re-downloading.
-        // FIX (v65): compare BEFORE assigning. The old order assigned GH.lastSha=m.sha
-        // first and then compared m.sha===GH.lastSha — always true — so EVERY pull
-        // short-circuited with {skip:true} and text data could never be fetched from
-        // the API path (fresh devices / forceResync stayed empty until the slow 120s
-        // raw fallback finally succeeded).
-        if(m.sha){
-          if(m.sha===GH.lastSha)return {skip:true,sha:m.sha};
-          GH.lastSha=m.sha;
-        }
-        // Files >1MB come back with content=null — fall through to the raw route.
-        if(!m.content)throw new Error('oversized');
-        var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
-        // FIX (v65): parse to an OBJECT. Returning the raw string made syncPull
-        // see remote.trips === undefined and silently skip the merge — "synced"
-        // status with NO new data ever applied (friend's new locations/photos
-        // never appeared on the other device).
-        try{return JSON.parse(json);}catch(e){throw new Error('api json parse');}
-      });
-  };
-  var readApiRaw=function(useToken){
-    var t=useToken?ghToken():null;
-    var headers={'Accept':'application/vnd.github.v3.raw'};
-    if(t)headers['Authorization']='token '+t;
-    // 120s timeout: the cloud file can be several MB of base64 photos, and
-    // mainland access to api.github.com is slow. 30s was too tight and made
-    // big pulls fail (users then fell back to a STALE jsDelivr cache below).
-    return ghFetchTimeout(GH.apiBase+'/contents/data/trips.json?ref='+GH.branch,{headers:headers},120000)
-      .then(function(r){
-        if(r.status===404)return null;
-        // Only treat 401 as a token problem when we actually sent one.
-        if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('api-raw 401');}
-        if(!r.ok)throw new Error('api-raw '+r.status);
-        return r.text();
-      })
-      .then(function(s){
-        if(!s)return null;
-        var parsed=JSON.parse(s);
-        // The raw endpoint doesn't return sha. Fire a tiny metadata GET to update
-        // GH.lastSha so the NEXT sync can short-circuit on sha match.
-        ghGetSha('data/trips.json').then(function(sha){if(sha)GH.lastSha=sha;}).catch(function(){});
-        return parsed;
-      });
-  };
-  var readCdn=function(){
-    // jsDelivr mirrors; try several CDN hosts since mainland access can be flaky.
-    // IMPORTANT: cdn.jsdelivr.net often serves a STALE cached copy of the branch
-    // for hours (we observed it returning an 8-hour-old 6-photo version). So each
-    // CDN result is only accepted if it is NEWER than the last-known-good cloud
-    // copy (from ghCache) — otherwise we skip to the next mirror. A stale CDN
-    // being accepted is exactly what made users see old photo counts.
-    var bases=[GH.cdnBase,'https://fastly.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/','https://gcore.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/'];
-    var lastGoodTs=0;
-    try{
-      var cache=ghCacheRead();
-      if(cache&&cache.data&&cache.data.updatedAt)lastGoodTs=Date.parse(cache.data.updatedAt)||0;
-    }catch(e){}
-    // 90s CDN timeout: cdn.jsdelivr.net is the only mirror that returns the
-    // FULL file (others truncate to 1.2MB and the GitHub Contents API >1MB
-    // returns content=null). A 4-photo trip is ~3MB; a 30+ photo trip is ~10MB,
-    // and jsDelivr takes ~30s from China. Anything less than 90s has been
-    // failing for users mid-trip.
-    var tryBase=function(i){
-      if(i>=bases.length)return Promise.reject(new Error('cdn exhausted'));
-      return ghFetchTimeout(bases[i]+'data/trips.json?t='+Date.now(),null,90000)
-        .then(function(r){
-          if(r.status===404)return null;
-          if(!r.ok)throw new Error('cdn '+r.status);
-          return r.text();
-        })
-        .then(function(text){
-          if(!text)return null;
-          // Truncated mirrors (gcore, fastly) cap responses at 1.2MB → JSON.parse
-          // fails. Guard against that BEFORE attempting to use the body, so we
-          // don't get a half-corrupted trips.json merged into local data.
-          if(text.length<500000){
-            console.warn('[cdn]',bases[i],'truncated to',text.length,'bytes — skipping');
-            return tryBase(i+1);
-          }
-          try{return JSON.parse(text);}catch(parseErr){
-            console.warn('[cdn]',bases[i],'parse failed:',parseErr.message,'— skipping');
-            return tryBase(i+1);
-          }
-        })
-        .then(function(data){
-          if(!data)return null;
-          // Accept only if fresh enough (>= last known good cloud updatedAt).
-          var ts=Date.parse(data&&data.updatedAt)||0;
-          if(ts>0&&ts<lastGoodTs){
-            console.warn('[cdn] stale copy (updatedAt',data.updatedAt,'< lastGood',new Date(lastGoodTs).toISOString(),') — skipping',bases[i]);
-            return tryBase(i+1);
-          }
-          return data;
-        })
-        .catch(function(e){if(e&&e.message==='cdn 404')return null;return tryBase(i+1);});
-    };
-    return tryBase(0);
-  };
-  // Read priority: GitHub API first now that trips.json is text-only (~5KB,
-  // so the Contents API returns it intact with a sha for incremental skip).
-  // CDN is a fallback only if the API is unreachable.
-  return readApiJson().catch(function(){
-    return readApiRaw(true).catch(function(){
-      return readApiRaw(false).catch(function(){
-        return readCdn();
-      });
-    });
+  // v71: Gitee API v5. Private repo → all reads via the API (no raw/CDN).
+  // Returns the parsed trips object, {skip:true} when sha unchanged, or null.
+  return geGetRaw('data/trips.json',20000).then(function(m){
+    if(!m)return null; // file missing → empty cloud
+    if(m.sha){
+      if(m.sha===GH.lastSha)return {skip:true,sha:m.sha};
+      GH.lastSha=m.sha;
+    }
+    if(!m.content)throw new Error('ge empty content');
+    var raw=atob(m.content.replace(/\s/g,''));
+    var json=decodeURIComponent(escape(raw));
+    try{return JSON.parse(json);}catch(e){throw new Error('ge parse');}
   });
 }
 function ghGetSha(path){
-  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-  return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json'}},15000)
-    .then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('sha '+r.status);return r.json();})
-    .then(function(m){return m?m.sha:null;});
+  // v71 Gitee: return file sha or null (missing → null)
+  return geGetRaw(path,15000).then(function(m){return m?m.sha:null;});
 }
 function ghWriteFile(path,content,msg,sha){
-  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-  var body={message:msg||'update',branch:GH.branch,content:ghB64(JSON.stringify(content))};
-  if(sha)body.sha=sha;
-  return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},30000)
-    .then(function(r){if(!r.ok)throw new Error('put '+r.status);return r.json();});
+  // v71 Gitee: geWrite handles create(POST)/update(PUT) internally; sha arg ignored
+  return geWrite(path,content,msg||'update');
 }
 function ghDeleteFile(path){
-  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
-  return ghGetSha(path).then(function(sha){
-    if(!sha)return null; // already gone
-    var body={message:'sync: delete '+path,branch:GH.branch,sha:sha};
-    return ghFetchTimeout(GH.apiBase+'/contents/'+path,{method:'DELETE',headers:{'Authorization':'token '+t,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)},30000)
-      .then(function(r){if(!r.ok)throw new Error('del '+r.status);return true;});
-  });
+  return geDelete(path,'sync: delete '+path);
 }
 function ghReadShared(shareId){
-  // Try raw.githubusercontent first, then jsDelivr CDN (CN-friendly).
-  var raw=function(){
-    return fetch(GH.rawBase+'data/shared/'+shareId+'.json?t='+Date.now()).then(function(r){
-      if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
-    });
-  };
-  return raw().catch(function(){
-    return ghFetchTimeout(GH.cdnBase+'data/shared/'+shareId+'.json?t='+Date.now(),null,20000)
-      .then(function(r){if(!r.ok)throw new Error('cdn '+r.status);return r.json();});
-  });
+  // v71: Gitee repo is PRIVATE → public share links need auth and are not
+  // supported for anonymous visitors. Keep the function for compatibility but
+  // surface a clear message instead of a silent failure.
+  return Promise.reject(new Error('share-unavailable'));
 }
 
 function preserveLocalPhotos(remoteTrip,localTrip){
@@ -1903,7 +1830,9 @@ function buildTextPayload(){
   data.trips.forEach(function(t){
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
-    if(c.cover)c._hasCover=1;
+    // v71: covers are stripped too (they're large base64 images) — trips.json
+    // stays small. The cover itself lives in data/covers/{tripId}.json + IndexedDB.
+    if(c.cover){c._hasCover=1;c.cover='';}
     (c.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
         if(l.photos&&l.photos.length)l._photoCount=l.photos.length;
@@ -2003,6 +1932,9 @@ function restorePhotosFromIndexedDB(){
           if(all[key]&&all[key].length)l.photos=all[key];
         });
       });
+      // v71: restore trip cover from IndexedDB cache (key 'cover_'+tripId)
+      var ck='cover_'+t.id;
+      if(all[ck]&&all[ck].length&&(!t.cover||!t.cover.length))t.cover=all[ck][0];
     });
   }).catch(function(){});
 }
@@ -2038,37 +1970,13 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
   });
 }
 function ghReadPhotoChunk(path){
-  // Try GitHub API first (real-time), then fall back to jsDelivr CDN — the CDN
-  // is usually reachable from mainland China when api.github.com is slow/blocked.
-  var t=ghToken();
-  var headers={'Accept':'application/vnd.github+json'};
-  if(t)headers['Authorization']='token '+t;
-  var api=function(){
-    return ghFetchTimeout(GH.apiBase+'/contents/'+path+'?ref='+GH.branch,{headers:headers},20000)
-      .then(function(r){
-        if(r.status===404)return null;
-        if(!r.ok)throw new Error('photo-chunk '+r.status);
-        return r.json();
-      })
-      .then(function(m){
-        if(!m||!m.content)return null;
-        var raw=atob(m.content.replace(/\s/g,''));var json=decodeURIComponent(escape(raw));
-        try{return JSON.parse(json);}catch(e){return null;}
-      });
-  };
-  var cdn=function(){
-    // jsDelivr mirrors; try a couple in order. Each chunk is <1MB so CDN
-    // returns it intact.
-    var bases=[GH.cdnBase,'https://fastly.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/','https://gcore.jsdelivr.net/gh/Leon-oss201/lattiao-workbench@main/'];
-    var tryBase=function(i){
-      if(i>=bases.length)return null;
-      return ghFetchTimeout(bases[i]+path+'?t='+Date.now(),null,30000)
-        .then(function(r){if(!r.ok)throw new Error('cdn '+r.status);return r.json();})
-        .catch(function(){return tryBase(i+1);});
-    };
-    return tryBase(0);
-  };
-  return api().catch(function(){return cdn();});
+  // v71 Gitee: private repo → read via API only (no CDN). Missing → null.
+  return geGetRaw(path,20000).then(function(m){
+    if(!m||!m.content)return null;
+    var raw=atob(m.content.replace(/\s/g,''));
+    var json=decodeURIComponent(escape(raw));
+    try{return JSON.parse(json);}catch(e){return null;}
+  });
 }
 // Load all photo chunks for a trip (used after a pull / on trip open) and
 // refresh the timeline once photos arrive. Non-blocking.
@@ -2147,6 +2055,8 @@ function runWithLimit(jobs,limit){
 }
 function prefetchAllTripPhotos(){
   if(!data.trips||!data.trips.length)return;
+  // v71: also fetch any trip covers that exist in the cloud (data/covers/…)
+  ensureTripCovers();
   var jobs=[];
   data.trips.forEach(function(t){
     (t.days||[]).forEach(function(d){
@@ -2168,6 +2078,28 @@ function prefetchAllTripPhotos(){
     }
     try{saveDataLocal();}catch(e){}
   }).catch(function(){});
+}
+// v71: fetch trip covers from cloud files (data/covers/{tripId}.json) for any
+// trip marked _hasCover but without a cover in memory. Non-blocking.
+function ensureTripCovers(){
+  if(!ghHasToken())return;
+  (data.trips||[]).forEach(function(t){
+    if(!t||!t.id)return;
+    if(!t._hasCover&&(!t.cover||!t.cover.length))return;
+    if(t.cover&&t.cover.length>100)return; // already have it
+    geGetRaw('data/covers/'+t.id+'.json',20000).then(function(m){
+      if(!m||!m.content)return;
+      try{
+        var obj=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
+        if(obj&&obj.cover&&obj.cover.length>100){
+          t.cover=obj.cover;t._hasCover=1;
+          if(typeof photoCachePut==='function')photoCachePut('cover_'+t.id,[t.cover]);
+          try{saveDataLocal();}catch(e){}
+          renderAll();
+        }
+      }catch(e){}
+    }).catch(function(){});
+  });
 }
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
@@ -2228,7 +2160,26 @@ function syncPushNow(){
           });
         };
       });
-      return runWithLimit(chunkJobs,3);
+      return runWithLimit(chunkJobs,3).then(function(){
+        // v71: upload trip covers as separate files too (data/covers/{tripId}.json)
+        var coverJobs=[];
+        (data.trips||[]).forEach(function(t){
+          if(t&&t.id&&t.cover&&t.cover.length>100){
+            coverJobs.push(function(){
+              var cf=JSON.stringify({cover:t.cover});
+              if(GH.coverFp&&GH.coverFp[t.id]===cf.length)return Promise.resolve();
+              return geWrite('data/covers/'+t.id+'.json',{cover:t.cover},'sync: cover '+t.id)
+                .then(function(){
+                  if(!GH.coverFp)GH.coverFp={};
+                  GH.coverFp[t.id]=cf.length;
+                })
+                .catch(function(e){console.warn('cover upload failed',t.id,e);});
+            });
+          }
+        });
+        if(coverJobs.length)return runWithLimit(coverJobs,2);
+        return Promise.resolve();
+      });
     }).then(function(){
       GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
       // v70: push succeeded → clear pending flag + stop the retry schedule
@@ -3217,6 +3168,12 @@ function saveTrip(){
     data.trips.push(t);
   }
   saveData();
+  // v71: persist the trip cover into IndexedDB too (covers are stripped from
+  // trips.json; IndexedDB is the local source of truth, cloud copy lives in
+  // data/covers/{tripId}.json and is uploaded during syncPushNow).
+  if(t.id&&t.cover&&t.cover.length>100&&typeof photoCachePut==='function'){
+    photoCachePut('cover_'+t.id,[t.cover]);
+  }
   closeModal('trip-modal');
   showToast('已保存');
   if(currentEditingTripId){openTrip(currentEditingTripId);}
@@ -3777,6 +3734,11 @@ function shareCurrentTrip(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   if(!ghHasToken()){showToast('请先在设置中配置协作 Token');openSettings();return;}
+  // v71: Gitee repo is private → anonymous share links are NOT supported
+  // (a visitor without the token cannot read the shared file). Surface a clear
+  // message instead of generating a link that would 404 for the recipient.
+  showToast('私有云端暂不支持公开分享，可用「邀请协作」共享给好友');
+  return;
   showToast('正在生成分享链接...');
   var shareId='s_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   // v47+: share a TEXT-ONLY copy (KB-size) so the shared file is small, never
