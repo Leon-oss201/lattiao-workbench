@@ -219,12 +219,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cal-weekdays div{padding:6px 0;}
 
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 12px;}
-.cal-day{aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--text);position:relative;cursor:pointer;transition:background .15s;}
-.cal-day:active{background:var(--primary-light);}
-.cal-day .cal-day-num{font-weight:500;}
-.cal-day.muted{color:var(--text-light);opacity:.5;}
-.cal-day.today{background:var(--primary);color:#fff;font-weight:700;}
-.cal-day.today .cal-day-num{font-weight:700;}
+  .cal-day{aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--text);position:relative;cursor:pointer;transition:background .15s;}
+  .cal-day:active{background:var(--primary-light);}
+  .cal-day .cal-day-num{font-weight:500;}
+  .cal-day.muted{color:var(--text-light);opacity:.5;}
+  .cal-day.today{background:var(--primary);color:#fff;font-weight:700;}
+  .cal-day.today .cal-day-num{font-weight:700;}
+  /* v80: trip-range styling — connected pill across multiple days, more eye-
+     catching than the old red border. Start day gets ✈️, end day gets 🏠, the
+     middle days get a soft gradient. Single-day trips are a solid circle. */
+  .cal-day.trip-start{background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(124,58,237,.3);}
+  .cal-day.trip-mid{background:linear-gradient(135deg,#EDE9FE,#F5F3FF);color:var(--primary-dark);font-weight:600;}
+  .cal-day.trip-end{background:linear-gradient(135deg,#FF8C42,#FFA76B);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(255,140,66,.3);}
+  .cal-day.trip-single{background:linear-gradient(135deg,#7C3AED,#FF8C42);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(124,58,237,.3);}
+  .cal-day .cal-trip-icon{font-size:9px;line-height:1;margin-top:1px;}
+  .cal-day.trip-start .cal-day-num,.cal-day.trip-end .cal-day-num,.cal-day.trip-single .cal-day-num{font-size:11px;}
+  /* v80: cal status banner — the loudest thing on the page */
+  .cal-status-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin:12px 14px 0;border-radius:14px;box-shadow:var(--shadow);cursor:pointer;}
+  .cal-status-banner.live{background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;}
+  .cal-status-banner.upcoming{background:linear-gradient(135deg,#FFEDD9,#FED7AA);color:#92400E;}
+  .cal-status-banner.done{background:var(--card);color:var(--text);}
+  .cal-status-banner .csb-emoji{font-size:28px;line-height:1;}
+  .cal-status-banner .csb-body{flex:1;min-width:0;}
+  .cal-status-banner .csb-title{font-size:13px;font-weight:700;}
+  .cal-status-banner .csb-sub{font-size:11px;opacity:.85;margin-top:2px;}
+  .cal-status-banner.upcoming .csb-sub{opacity:1;}
+  .cal-status-banner .csb-arrow{font-size:20px;opacity:.6;}
 .cal-dots{display:flex;gap:2px;margin-top:2px;height:5px;align-items:center;}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);}
 .cal-dot.attraction{background:#A78BFA;}
@@ -701,6 +721,9 @@ img.photo-fade.loaded{opacity:1;}
     </div>
     <div class="cal-weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
     <div class="cal-grid" id="cal-grid"></div>
+    <!-- v80: active/upcoming trip banner — the single most eye-catching thing
+         on the calendar ("here's what you're doing or about to do"). -->
+    <div id="cal-status" style="display:none;"></div>
     <div class="cal-legend">
       <div class="cal-legend-title">— 行程标注（点击筛选）—</div>
       <div class="cal-legend-grid">
@@ -1346,7 +1369,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v79';
+var APP_VERSION='v80';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2024,8 +2047,16 @@ function syncPull(force){
       data.trips=merged; // assign before repair so repair normalizes dates/days
       dedupeTrips();     // collapse dupes created by independent trip ids on different devices
       repairTrips();
-      var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged); // compare after repair
+      // v80: merge display settings (title/slogan/city/heroBg) so collaborators
+      // see each other's look. settingsUpdated triggers a re-render so the
+      // hero + city label + bg all update immediately.
+      var settingsChanged=false;
+      if(remote.settings){mergeSettings(remote.settings);settingsChanged=true;}
+      var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
+        ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       if(changed)saveDataLocal();
+      // v80: if settings changed, re-apply hero bg + re-render hero
+      if(settingsChanged){applyHeroBg();}
       renderAll();
       GH.lastSync=Date.now();setSyncStatus('synced');
       // v66: tell the user when both sides edited the same location (merge happened)
@@ -2175,7 +2206,34 @@ function buildTextPayload(){
     });
     remoteData.trips.push(c);
   });
+  // v80: sync the *visible* settings (title, slogan, city, background) so
+  // collaborators see the same look. `name` stays per-device (it's identity).
+  remoteData.settings={
+    heroTitle:data.settings.heroTitle||'',
+    slogan:data.settings.slogan||'',
+    city:data.settings.city||'',
+    heroBg:data.settings.heroBg||'',
+    fxRate:data.settings.fxRate||1,
+    fontScale:data.settings.fontScale||'1',
+    updatedAt:now
+  };
   return remoteData;
+}
+// v80: merge display settings from remote — remote wins on conflict
+// (collaborator's choice wins for the shared look)
+function mergeSettings(remoteSettings){
+  if(!remoteSettings||typeof remoteSettings!=='object')return;
+  data.settings=data.settings||{};
+  ['heroTitle','slogan','city','heroBg','fxRate','fontScale'].forEach(function(k){
+    if(remoteSettings[k]!==''&&remoteSettings[k]!==null&&typeof remoteSettings[k]!=='undefined'){
+      data.settings[k]=remoteSettings[k];
+    }
+  });
+  // v77: heroBg must be either a preset key or a data: URL
+  if(data.settings.heroBg&&data.settings.heroBg.indexOf('data:')!==0){
+    var isPreset=['bg-mint','bg-ocean','bg-minimal','bg-journal','bg-night','bg-cherry'].indexOf(data.settings.heroBg)>=0;
+    if(!isPreset)delete data.settings.heroBg;
+  }
 }
 // ---- IndexedDB photo store (photos are too big for localStorage) ----
 var photoDBName='lattiao_photos_v1';
@@ -3736,6 +3794,46 @@ function renderCal(){
     }
   });
   var html='';
+  // v80: build a tripRangeMap for connected start/mid/end styling
+  var tripRangeMap={};
+  data.trips.forEach(function(t){
+    if(!t.startDate||!t.endDate)return;
+    var sd=parseDateStr(t.startDate),ed=parseDateStr(t.endDate);
+    var cur=new Date(sd);
+    while(cur<=ed){
+      var k=dateKey(cur);
+      if(cur.getFullYear()===y && cur.getMonth()===m){
+        if(!tripRangeMap[k])tripRangeMap[k]={count:0,start:false,end:false,mid:false,single:false};
+        tripRangeMap[k].count++;
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+  });
+  // mark start/mid/end/single
+  data.trips.forEach(function(t){
+    if(!t.startDate||!t.endDate)return;
+    var sd=parseDateStr(t.startDate),ed=parseDateStr(t.endDate);
+    var sameDay=dateKey(sd)===dateKey(ed);
+    var sk=dateKey(sd),ek=dateKey(ed);
+    if(tripRangeMap[sk]&&sk.slice(0,4)==y&&parseInt(sk.slice(5,7),10)-1===m){
+      if(sameDay)tripRangeMap[sk].single=true;
+      else tripRangeMap[sk].start=true;
+    }
+    if(tripRangeMap[ek]&&ek.slice(0,4)==y&&parseInt(ek.slice(5,7),10)-1===m){
+      if(!sameDay)tripRangeMap[ek].end=true;
+    }
+    // mark mid days
+    if(!sameDay){
+      var cur=new Date(sd);cur.setDate(cur.getDate()+1);
+      while(cur<ed){
+        var mk=dateKey(cur);
+        if(tripRangeMap[mk]&&mk.slice(0,4)==y&&parseInt(mk.slice(5,7),10)-1===m){
+          tripRangeMap[mk].mid=true;
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+  });
   for(var i=0;i<startDay;i++){
     var pm=new Date(y,m,-(startDay-1-i));
     html+='<div class="cal-day muted"><div class="cal-day-num">'+pm.getDate()+'</div></div>';
@@ -3744,21 +3842,62 @@ function renderCal(){
     var key=y+'-'+(m+1)+'-'+d;
     var ev=eventMap[key];
     var isToday=isCurMonth && today.getDate()===d;
+    var range=tripRangeMap[key];
+    var rangeCls=range?((range.single?' trip-single':'')+(range.start?' trip-start':'')+(range.end?' trip-end':'')+(range.mid?' trip-mid':'')):'';
+    var tripIcon=range&&range.start?'<div class="cal-trip-icon">✈️</div>':(range&&range.end?'<div class="cal-trip-icon">🏠</div>':(range&&range.mid?'<div class="cal-trip-icon">•</div>':''));
     var dots='';
     if(ev){
       if(ev.attraction)dots+='<span class="cal-dot attraction"></span>';
       if(ev.food)dots+='<span class="cal-dot food"></span>';
       if(ev.transport)dots+='<span class="cal-dot transport"></span>';
     }
-    html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="calDayClick('+y+','+(m+1)+','+d+')">'+
+    html+='<div class="cal-day'+(isToday?' today':'')+rangeCls+'" onclick="calDayClick('+y+','+(m+1)+','+d+')" data-trip="'+(range?escapeHTML((data.trips.find(function(tr){return tr.startDate&&dateKey(parseDateStr(tr.startDate))<=key&&dateKey(parseDateStr(tr.endDate||tr.startDate))>=key;})||{}).title||''):'')+'">'+
       '<div class="cal-day-num">'+d+'</div>'+
+      tripIcon+
       (dots?'<div class="cal-dots">'+dots+'</div>':'')+'</div>';
   }
   var rem=7-((startDay+last.getDate())%7);
   if(rem<7)for(var i=0;i<rem;i++){var nx=new Date(y,m+1,i+1);html+='<div class="cal-day muted"><div class="cal-day-num">'+nx.getDate()+'</div></div>';}
   document.getElementById('cal-grid').innerHTML=html;
+  // v80: status banner — current trip / next-up trip (most visible thing)
+  renderCalStatus();
   // render locations list
   renderCalLocationList(monthLocs);
+}
+// v80: a big eye-catching banner above the legend — "today you're in
+// Quanzhou" / "tomorrow you fly to X". Sorted by closeness.
+function renderCalStatus(){
+  var el=document.getElementById('cal-status');
+  if(!el)return;
+  var today=new Date();today.setHours(0,0,0,0);
+  var items=[];
+  (data.trips||[]).forEach(function(t){
+    if(!t.startDate)return;
+    var s=parseDateStr(t.startDate);
+    var e=t.endDate?parseDateStr(t.endDate):new Date(s);
+    if(today>=s && today<=e){
+      var dayNum=Math.round((today-s)/86400000)+1;
+      var total=Math.round((e-s)/86400000)+1;
+      items.push({prio:0,html:'<div class="cal-status-banner live"><div class="csb-emoji">🎉</div><div class="csb-body"><div class="csb-title">正在 <b>'+escapeHTML(t.title)+'</b> 第 '+dayNum+' / '+total+' 天</div><div class="csb-sub">📍 '+escapeHTML(t.destination||'')+' · 至 '+fmtDateShort(t.endDate)+'</div></div></div>'});
+    }else if(s>today){
+      var days=Math.round((s-today)/86400000);
+      if(days<=30){
+        items.push({prio:1,html:'<div class="cal-status-banner upcoming" onclick="openTrip(\''+t.id+'\')"><div class="csb-emoji">✈️</div><div class="csb-body"><div class="csb-title">'+days+' 天后去 <b>'+escapeHTML(t.title)+'</b></div><div class="csb-sub">📍 '+escapeHTML(t.destination||'')+' · '+fmtDateShort(t.startDate)+(t.endDate?' ~ '+fmtDateShort(t.endDate):'')+'</div></div><div class="csb-arrow">›</div></div>'});
+      }
+    }else if(e<today){
+      var ago=Math.round((today-e)/86400000);
+      if(ago<=7){
+        items.push({prio:2,html:'<div class="cal-status-banner done"><div class="csb-emoji">✅</div><div class="csb-body"><div class="csb-title">刚从 <b>'+escapeHTML(t.title)+'</b> 回来</div><div class="csb-sub">📍 '+escapeHTML(t.destination||'')+' · '+ago+' 天前结束</div></div></div>'});
+      }
+    }
+  });
+  items.sort(function(a,b){return a.prio-b.prio;});
+  if(items.length){
+    el.style.display='block';
+    el.innerHTML=items[0].html;
+  }else{
+    el.style.display='none';
+  }
 }
 function setCalFilter(type){
   calFilterType=type;
@@ -5820,7 +5959,12 @@ function saveSettings(){
     data.settings.name=name;
     data.settings.slogan=slogan;
     data.settings.city=city;
-    data.settings.heroTitle=city+'旅行计划';
+    // v80: only seed the title from city the FIRST time. After the user has
+    // edited the title (or set a custom one), saveSettings must not stomp on
+    // it — that's the bug where changing a background reverts the title.
+    if(!data.settings.heroTitle||!data.settings.heroTitle.trim()){
+      data.settings.heroTitle=city+'旅行计划';
+    }
     var tokChanged=newTok!==oldTok;
     ghSetToken(newTok);
     // If the token was replaced, clear the dead-token flag so auto-pull resumes.
