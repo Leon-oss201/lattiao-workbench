@@ -1460,7 +1460,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v90';
+var APP_VERSION='v91';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1851,24 +1851,32 @@ function geTestToken(token){
     });
 }
 // Write a file: exists→PUT(sha), missing→POST. Returns new sha.
-function geWrite(path,obj,msg){
+// v91: accepts an optional `sha`. When provided (from GH.shaCache /
+// GH.photoChunkSha) it SKIPS the extra GET round-trip and goes straight to
+// PUT — this alone cuts photo sync API calls by ~⅔, because previously the sha
+// fetched in uploadChunk was passed into ghWriteFile but then DISCARDED, so
+// every chunk did GET+GET+PUT. Now a known-existing chunk is a single PUT.
+function geWrite(path,obj,msg,sha){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
   var b64=ghB64(JSON.stringify(obj));
-  return geGetRaw(path,15000).then(function(cur){
+  function doWrite(curSha){
     var body={access_token:t,content:b64,message:msg||'sync'};
-    if(cur&&cur.sha)body.sha=cur.sha;
-    var method=cur?'PUT':'POST';
-    return ghFetchTimeout(geUrl(path),{method:method,headers:geHeaders(),body:JSON.stringify(body)},30000,'WRITE '+path)
-      .then(function(r){
-        if(r.status===401){GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
-        if(!r.ok)throw new Error('HTTP_'+r.status);
-        return r.json();
-      })
-      .then(function(res){
-        var c=res&&res.content?res.content:null;
-        return c&&c.sha?c.sha:null;
-      });
-  });
+    if(curSha)body.sha=curSha;
+    var method=curSha?'PUT':'POST';
+    return ghFetchTimeout(geUrl(path),{method:method,headers:geHeaders(),body:JSON.stringify(body)},20000,'WRITE '+path)
+    .then(function(r){
+      if(r.status===401){GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
+      if(r.status===409)throw new Error('409'); // caller refetches sha and retries
+      if(!r.ok)throw new Error('HTTP_'+r.status);
+      return r.json();
+    })
+    .then(function(res){
+      var c=res&&res.content?res.content:null;
+      return c&&c.sha?c.sha:null;
+    });
+  }
+  if(sha){ return doWrite(sha); }
+  return geGetRaw(path,15000).then(function(cur){ return doWrite(cur&&cur.sha); });
 }
 // Delete a file (no-op if missing). Returns true if deleted, null if gone.
 function geDelete(path,msg){
@@ -1961,8 +1969,8 @@ function ghGetSha(path){
   return geGetRaw(path,15000).then(function(m){return m?m.sha:null;});
 }
 function ghWriteFile(path,content,msg,sha){
-  // v71 Gitee: geWrite handles create(POST)/update(PUT) internally; sha arg ignored
-  return geWrite(path,content,msg||'update');
+  // v91: actually pass sha through so geWrite can skip the GET round-trip.
+  return geWrite(path,content,msg||'update',sha);
 }
 function ghDeleteFile(path){
   return geDelete(path,'sync: delete '+path);
@@ -2325,7 +2333,10 @@ function locPhotoChunkCount(loc){
 // upload NEVER groups enough bytes to cross Gitee's 1MB base64 limit. Files:
 //   target 350KB JSON (2 small photos together) ≈ 466KB base64
 //   hard max 700KB JSON (single large photo alone) ≈ 933KB base64 < 1MB ✓
-var PHOTO_CHUNK_TARGET=350000;
+// v91: bigger chunks → fewer files → fewer API calls. 650KB JSON ≈ 866KB
+// base64, still comfortably under Gitee's 1MB(base64) cap. Most locations now
+// fit in 1-2 chunk files instead of 3-4, roughly halving photo API calls.
+var PHOTO_CHUNK_TARGET=650000;
 var PHOTO_CHUNK_MAX=700000;
 function buildPhotoChunksForLoc(tripId,loc){
   var out=[];
@@ -2566,30 +2577,41 @@ function restorePhotosFromIndexedDB(){
 }
 function locPhotoKey(tripId,locId){return tripId+'|'+locId;}
 // Load a location's photos: IndexedDB first, then remote chunks, then backfill.
-// Chunks are read by index (0,1,2…) — we fire up to 6 parallel reads and keep
-// the contiguous ones that exist. This is robust to ANY chunking scheme and
-// doesn't depend on _photoCount.
+// Chunks are read by index (0,1,2…) sequentially until the first missing/empty
+// one. v91: cap raised 6→30 chunks so a location with many photos (30+ images)
+// loads completely instead of being silently truncated at 18 (the old cap of
+// 6 chunks × 3 photos) — that truncation was a real "不同步" symptom.
 function ensureLocationPhotos(tripId,loc,forceRemote){
   if(!loc||!loc.id)return Promise.resolve([]);
-  if(loc.photos&&loc.photos.length&&!forceRemote)return Promise.resolve(loc.photos);
+  // v91: loc._photoCount is the AUTHORITATIVE count shipped in the (fast, text-only)
+  // trips.json payload. If the cloud claims MORE photos than we have cached, our
+  // copy is stale — a collaborator added photos after we last opened this location.
+  // Previously the cache short-circuited on "we have some photos", so new photos
+  // from a friend NEVER appeared until the cache was cleared. This was the root
+  // cause of "朋友看不到我新增的照片".
+  // Only re-read in the "cloud has more" direction: if we have MORE than the cloud
+  // claims, we may hold photos that haven't finished uploading yet, and clobbering
+  // them would make a just-taken photo vanish from the UI.
+  var want=loc._photoCount||0;
+  var have=(loc.photos&&loc.photos.length)||0;
+  var memStale=!forceRemote&&want>have;
+  if(have&&!forceRemote&&!memStale)return Promise.resolve(loc.photos);
   var key=locPhotoKey(tripId,loc.id);
   var cached=photoCacheGet(key);
   return cached.then(function(photos){
-    if(photos&&photos.length&&!forceRemote){loc.photos=photos;return photos;}
-    // Parallel-read chunk indexes 0..5 (safety bound). Missing/empty chunks
-    // resolve to null; we keep the contiguous prefix that has data.
-    var maxChunk=6;
-    var reads=[];
-    for(var i=0;i<maxChunk;i++){
-      reads.push(ghReadPhotoChunk('data/photos/'+tripId+'/'+loc.id+'_'+i+'.json'));
-    }
-    return Promise.all(reads).then(function(results){
-      var all=[];
-      for(var j=0;j<results.length;j++){
-        var chunk=results[j];
-        if(!chunk||!chunk.photos||!chunk.photos.length)break; // first missing = stop
+    var cHave=(photos&&photos.length)||0;
+    if(cHave&&!forceRemote&&!(want>cHave)){loc.photos=photos;return photos;}
+    var all=[];
+    var maxChunk=30;
+    function readNext(i){
+      if(i>=maxChunk)return Promise.resolve();
+      return ghReadPhotoChunk('data/photos/'+tripId+'/'+loc.id+'_'+i+'.json').then(function(chunk){
+        if(!chunk||!chunk.photos||!chunk.photos.length)return Promise.resolve(); // first missing = stop
         all=all.concat(chunk.photos);
-      }
+        return readNext(i+1);
+      }).catch(function(){return Promise.resolve();});
+    }
+    return readNext(0).then(function(){
       if(all.length){loc.photos=all;photoCachePut(key,all);}
       return all;
     });
@@ -2727,6 +2749,53 @@ function ensureTripCovers(){
     }).catch(function(){});
   });
 }
+// v91: upload a single photo chunk. Uses GH.photoChunkSha so an existing chunk
+// is ONE PUT (no GET). A brand-new chunk POSTs once and caches its sha. A 409
+// (stale sha after a concurrent write) refetches the sha and retries. This is
+// module-scope so schedulePhotoRetry can reuse it for failed-only re-uploads.
+function uploadPhotoChunk(chunk,retries){
+  var fp2=JSON.stringify(chunk.data);
+  function markOk(s){
+    if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}
+    if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
+  }
+  var cached=GH.photoChunkSha?GH.photoChunkSha[chunk.path]:null;
+  if(cached){
+    return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,cached).then(markOk).catch(function(e){
+      if(String(e).indexOf('409')>=0&&retries>0){
+        return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+      }
+      throw e;
+    });
+  }
+  // No cached sha → try POST (new file). Gitee returns the new sha; cache it.
+  // If it already exists (409) we fetch the sha then PUT.
+  return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,null).then(markOk).catch(function(e){
+    if(String(e).indexOf('409')>=0&&retries>0){
+      return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+    }
+    if(retries>0){
+      return new Promise(function(r){setTimeout(r,2000);}).then(function(){return uploadPhotoChunk(chunk,retries-1);});
+    }
+    throw e;
+  });
+}
+// v91: retry ONLY the photo chunks that failed, 8s later, without re-pushing the
+// whole trips.json. Keeps the cloud eventually consistent even when Gitee drops
+// a chunk mid-upload. Remaining stragglers are caught by reconcileLocalPhotos.
+function schedulePhotoRetry(failedChunks){
+  if(!failedChunks||!failedChunks.length)return;
+  setTimeout(function(){
+    if(GH.pushing)return schedulePhotoRetry(failedChunks); // wait until free
+    if(!ghHasToken())return;
+    var jobs=failedChunks.map(function(c){
+      return function(){ return uploadPhotoChunk(c,2).then(function(){return true;}).catch(function(){return false;}); };
+    });
+    runWithLimit(jobs,4).then(function(){
+      try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
+    }).catch(function(){});
+  }, 8000);
+}
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
@@ -2760,47 +2829,32 @@ function syncPushNow(){
     return shaPromise.then(function(sha){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
     }).then(function(res){
-      if(res&&res.content&&res.content.sha)GH.shaCache=res.content.sha;
-      // v69: upload photo chunks in PARALLEL (3 at a time) with per-chunk retry.
-      // Old code uploaded chunks one-by-one with no retry — on flaky networks a
-      // single timeout aborted that chunk and photos silently never reached the
-      // cloud. Parallelism turns 6 chunks ≈ 12s serial into ~4s; the 2 retries
-      // (2s apart) absorb transient GitHub timeouts.
+      if(res)GH.shaCache=res; // v91: geWrite now returns the sha string directly
+      // v91: TEXT is now in the cloud → collaborators see 行程/预算 on their next
+      // 30s poll. Confirm immediately so editing never feels "stuck uploading",
+      // even while the (usually larger) photo payload is still going up.
+      GH.lastSync=Date.now();
+      try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
+      if(typeof hidePendingBannerOnSync==='function')hidePendingBannerOnSync();
       var toUpload=photoChunks.filter(function(chunk){
         var fp2=JSON.stringify(chunk.data);
         return !(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2);
       });
-      function uploadChunk(chunk,retries){
-        var fp2=JSON.stringify(chunk.data);
-        // chunk file may already exist on GitHub → must pass its sha or PUT 422s
-        return ghGetSha(chunk.path).then(function(sha){
-          return ghWriteFile(chunk.path,chunk.data,'sync: photo '+chunk.path,sha);
-        }).then(function(){
-          if(!GH.photoChunkFp)GH.photoChunkFp={};
-          GH.photoChunkFp[chunk.path]=fp2;
-        }).catch(function(e){
-          // 409 = concurrent-write conflict; let the outer attempt() re-run it.
-          if(retries>0&&String(e).indexOf('409')<0){
-            return new Promise(function(r){setTimeout(r,2000);}).then(function(){
-              return uploadChunk(chunk,retries-1);
-            });
-          }
-          // v83: a 413 means the chunk exceeded Gitee's 1MB(base64) cap. We
-          // can't re-split inside the numbered-chunk scheme (readers scan
-          // _0.._n sequentially), so we flag it and let the user's next save
-          // rebuild smaller chunks (compressImage now three-stage guarantees
-          // singles <600KB base64, and buildPhotoChunksForLoc caps at 300KB JSON).
-          throw e;
-        });
+      if(toUpload.length>0){
+        showToast('✅ 行程/预算已同步到云端（照片后台上传中…）');
       }
+      // ---- photos (background, non-blocking for the text sync) ----
+      var failedChunks=[];
       var chunkJobs=toUpload.map(function(c){
         return function(){
-          return uploadChunk(c,2).catch(function(e){
+          return uploadPhotoChunk(c,2).catch(function(e){
+            failedChunks.push(c); // v91: keep the chunk so we can retry it precisely
             console.warn('chunk upload failed',c.path,e);
+            return false;
           });
         };
       });
-      return runWithLimit(chunkJobs,4).then(function(){ // v84: 3→4 parallel uploads
+      return runWithLimit(chunkJobs,6).then(function(){ // v91: 4→6 parallel uploads
         // v71: upload trip covers as separate files too (data/covers/{tripId}.json)
         var coverJobs=[];
         (data.trips||[]).forEach(function(t){
@@ -2819,37 +2873,37 @@ function syncPushNow(){
         });
         if(coverJobs.length)return runWithLimit(coverJobs,2);
         return Promise.resolve();
-      });
-    }).then(function(){
-      GH.pushing=false;GH.lastSync=Date.now();GH.pullBackoff=0;GH.nextPullAt=0;
-      // v89: if edits landed while this push was running, re-push immediately
-      // so the cloud never lags behind (previously the lock swallowed them).
-      if(GH.pushPending){
-        GH.pushPending=false;
-        setTimeout(function(){syncPushNow();},250);
-      }
-      // v70: push succeeded → clear pending flag + stop the retry schedule
-      if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
-      GH.pushBackoff=0;
-      try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
-      GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
-      setSyncStatus('synced');
-      // v82: hide the prominent banner on success
-      if(typeof hidePendingBannerOnSync==='function')hidePendingBannerOnSync();
-      // v61: give the user a confirmation that photos actually uploaded, so
-      // collaborators know their pictures reached the cloud (this was the
-      // silent gap: text synced but photo chunks failed without any feedback).
-      var pushedPhotos=0;
-      photoChunks.forEach(function(c){pushedPhotos+=(c.data.photos||[]).length;});
-      if(pushedPhotos>0){
-        var photoTxt=pushedPhotos+' 张照片';
-        var isBackground=(typeof document!=='undefined'&&document.hidden);
-        if(!isBackground){
-          if(GH.lastPhotoPushAt&&Date.now()-GH.lastPhotoPushAt<15000)return;
-          GH.lastPhotoPushAt=Date.now();
-          showToast('已同步 '+pushedPhotos+' 张照片到云端');
+      }).then(function(){
+        GH.pushing=false;GH.pullBackoff=0;GH.nextPullAt=0;
+        // v89: if edits landed while this push was running, re-push immediately
+        if(GH.pushPending){
+          GH.pushPending=false;
+          setTimeout(function(){syncPushNow();},250);
         }
-      }
+        if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
+        GH.pushBackoff=0;
+        GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
+        setSyncStatus('synced');
+        // v61/v91: report photo outcome honestly — surface failures instead of
+        // pretending everything uploaded (a silent gap is what made photos look
+        // "synced" while never reaching the cloud).
+        var pushedPhotos=0;
+        photoChunks.forEach(function(c){pushedPhotos+=(c.data.photos||[]).length;});
+        if(failedChunks.length){
+          var miss=0;
+          failedChunks.forEach(function(c){miss+=(c.data.photos||[]).length;});
+          try{localStorage.setItem('lattiao_pending_push','1');}catch(e2){}
+          showToast('⚠️ '+miss+' 张照片上传失败，正在后台重试…');
+          schedulePhotoRetry(failedChunks);
+        }else if(pushedPhotos>0){
+          var isBackground=(typeof document!=='undefined'&&document.hidden);
+          if(!isBackground){
+            if(GH.lastPhotoPushAt&&Date.now()-GH.lastPhotoPushAt<15000)return;
+            GH.lastPhotoPushAt=Date.now();
+            showToast('📷 已同步 '+pushedPhotos+' 张照片到云端');
+          }
+        }
+      });
     }).catch(function(e){
       // Stale sha → refetch once and retry
       if(String(e).indexOf('409')>=0&&!tried){
@@ -2858,26 +2912,15 @@ function syncPushNow(){
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
-      // v89: re-run for pending edits even on failure (the retry schedule also
-      // fires, but pending must not be lost)
       if(GH.pushPending)GH.pushPending=false;
-      // v82: persist + aggressive fast retry. Most Safari PWA "Load failed"
-      // are 1-5s hiccups — 8 quick retries within 24s catches them. After
-      // that we fall back to the slow exponential schedule.
       try{localStorage.setItem('lattiao_pending_push','1');}catch(e2){}
       scheduleAggressiveRetry();
       setSyncStatus('pending');
-      // Surface push failures so the user knows something is wrong, but only once
-      // per failure mode to avoid spam.
       var msg=String(e);
       if(msg.indexOf('401')>=0||msg.indexOf('TOKEN_INVALID')>=0){showToast('推送失败：Gitee Token 已失效，请在「我的 → 设置」更新');}
       else if(msg.indexOf('413')>=0||/too large/i.test(msg)){
-        if(!GH.tooBigWarned){GH.tooBigWarned=true;showToast('数据超过 GitHub 上限，建议在「我的 → 设置」中关闭「省流量」或拆分照片');}
+        if(!GH.tooBigWarned){GH.tooBigWarned=true;showToast('数据超过上限，建议拆分照片或减小尺寸');}
       }else{
-        // v68: ANY other failure (timeout / 5xx / network) must be loud —
-        // a silent failure is how photos looked "uploaded" while never reaching
-        // the cloud. The data IS saved locally; it will retry automatically.
-        // v81: explicitly call out the orange sync pill + tell the user to tap it
         if(!GH.pushFailWarnedAt||Date.now()-GH.pushFailWarnedAt>30000){
           GH.pushFailWarnedAt=Date.now();
           showToast('⚠️ 同步失败：'+(msg.length>50?msg.slice(0,50):msg)+'。点右上角橙色【待上传】按钮立即重试（切回 App 也会自动重试）');
