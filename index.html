@@ -783,6 +783,77 @@ img.photo-fade.loaded{opacity:1;}
   .app{box-shadow:var(--shadow-lg);border-radius:24px;margin:14px auto;min-height:calc(100vh - 28px);}
   .bottom-nav{border-radius:0 0 24px 24px;left:auto;right:auto;width:calc(480px - 0px);}
 }
+
+/* ================= v99: global search ================= */
+.hero-action-row{position:absolute;top:56px;right:14px;z-index:3;display:flex;gap:8px;}
+.hero-action-row .corner-btn{position:static;width:34px;height:34px;font-size:16px;}
+.notif-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger-solid);color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;display:none;}
+.notif-badge.on{display:block;}
+.srch-input-wrap{display:flex;align-items:center;gap:8px;background:var(--muted-bg);border:1px solid var(--border);border-radius:14px;padding:10px 12px;margin-bottom:10px;}
+.srch-input-wrap input{flex:1;min-width:0;border:none;background:transparent;color:var(--text);font-size:15px;outline:none;font-family:inherit;}
+.srch-group-title{font-size:11px;font-weight:700;color:var(--primary-dark);margin:12px 0 6px;letter-spacing:.5px;}
+.srch-item{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:inherit;color:var(--text);}
+.srch-item:active{background:var(--primary-lighter);}
+.srch-item .si-t{font-size:14px;font-weight:600;}
+.srch-item .si-s{font-size:11px;color:var(--text-sec);margin-top:2px;}
+.srch-item mark{background:var(--primary-lighter);color:var(--primary-dark);border-radius:3px;padding:0 1px;}
+.srch-empty{text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;}
+/* ================= v99: notification center ================= */
+.notif-item{display:flex;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:8px;}
+.notif-item.unread{background:var(--primary-lighter);border-color:var(--primary-light);}
+.notif-ico{width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.notif-body{flex:1;min-width:0;}
+.notif-t{font-size:13px;font-weight:600;line-height:1.4;}
+.notif-d{font-size:11.5px;color:var(--text-sec);line-height:1.5;margin-top:2px;}
+.notif-time{font-size:10px;color:var(--text-light);margin-top:4px;}
+/* ================= v99: photo sync badge ================= */
+.psync-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;background:var(--primary-lighter);color:var(--primary-dark);border:1px solid var(--border);}
+.psync-badge.busy{background:linear-gradient(135deg,#FF8C42,#FFA76B);color:#fff;border-color:transparent;animation:pulse 1.2s ease-in-out infinite;}
+.psync-badge.done{background:var(--primary-lighter);}
+.psync-bar{height:3px;border-radius:2px;background:var(--muted-bg);overflow:hidden;margin-top:6px;}
+.psync-bar > i{display:block;height:100%;background:var(--primary-solid);border-radius:2px;transition:width .3s ease;}
+/* ================= v99: offline queue chip ================= */
+.queue-chip{font-size:10px;font-weight:700;color:#fff;background:var(--danger-solid);border-radius:8px;padding:1px 5px;margin-left:4px;display:none;}
+.queue-chip.on{display:inline-block;}
+/* ================= v99: trip templates ================= */
+.tpl-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+.tpl-row .tr-name{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tpl-row .tr-meta{font-size:10.5px;color:var(--text-light);font-weight:400;margin-top:2px;}
+.tpl-btn{font-size:11px;font-weight:600;padding:5px 10px;border-radius:10px;border:1px solid var(--border);background:var(--muted-bg);color:var(--primary-dark);cursor:pointer;font-family:inherit;}
+.tpl-btn.danger{color:var(--danger);}
+.tpl-chip.mine{background:linear-gradient(135deg,var(--primary),var(--accent-fg));color:#fff;border-color:transparent;}
+/* ================= v99: smart import ================= */
+.si-preview{background:var(--muted-bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;max-height:220px;overflow-y:auto;}
+.si-line{display:flex;gap:8px;align-items:flex-start;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--border);}
+.si-line:last-child{border-bottom:none;}
+.si-line .sl-i{font-size:14px;flex:0 0 18px;}
+.si-line .sl-b{flex:1;min-width:0;}
+.si-line .sl-n{font-weight:600;}
+.si-line .sl-m{font-size:10.5px;color:var(--text-sec);margin-top:1px;}
+/* ================= v99: year poster / story ================= */
+.year-poster-canvas{border-radius:14px;max-width:100%;display:block;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15);}
+.story-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+.story-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--muted-bg);cursor:pointer;border:2px solid transparent;}
+.story-cell.sel{border-color:var(--primary-solid);}
+.story-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.story-cell .sc-check{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--primary-solid);color:#fff;font-size:11px;line-height:18px;text-align:center;display:none;}
+.story-cell.sel .sc-check{display:block;}
+/* ================= v99: location reactions ================= */
+.loc-react{display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap;}
+.react-btn{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;border:1px solid var(--border);background:var(--muted-bg);color:var(--text-sec);cursor:pointer;font-family:inherit;}
+.react-btn.on{background:var(--primary-lighter);border-color:var(--primary-light);color:var(--primary-dark);}
+.react-cmt{width:100%;font-size:11px;color:var(--text-sec);background:var(--muted-bg);border-radius:8px;padding:6px 8px;line-height:1.5;}
+.react-cmt b{color:var(--primary-dark);font-weight:600;}
+/* ================= v99: route map ================= */
+.td-map{position:relative;height:200px;border-radius:16px;overflow:hidden;margin:12px 18px;border:1px solid var(--border);background:var(--muted-bg);}
+#td-map-real{position:absolute;inset:0;width:100%;height:100%;}
+.td-map .map-label{position:absolute;left:10px;bottom:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--text);}
+.map-legend{position:absolute;right:10px;top:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:5px 8px;font-size:10px;color:var(--text-sec);line-height:1.5;}
+.map-setup{position:absolute;left:10px;top:10px;z-index:3;display:none;flex-direction:column;align-items:flex-start;gap:6px;max-width:60%;}
+.map-setup.on{display:flex;}
+.map-upgrade{background:var(--pill-glass);backdrop-filter:blur(6px);border:1px solid var(--border-strong);border-radius:10px;padding:5px 9px;font-size:10.5px;font-weight:600;color:var(--primary-dark);cursor:pointer;font-family:inherit;line-height:1.4;text-align:left;}
+.td-map .route-svg{position:absolute;inset:0;width:100%;height:100%;}
+
 </style>
 </head>
 <body>
@@ -886,6 +957,10 @@ setTimeout(function(){
         <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4"/>
       </svg>
       <button class="corner-btn" onclick="openSettings()">⚙️</button>
+      <div class="hero-action-row">
+        <button class="corner-btn" onclick="openSearch()" title="搜索行程 / 地点 / 攻略" aria-label="搜索">🔍</button>
+        <button class="corner-btn" onclick="openNotifCenter()" title="通知中心" aria-label="通知中心">🔔<span class="notif-badge" id="notif-badge">0</span></button>
+      </div>
       <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步">📴 离线</div>
       <div class="hero-decor">✨</div>
       <div class="home-hero-text">
@@ -1048,18 +1123,17 @@ setTimeout(function(){
       <div class="right" id="td-weather-alert" style="display:none;"></div>
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
-      <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点</span>
+      <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点 <span class="psync-badge" id="td-photo-sync" style="display:none;">📷 0/0</span></span>
       <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
     </div>
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
-      <svg class="map-svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
-        <rect width="400" height="200" fill="#F5F3FF"/>
-        <path d="M0 100 Q100 70 200 90 T400 80 L400 200 L0 200 Z" fill="#E9D5FF" opacity=".5"/>
-        <path d="M0 130 Q100 110 200 120 T400 110 L400 200 L0 200 Z" fill="#C4B5FD" opacity=".4"/>
-        <path d="M50 50 L150 30 L250 60 L350 40" stroke="#D8B4FE" stroke-width="2" fill="none" stroke-dasharray="4 3" opacity=".5"/>
-      </svg>
-      <div class="map-label">🗺️ 路线示意</div>
+      <div id="td-map-real"></div>
+      <div id="td-map-fallback"></div>
+      <div class="map-setup" id="td-map-setup">
+        <button class="map-upgrade" onclick="openMapSettings()">🗺️ 用真实地图显示（可选）</button>
+      </div>
+      <div class="map-label" id="td-map-label">🗺️ 路线示意</div>
     </div>
     <div class="td-section">
       <h3>📖 攻略笔记</h3>
@@ -1138,6 +1212,10 @@ setTimeout(function(){
       <div class="section-head"><h2>行程安排</h2></div>
       <div id="budget-trip-list"></div>
     </div>
+    <div style="display:flex;gap:8px;padding:0 18px 14px;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="exportBudgetCsv()">📊 导出 CSV</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openYearPoster()">🎴 年度账单</button>
+    </div>
     <div class="tip-banner">✨ 合理规划每一笔，让旅行更安心</div>
   </section>
 
@@ -1197,7 +1275,12 @@ setTimeout(function(){
     <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div class="menu-card">
       <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openSearch()"><div class="mr-icon">🔍</div><div class="mr-label">全局搜索</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openNotifCenter()"><div class="mr-icon">🔔</div><div class="mr-label">通知中心<span class="queue-chip" id="queue-chip-pro" style="margin-left:6px;">0</span></div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openTemplateManager()"><div class="mr-icon">🧩</div><div class="mr-label">我的行程模板</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openMapSettings()"><div class="mr-icon">🗺️</div><div class="mr-label">地图设置</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openYearPoster()"><div class="mr-icon">🎴</div><div class="mr-label">年度旅行账单</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="exportData()"><div class="mr-icon">📤</div><div class="mr-label">导出数据</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
       <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
@@ -1228,6 +1311,7 @@ setTimeout(function(){
         <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);">‹</button>
       </div>
       <p id="album-summary">所有行程的照片，按时间倒序</p>
+      <div style="margin-top:6px;"><span class="psync-badge" id="album-photo-sync" style="display:none;">📷 0/0</span></div>
     </div>
     <div class="album-tabs" id="album-tabs"></div>
     <div id="album-grid-wrap"></div>
@@ -1247,6 +1331,12 @@ setTimeout(function(){
         <div class="tpl-chip" onclick="applyTripTemplate('family')">👨‍👩‍👧 亲子 5 日</div>
         <div class="tpl-chip" onclick="applyTripTemplate('honey')">💑 蜜月 7 日</div>
         <div class="tpl-chip" onclick="applyTripTemplate('city')">🏙 城市 3 日</div>
+        <span id="tm-my-templates"></span>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tpl-btn" onclick="saveCurrentTripAsTemplate()">💾 当前行程存为模板</span>
+        <span class="tpl-btn" onclick="openTemplateManager()">📚 管理模板</span>
+        <span class="tpl-btn" onclick="openSmartImport()">⚡ 短信/行程智能导入</span>
       </div>
     </div>
     <div class="form-row">
@@ -1355,6 +1445,16 @@ setTimeout(function(){
         <input class="form-input" id="lm-duration" type="number" placeholder="60">
       </div>
     </div>
+    <div class="form-row form-row-flex">
+      <div>
+        <label class="form-label">纬度 GCJ-02</label>
+        <input class="form-input" id="lm-lat" placeholder="30.2594">
+      </div>
+      <div>
+        <label class="form-label">经度 GCJ-02</label>
+        <input class="form-input" id="lm-lng" placeholder="120.1301">
+      </div>
+    </div>
     <div class="form-row">
       <label class="form-label">📖 攻略笔记</label>
       <textarea class="form-textarea" id="lm-guide" placeholder="记录这个地点的攻略、注意事项..."></textarea>
@@ -1458,6 +1558,125 @@ setTimeout(function(){
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('fav-modal')">取消</button>
       <button class="btn btn-primary" onclick="saveFav()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="search-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔍 全局搜索</div>
+    <div class="srch-input-wrap">
+      <span>🔍</span>
+      <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏…" oninput="runGlobalSearch(this.value)" autocomplete="off">
+      <span style="cursor:pointer;color:var(--text-light);" onclick="document.getElementById('srch-input').value='';runGlobalSearch('')">✕</span>
+    </div>
+    <div id="srch-results" style="max-height:56vh;overflow-y:auto;"><div class="srch-empty">输入关键字开始搜索 ✨</div></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('search-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="notif-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔔 通知中心</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="tpl-btn" onclick="markAllNotifRead()">全部标为已读</button>
+      <button class="tpl-btn danger" onclick="clearAllNotif()">清空</button>
+    </div>
+    <div id="notif-list" style="max-height:58vh;overflow-y:auto;"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('notif-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="smart-import-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ 智能导入</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;">粘贴机票 / 火车票 / 酒店 / 门票的确认短信或行程文本，自动识别日期、时间、地点，一键加入行程。全部在本机解析，不上传任何内容。</div>
+    <div class="form-row">
+      <label class="form-label">粘贴文本</label>
+      <textarea class="form-textarea" id="si-text" style="min-height:110px;" placeholder="例如：&#10;【携程】您已预订 8月12日 09:35 上海虹桥-泉州 G1653 次列车&#10;【Booking】泉州酒店 入住 8月12日 14:00 退房 8月16日 12:00" oninput="previewSmartImport()"></textarea>
+    </div>
+    <div class="form-row form-row-flex">
+      <div>
+        <label class="form-label">导入到行程</label>
+        <select class="form-select" id="si-trip"></select>
+      </div>
+      <div>
+        <label class="form-label">默认年份</label>
+        <input class="form-input" id="si-year" type="number" style="max-width:100px;">
+      </div>
+    </div>
+    <div id="si-preview"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('smart-import-modal')">取消</button>
+      <button class="btn btn-primary" onclick="applySmartImport()">导入选中项</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tpl-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧩 我的行程模板</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;">把走过的行程存成模板，下次一键生成同款框架（只复制地点结构，不含照片和花费）。</div>
+    <div id="tpl-list"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('tpl-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="year-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎴 年度旅行账单</div>
+    <div class="form-row form-row-flex">
+      <div>
+        <label class="form-label">年份</label>
+        <select class="form-select" id="year-select" onchange="renderYearPoster()"></select>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="tpl-btn" onclick="openStoryPicker()">🎞 选片影集</button>
+      </div>
+    </div>
+    <div id="year-poster-box" style="margin-top:10px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('year-modal')">关闭</button>
+      <button class="btn btn-primary" onclick="downloadYearPoster()">保存长图</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="story-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎞 选片影集</div>
+    <div style="font-size:11.5px;color:var(--text-sec);margin-bottom:8px;">挑选照片生成一页影集长图（最多 12 张）。</div>
+    <div class="story-grid" id="story-grid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('story-modal')">取消</button>
+      <button class="btn btn-primary" onclick="generateStoryPoster()">生成影集</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="map-settings-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗺️ 地图设置</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.7;margin-bottom:10px;">
+      默认显示纯 SVG 路线示意图，<b>完全免费、不依赖任何外部服务</b>。<br>
+      想要真实地图底图，可自行到「腾讯位置服务」开放平台申请 Key（个人开发者免费额度），填入后即可显示 GCJ-02 坐标系的真实地图与路线。<br>
+      <span style="color:var(--text-light);">Key 只保存在你本机浏览器，不会写入云端同步数据。</span>
+    </div>
+    <div class="form-row">
+      <label class="form-label">腾讯地图 Key（可选，留空则用示意图）</label>
+      <input class="form-input" id="map-key-input" placeholder="留空 = 使用免费路线示意图" autocomplete="off">
+    </div>
+    <div id="map-key-status" style="font-size:11px;color:var(--text-sec);margin-bottom:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="clearMapKey()">清空</button>
+      <button class="btn btn-primary" onclick="saveMapKey()">保存</button>
     </div>
   </div>
 </div>
@@ -1644,7 +1863,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v98';
+var APP_VERSION='v99';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2485,6 +2704,8 @@ function syncPull(force){
 function syncPush(){
   if(!ghHasToken())return;
   if(GH.writeTimer)clearTimeout(GH.writeTimer);
+  // v99: 本地改动进入待同步队列（离线队列可视化）
+  if(typeof queueBump==='function')queueBump();
   // 8s debounce merges bursts of edits into one upload (was 3s)
   GH.writeTimer=setTimeout(syncPushNow,8000);
 }
@@ -3032,6 +3253,8 @@ function uploadPhotoChunk(chunk,retries){
   function markOk(s){
     if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}
     if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
+    // v99: 照片同步进度
+    if(typeof photoSyncTick==='function')photoSyncTick(true);
   }
   var cached=GH.photoChunkSha?GH.photoChunkSha[chunk.path]:null;
   if(cached){
@@ -3090,7 +3313,9 @@ function syncPushNow(){
   // silently skipped — collaborators never see the new background.
   var fp=tripsFingerprint(data.trips)+'::'+settingsFingerprint(data.settings);
   if(GH.lastPushFp&&GH.lastPushFp===fp){
-    GH.lastSync=Date.now();setSyncStatus('synced');
+    GH.lastSync=Date.now();
+    if(typeof queueClear==='function')queueClear();
+    setSyncStatus('synced');
     return Promise.resolve();
   }
   GH.pushing=true;
@@ -3120,6 +3345,8 @@ function syncPushNow(){
         return !(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2);
       });
       if(toUpload.length>0){
+        // v99: 照片同步进度可视化
+        if(typeof photoSyncBegin==='function')photoSyncBegin(toUpload.length);
         showToast('✅ 行程/预算已同步到云端（照片后台上传中…）');
       }
       // ---- photos (background, non-blocking for the text sync) ----
@@ -3153,6 +3380,9 @@ function syncPushNow(){
         if(coverJobs.length)return runWithLimit(coverJobs,2);
         return Promise.resolve();
       }).then(function(){
+        // v99: 上传结束 → 收尾进度条 + 清空待同步队列
+        if(typeof photoSyncEnd==='function')photoSyncEnd();
+        if(typeof queueClear==='function')queueClear();
         GH.pushing=false;GH.pullBackoff=0;GH.nextPullAt=0;
         // v89: if edits landed while this push was running, re-push immediately
         if(GH.pushPending){
@@ -3427,6 +3657,17 @@ function syncStart(){
     if(ghHasToken()&&GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;syncPushNow();}
   });
 }
+// v99: 每次同步状态更新后顺便检测协作变化
+var _lastStatusSig='';
+function syncStatusHookV99(s){
+  try{
+    if(s==='synced'){
+      detectCollabChanges();
+      updatePhotoSyncUI();
+      collectNotifEvents();
+    }
+  }catch(e){}
+}
 function setSyncStatus(s){
   GH.status=s;
   var el=document.getElementById('sync-indicator');
@@ -3453,11 +3694,13 @@ function setSyncStatus(s){
       // the user a clear signal that photos are pending (instead of pretending
       // everything is in sync).
       var photoTxt=marked>downloaded?(downloaded+'/'+marked+' 照片'):(downloaded+' 照片');
-      el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoTxt):'✅ 已同步';
+      var qSuffix=(typeof SYNC_QUEUE!=='undefined'&&SYNC_QUEUE.count>0)?(' · '+SYNC_QUEUE.count+' 条待同步'):'';
+      el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoTxt+qSuffix):('✅ 已同步'+qSuffix);
       el.className='sync-indicator sync-synced';
       el.title=marked>downloaded?'云端还有 '+(marked-downloaded)+' 张照片未下载' :'点击立即同步';
     }else{
-      el.textContent=map[s]||s;el.className='sync-indicator sync-'+s;
+      var qSuffix2=(typeof SYNC_QUEUE!=='undefined'&&SYNC_QUEUE.count>0)?(' · '+SYNC_QUEUE.count+' 条待同步'):'';
+      el.textContent=(map[s]||s)+qSuffix2;el.className='sync-indicator sync-'+s;
       // v81: make pending VERY clear — orange pill that pulses. "已保存到本机" was
       // too subtle and the user thought it was fully synced.
       if(s==='pending')el.title='有未上传的行程/照片，点这里立即重试（App 切回前台也会自动重试）';
@@ -3467,6 +3710,9 @@ function setSyncStatus(s){
   }
   // v74: red dot on the 行程 tab when something needs attention
   updateTabDots(s);
+  // v99: 离线队列 chip
+  if(typeof updateQueueChip==='function')updateQueueChip();
+  if(typeof syncStatusHookV99==='function')syncStatusHookV99(s);
 }
 // v74: show a pulsing red dot on the trips tab when the sync has problems or
 // there are pending downloads — the top-right sync chip is easy to miss.
@@ -4024,6 +4270,13 @@ function updateTripDayWeatherUI(w){
     clearWeatherMood();
     alertEl.style.display='flex';
     alertEl.innerHTML=alerts.map(function(a,i){return '<span class="weather-alert '+a.cls+'">'+a.icon+' '+(i===0?'Iris，':'')+a.text+'</span>';}).join('');
+    // v99: 天气预警同步进通知中心
+    try{
+      if(typeof pushNotif==='function'){
+        var _wxT=data.trips.find(function(x){return x.id===currentTripId;});
+        pushNotif('weather',((_wxT&&_wxT.title)||'行程')+' 天气提醒',alerts.map(function(a){return a.text;}).join(' · '),'wx|'+(dayLabel||'')+'|'+city+'|'+alerts.length);
+      }
+    }catch(e){}
   }else{
     // No warnings → pep-talk rotator. Never empty.
     startWeatherMood(alertEl);
@@ -4819,6 +5072,8 @@ function openTripModal(id){
   window._templateDays=null; // v78: templates only apply to fresh trips
   var tplRow=document.getElementById('tm-template-row');
   if(tplRow)tplRow.style.display=id?'none':'block';
+  // v99: 自定义模板
+  if(typeof renderMyTemplateChips==='function')renderMyTemplateChips();
   if(id){
     var t=data.trips.find(function(x){return x.id===id;});
     if(t){
@@ -5184,6 +5439,7 @@ function renderTimeline(){
           '</span>'+
         '</div>'+
         photoThumbs+
+        locReactHTML(l)+
       '</div></div>';
   });
   document.getElementById('td-timeline').innerHTML=html;
@@ -5300,6 +5556,8 @@ function editLocation(idx){
   document.getElementById('lm-name').value=l.name||'';
   document.getElementById('lm-distance').value=l.distance||'';
   document.getElementById('lm-duration').value=l.duration||'';
+  var la=document.getElementById('lm-lat');if(la)la.value=l.lat||'';
+  var ln=document.getElementById('lm-lng');if(ln)ln.value=l.lng||'';
   document.getElementById('lm-guide').value=l.guide||'';
   document.getElementById('lm-feeling').value=l.feeling||'';
   document.getElementById('lm-bcat').value='food';
@@ -5385,6 +5643,8 @@ function saveLocation(){
     name:name,
     distance:parseFloat(document.getElementById('lm-distance').value)||null,
     duration:parseInt(document.getElementById('lm-duration').value)||null,
+    lat:parseFloat(document.getElementById('lm-lat').value)||null,
+    lng:parseFloat(document.getElementById('lm-lng').value)||null,
     guide:document.getElementById('lm-guide').value.trim(),
     feeling:document.getElementById('lm-feeling').value.trim(),
     photos:lmPhotos.slice(),
@@ -5540,7 +5800,10 @@ function renderTripDetailExtras(){
     }
   }catch(e){}
 
-  // route map — render a real path through the day's locations (not the placeholder bg)
+  // v99: route map — schematic SVG by default (zero cost), optional real Tencent map
+  if(typeof renderRouteMap==='function'){
+    renderRouteMap(t,t.days[currentTripDay]||t.days[0]);
+  }else{
   var mEl=document.getElementById('td-map');
   if(mEl){
     var day=t.days[currentTripDay]||t.days[0];
@@ -5589,6 +5852,7 @@ function renderTripDetailExtras(){
         '</svg>'+
         '<div class="map-label">🗺 路线 · '+dlocs.length+' 站</div>';
     }
+  }
   }
 }
 function editCurrentTrip(){if(currentTripId)openTripModal(currentTripId);}
@@ -7323,6 +7587,1075 @@ function setFontScale(v){
   if(typeof renderAll==='function')renderAll();
 }
 
+
+/* =====================================================================
+   v99 — 全部为「零成本」能力：不引入任何付费服务、不新增外部依赖。
+   1) 照片同步进度  2) 全局搜索  3) 通知中心  4) 行程模板
+   5) 智能导入(规则解析，本机完成)  6) 年度账单/影集  7) 预算导出 CSV
+   8) 地点轻互动  9) 离线队列可视化  10) 路线地图(可选腾讯地图 Key)
+   ===================================================================== */
+
+/* ---------------- v99-1: 照片同步进度 ---------------- */
+var PHOTO_SYNC={total:0,done:0,active:false};
+function photoChunkAllUploaded(tripId,loc){
+  var cc=loc&&loc._chunkCount||0;
+  if(cc<=0)return false;
+  if(!GH.photoChunkFp)return false;
+  for(var i=0;i<cc;i++){
+    if(!GH.photoChunkFp[photoChunkPathForIdx(tripId,loc.id,i)])return false;
+  }
+  return true;
+}
+function photoSyncStats(){
+  var total=0,done=0;
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        var n=(l.photos&&l.photos.length)||(l._photoCount||0);
+        if(!n)return;
+        total+=n;
+        if(photoChunkAllUploaded(t.id,l))done+=n;
+      });
+    });
+  });
+  return {total:total,done:done};
+}
+function updatePhotoSyncUI(){
+  var st=photoSyncStats();
+  var txt='',cls='psync-badge';
+  if(PHOTO_SYNC.active&&PHOTO_SYNC.total>0){
+    txt='📷 上传中 '+PHOTO_SYNC.done+'/'+PHOTO_SYNC.total;
+    cls='psync-badge busy';
+  }else if(st.total===0){
+    txt='';
+  }else if(st.done>=st.total){
+    txt='📷 '+st.total+' 张已同步';
+    cls='psync-badge done';
+  }else{
+    txt='📷 '+st.done+'/'+st.total+' 张待同步';
+  }
+  ['td-photo-sync','album-photo-sync'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    if(!txt){el.style.display='none';return;}
+    el.style.display='inline-flex';
+    el.className=cls;
+    el.textContent=txt;
+  });
+}
+function photoSyncBegin(total){
+  PHOTO_SYNC.total=total||0;PHOTO_SYNC.done=0;PHOTO_SYNC.active=total>0;
+  updatePhotoSyncUI();
+}
+function photoSyncTick(ok){
+  if(!PHOTO_SYNC.active)return;
+  PHOTO_SYNC.done++;
+  updatePhotoSyncUI();
+}
+function photoSyncEnd(){
+  PHOTO_SYNC.active=false;PHOTO_SYNC.done=0;PHOTO_SYNC.total=0;
+  updatePhotoSyncUI();
+}
+
+/* ---------------- v99-9: 离线待同步队列 ---------------- */
+var SYNC_QUEUE={count:0};
+function queueBump(){
+  SYNC_QUEUE.count++;
+  if(SYNC_QUEUE.count>99)SYNC_QUEUE.count=99;
+  // v99: 数量显示在 sync-indicator 文案里
+  try{setSyncStatus(GH.status||'pending');}catch(e){}
+}
+function queueClear(){
+  SYNC_QUEUE.count=0;
+  try{setSyncStatus(GH.status||'synced');}catch(e){}
+}
+function queueCount(){
+  // 真实的待同步量：行程文本指纹变了，或还有分块没上传完
+  try{
+    var st=photoSyncStats();
+    return SYNC_QUEUE.count+(st.total>st.done?1:0);
+  }catch(e){return SYNC_QUEUE.count;}
+}
+function updateQueueChip(){
+  var n=queueCount();
+  ['queue-chip','queue-chip-pro'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.textContent=n;
+    el.classList.toggle('on',n>0);
+  });
+}
+
+/* ---------------- v99-3: 通知中心 ---------------- */
+var NOTIF_STORE='lattiao_notifs_v1';
+var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔'};
+function notifLoad(){
+  try{var a=JSON.parse(localStorage.getItem(NOTIF_STORE)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}
+}
+function notifSave(a){
+  try{localStorage.setItem(NOTIF_STORE,JSON.stringify((a||[]).slice(0,80)));}catch(e){}
+}
+// 同一 key 12 小时内只提醒一次，避免轮询把通知刷爆
+function pushNotif(type,title,detail,key){
+  try{
+    var a=notifLoad();
+    var k=key||(type+'|'+title);
+    var now=Date.now();
+    for(var i=0;i<a.length;i++){
+      if(a[i].key===k&&(now-(a[i].ts||0))<12*3600*1000)return false;
+    }
+    a.unshift({id:'n'+now+Math.random().toString(36).slice(2,6),type:type,title:title,detail:detail||'',ts:now,read:false,key:k});
+    notifSave(a);
+    updateNotifBadge();
+    return true;
+  }catch(e){return false;}
+}
+function notifUnread(){
+  return notifLoad().filter(function(n){return !n.read;}).length;
+}
+function updateNotifBadge(){
+  var n=notifUnread();
+  var b=document.getElementById('notif-badge');
+  if(b){b.textContent=n>99?'99':n;b.classList.toggle('on',n>0);}
+}
+function notifTime(ts){
+  var d=Date.now()-ts;
+  if(d<60000)return '刚刚';
+  if(d<3600000)return Math.floor(d/60000)+' 分钟前';
+  if(d<86400000)return Math.floor(d/3600000)+' 小时前';
+  if(d<7*86400000)return Math.floor(d/86400000)+' 天前';
+  var dt=new Date(ts);
+  return (dt.getMonth()+1)+'月'+dt.getDate()+'日';
+}
+function openNotifCenter(){
+  renderNotifList();
+  document.getElementById('notif-modal').classList.add('active');
+}
+function renderNotifList(){
+  var box=document.getElementById('notif-list');
+  if(!box)return;
+  var a=notifLoad();
+  if(!a.length){
+    box.innerHTML='<div class="srch-empty">还没有通知 ✨<br><span style="font-size:11px;">出发提醒、天气预警、朋友的更新都会出现在这里</span></div>';
+    return;
+  }
+  box.innerHTML=a.map(function(n){
+    return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="markNotifRead(\''+n.id+'\')">'+
+      '<div class="notif-ico">'+(NOTIF_ICON[n.type]||'🔔')+'</div>'+
+      '<div class="notif-body">'+
+        '<div class="notif-t">'+escapeHTML(n.title)+'</div>'+
+        (n.detail?'<div class="notif-d">'+escapeHTML(n.detail)+'</div>':'')+
+        '<div class="notif-time">'+notifTime(n.ts)+'</div>'+
+      '</div></div>';
+  }).join('');
+}
+function markNotifRead(id){
+  var a=notifLoad();
+  a.forEach(function(n){if(n.id===id)n.read=true;});
+  notifSave(a);updateNotifBadge();renderNotifList();
+}
+function markAllNotifRead(){
+  var a=notifLoad();
+  a.forEach(function(n){n.read=true;});
+  notifSave(a);updateNotifBadge();renderNotifList();
+  showToast('已全部标为已读');
+}
+function clearAllNotif(){
+  notifSave([]);updateNotifBadge();renderNotifList();
+  showToast('通知已清空');
+}
+// 启动时 / 每次同步后收集需要提醒的事件
+function collectNotifEvents(){
+  try{
+    var today=new Date();
+    var tk=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    (data.trips||[]).forEach(function(t){
+      if(!t||t.status==='archived')return;
+      var s=t.startDate||'';
+      if(s){
+        var dleft=Math.round((parseDateStr(s)-parseDateStr(tk))/86400000);
+        if(dleft===1)pushNotif('departure','明天出发：'+(t.title||''),'目的地 '+(t.destination||'—')+' · 记得检查行李和车票','dep|'+t.id+'|1');
+        else if(dleft===0)pushNotif('departure','今天出发：'+(t.title||''),'祝旅途愉快 ✨','dep|'+t.id+'|0');
+        else if(dleft===7)pushNotif('departure','还有 7 天出发：'+(t.title||''),'可以开始收拾行李啦','dep|'+t.id+'|7');
+      }
+      if(t.endDate===tk)pushNotif('memory','「'+(t.title||'')+'」今天是最后一天','别忘了写两句旅行感受 💜','end|'+t.id);
+      // 预算超支提醒
+      var plan=(t.budget&&t.budget.total)||0;
+      if(plan>0){
+        var spent=getTripSpent(t);
+        if(spent>plan)pushNotif('budget','「'+(t.title||'')+'」已超支 ¥'+(spent-plan).toFixed(0),'计划 ¥'+plan.toFixed(0)+' · 已花 ¥'+spent.toFixed(0),'bud|'+t.id+'|'+Math.round(spent));
+      }
+    });
+  }catch(e){}
+}
+// 协作更新提醒（syncPull 检测到云端新增地点时调用）
+var _lastLocSignature='';
+function detectCollabChanges(){
+  try{
+    var sig='';
+    var counts={};
+    (data.trips||[]).forEach(function(t){
+      var n=0;
+      (t.days||[]).forEach(function(d){n+=(d.locations||[]).length;});
+      counts[t.id]=n;
+      sig+=t.id+':'+n+'|';
+    });
+    if(_lastLocSignature&&_lastLocSignature!==sig){
+      var old={};
+      _lastLocSignature.split('|').forEach(function(p){
+        if(!p)return;
+        var kv=p.split(':');if(kv.length===2)old[kv[0]]=parseInt(kv[1],10)||0;
+      });
+      Object.keys(counts).forEach(function(id){
+        var was=old[id];
+        if(typeof was==='number'&&counts[id]>was){
+          var t=data.trips.find(function(x){return x.id===id;});
+          if(t)pushNotif('collab','「'+(t.title||'')+'」新增了 '+(counts[id]-was)+' 个地点','朋友刚更新了行程，去看看吧 👀','col|'+id+'|'+counts[id]);
+        }
+      });
+    }
+    _lastLocSignature=sig;
+  }catch(e){}
+}
+
+/* ---------------- v99-2: 全局搜索 ---------------- */
+function openSearch(){
+  document.getElementById('search-modal').classList.add('active');
+  var i=document.getElementById('srch-input');
+  if(i){i.value='';setTimeout(function(){i.focus();},120);}
+  runGlobalSearch('');
+}
+function srchMark(text,q){
+  var safe=escapeHTML(text||'');
+  if(!q)return safe;
+  var qs=escapeHTML(q);
+  var idx=safe.toLowerCase().indexOf(qs.toLowerCase());
+  if(idx<0)return safe;
+  return safe.slice(0,idx)+'<mark>'+safe.slice(idx,idx+qs.length)+'</mark>'+safe.slice(idx+qs.length);
+}
+function runGlobalSearch(q){
+  var box=document.getElementById('srch-results');
+  if(!box)return;
+  q=(q||'').trim();
+  if(!q){box.innerHTML='<div class="srch-empty">输入关键字开始搜索 ✨<br><span style="font-size:11px;">支持行程 / 地点 / 攻略 / 收藏</span></div>';return;}
+  var ql=q.toLowerCase();
+  var hits=[];
+  // trips
+  (data.trips||[]).forEach(function(t){
+    var pool=[t.title,t.destination,(t.tags||[]).join(' ')].join(' ').toLowerCase();
+    if(pool.indexOf(ql)>=0)hits.push({g:'行程',icon:'🧳',t:t.title||'未命名',s:(t.destination||'')+' · '+(t.startDate||''),act:"showPage('trips');setTimeout(function(){openTrip('"+t.id+"');showPage('trip-detail');},60);closeModal('search-modal');"});
+  });
+  // locations
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d,di){
+      (d.locations||[]).forEach(function(l,li){
+        var pool=[l.name,l.guide,l.feeling,l.type].join(' ').toLowerCase();
+        if(pool.indexOf(ql)>=0){
+          hits.push({g:'地点',icon:locTypeIcon(l.type),t:l.name||'未命名',s:(t.title||'')+' · D'+(di+1)+' · '+(l.time||'--:--'),
+            act:"closeModal('search-modal');setTimeout(function(){openTrip('"+t.id+"');showPage('trip-detail');currentTripDay="+di+";renderDayPills();renderTimeline();renderTripDetailExtras();},80);"});
+        }
+      });
+    });
+  });
+  // guides
+  (data.guides||[]).forEach(function(g){
+    var pool=[g.title,g.content].join(' ').toLowerCase();
+    if(pool.indexOf(ql)>=0)hits.push({g:'攻略',icon:'📝',t:g.title||'未命名',s:(g.type||'')+' · '+(g.content||'').slice(0,24),act:"closeModal('search-modal');showPage('guides');"});
+  });
+  // favorites
+  (data.favorites||[]).forEach(function(f){
+    var pool=[f.name,f.note,f.address].join(' ').toLowerCase();
+    if(pool.indexOf(ql)>=0)hits.push({g:'收藏',icon:'🎒',t:f.name||'未命名',s:(f.address||f.note||'').slice(0,28),act:"closeModal('search-modal');showPage('favorites');"});
+  });
+  if(!hits.length){box.innerHTML='<div class="srch-empty">没有找到「'+escapeHTML(q)+'」相关内容 🤔</div>';return;}
+  var order=['行程','地点','攻略','收藏'];
+  var html='';
+  order.forEach(function(g){
+    var list=hits.filter(function(h){return h.g===g;});
+    if(!list.length)return;
+    html+='<div class="srch-group-title">'+g+' · '+list.length+'</div>';
+    list.slice(0,20).forEach(function(h){
+      html+='<button class="srch-item" onclick="'+h.act+'">'+
+        '<div class="si-t">'+h.icon+' '+srchMark(h.t,q)+'</div>'+
+        '<div class="si-s">'+srchMark(h.s,q)+'</div>'+
+      '</button>';
+    });
+  });
+  box.innerHTML=html;
+}
+
+/* ---------------- v99-4: 我的行程模板 ---------------- */
+var TPL_STORE='lattiao_my_templates';
+function tplLoad(){
+  try{var a=JSON.parse(localStorage.getItem(TPL_STORE)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}
+}
+function tplSave(a){
+  try{localStorage.setItem(TPL_STORE,JSON.stringify(a||[]));}catch(e){}
+}
+function tplLocCount(tpl){
+  var n=0;
+  (tpl.days||[]).forEach(function(d){n+=(d.locations||[]).length;});
+  return n;
+}
+function renderMyTemplateChips(){
+  var box=document.getElementById('tm-my-templates');
+  if(!box)return;
+  var a=tplLoad();
+  box.innerHTML=a.map(function(t){
+    return '<span class="tpl-chip mine" onclick="applyMyTemplate(\''+t.id+'\')">⭐ '+escapeHTML(t.title)+'</span>';
+  }).join('');
+}
+function saveCurrentTripAsTemplate(){
+  var srcId=currentEditingTripId||currentTripId;
+  if(!srcId){showToast('请先打开一个行程再存为模板');return;}
+  var t=data.trips.find(function(x){return x.id===srcId;});
+  if(!t){showToast('没有可保存的行程');return;}
+  var days=(t.days||[]).map(function(d){
+    return {date:'',weather:'',locations:(d.locations||[]).map(function(l){
+      // 只复制结构：名称/类型/时间/时长/攻略，绝不复制照片与花费
+      return {id:uid(),name:l.name||'',type:l.type||'attraction',time:l.time||'',distance:l.distance||null,duration:l.duration||null,guide:l.guide||'',feeling:'',photos:[],budget:{total:0,items:[]}};
+    })};
+  });
+  var a=tplLoad();
+  a.unshift({id:'tpl_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),title:t.title||'我的模板',destination:t.destination||'',days:days,createdAt:new Date().toISOString()});
+  tplSave(a);
+  renderMyTemplateChips();
+  showToast('已存为模板「'+(t.title||'我的模板')+'」');
+}
+function applyMyTemplate(id){
+  var tpl=tplLoad().find(function(x){return x.id===id;});
+  if(!tpl)return;
+  var tm=document.getElementById('tm-title');
+  var dm=document.getElementById('tm-destination');
+  if(dm&&tpl.destination&&!dm.value)dm.value=tpl.destination;
+  if(tm&&!tm.value)tm.value=tpl.title||'';
+  var today=new Date();
+  var st=new Date(today);st.setDate(st.getDate()+7);
+  var d2=function(d){return d.toISOString().slice(0,10);};
+  var sEl=document.getElementById('tm-start');
+  if(sEl&&!sEl.value)sEl.value=d2(st);
+  var startDate=sEl&&sEl.value?parseDateStr(sEl.value):st;
+  window._templateDays=(tpl.days||[]).map(function(d,i){
+    return {date:d2(new Date(startDate.getTime()+i*86400000)),weather:'',locations:(d.locations||[]).map(function(l){
+      return {id:uid(),name:l.name,type:l.type,time:l.time||'',distance:l.distance||null,duration:l.duration||null,guide:l.guide||'',feeling:'',photos:[],budget:{total:0,items:[]}};
+    })};
+  });
+  var eEl=document.getElementById('tm-end');
+  if(eEl&&window._templateDays.length)eEl.value=window._templateDays[window._templateDays.length-1].date;
+  showToast('模板已填入，确认日期后保存 ✨');
+}
+function openTemplateManager(){
+  renderTemplateManager();
+  document.getElementById('tpl-modal').classList.add('active');
+}
+function renderTemplateManager(){
+  var box=document.getElementById('tpl-list');
+  if(!box)return;
+  var a=tplLoad();
+  if(!a.length){box.innerHTML='<div class="srch-empty">还没有自定义模板<br><span style="font-size:11px;">在「新建行程」里点「💾 当前行程存为模板」即可保存</span></div>';return;}
+  box.innerHTML=a.map(function(t){
+    return '<div class="tpl-row">'+
+      '<div class="tr-name">⭐ '+escapeHTML(t.title)+'<div class="tr-meta">'+tplLocCount(t)+' 个地点 · '+(t.days||[]).length+' 天'+(t.destination?' · '+escapeHTML(t.destination):'')+'</div></div>'+
+      '<button class="tpl-btn" onclick="applyMyTemplate(\''+t.id+'\');closeModal(\'tpl-modal\');">使用</button>'+
+      '<button class="tpl-btn danger" onclick="deleteMyTemplate(\''+t.id+'\')">删除</button>'+
+    '</div>';
+  }).join('');
+}
+function deleteMyTemplate(id){
+  if(!confirm('删除这个模板？'))return;
+  tplSave(tplLoad().filter(function(x){return x.id!==id;}));
+  renderTemplateManager();
+  renderMyTemplateChips();
+  showToast('模板已删除');
+}
+
+/* ---------------- v99-5: 智能导入（纯本机规则解析） ---------------- */
+var SI_STATE={items:[]};
+function siYearDefault(){
+  var d=new Date();
+  return d.getFullYear();
+}
+function openSmartImport(){
+  var sel=document.getElementById('si-trip');
+  if(sel){
+    sel.innerHTML=(data.trips||[]).map(function(t){return '<option value="'+t.id+'">'+escapeHTML(t.title||'未命名')+'</option>';}).join('')+
+      '<option value="__new__">＋ 新建行程</option>';
+  }
+  var y=document.getElementById('si-year');
+  if(y)y.value=siYearDefault();
+  document.getElementById('si-text').value='';
+  document.getElementById('si-preview').innerHTML='';
+  SI_STATE.items=[];
+  document.getElementById('smart-import-modal').classList.add('active');
+}
+// 规则解析：不依赖任何 AI / 网络，全部在本机正则完成
+function siParse(text,year){
+  year=year||siYearDefault();
+  var lines=String(text||'').split(/\r?\n/);
+  var out=[];
+  var CN='零一二三四五六七八九十';
+  function pad(n){return n<10?('0'+n):(''+n);}
+  function normDate(m,defMonth){
+    // m: {y,mo,d}
+    var y=m.y||year, mo=m.mo||defMonth||new Date().getMonth()+1, d=m.d;
+    if(!d)return '';
+    return y+'-'+pad(mo)+'-'+pad(d);
+  }
+  lines.forEach(function(raw){
+    var line=raw.trim();
+    if(!line)return;
+    // ---- 日期 ----
+    var date='';
+    var m=line.match(/(20\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})/);
+    if(m){date=m[1]+'-'+pad(+m[2])+'-'+pad(+m[3]);}
+    if(!date){
+      m=line.match(/(\d{1,2})[月\/-](\d{1,2})[日号]?/);
+      if(m)date=normDate({mo:+m[1],d:+m[2]});
+    }
+    // ---- 时间 ----
+    var time='';
+    m=line.match(/([01]?\d|2[0-3]):([0-5]\d)/);
+    if(m)time=pad(+m[1])+':'+m[2];
+    // ---- 交通：火车 G/D/C/Z/T/K ----
+    m=line.match(/([GDCZTK]\d{2,4})\s*次/);
+    var train=m?m[1]:'';
+    // ---- 交通：航班二字码（CA/MU/9C/3U…），排除已被识别为车次的情况 ----
+    m=line.match(/([0-9A-Z]{2}\d{3,4})/);
+    var flight=(m&&!train)?m[1]:'';
+    var isFlight=/(航班|机票|起飞|航空|登机|航段)/.test(line);
+    // ---- 城市对：A-B / A到B / A—B ----
+    m=line.match(/([\u4e00-\u9fa5]{2,6}(?:机场|站)?)\s*[-—~到至]\s*([\u4e00-\u9fa5]{2,6}(?:机场|站)?)/);
+    var from=m?m[1]:'',to=m?m[2]:'';
+    // ---- 酒店 ----
+    var isHotel=/酒店|民宿|客栈|宾馆|入住|退房|住宿/.test(line);
+    var isTicket=/门票|景区|入园|展览|演出/.test(line);
+    if(train||flight||isFlight){
+      var name=(from&&to)?(from+'→'+to):(flight?('航班 '+flight):('列车 '+train));
+      if(to&&/机场|站/.test(to))name=(from||'出发地')+'→'+to;
+      out.push({kind:'transport',icon:flight?'✈️':'🚄',name:name,date:date,time:time,note:line.slice(0,60),on:true});
+      return;
+    }
+    if(isHotel){
+      var hm=line.match(/([\u4e00-\u9fa5A-Za-z0-9]{2,20}(?:酒店|民宿|客栈|宾馆))/);
+      out.push({kind:'stay',icon:'🏨',name:hm?hm[1]:'酒店入住',date:date,time:time,note:line.slice(0,60),on:true});
+      return;
+    }
+    if(isTicket){
+      var tm2=line.match(/([\u4e00-\u9fa5A-Za-z0-9]{2,20}(?:景区|公园|博物馆|寺|塔|山|古镇|乐园))/);
+      out.push({kind:'ticket',icon:'🎫',name:tm2?tm2[1]:'门票',date:date,time:time,note:line.slice(0,60),on:true});
+      return;
+    }
+    if(date||time){
+      var nm=line.replace(/[【】\[\]]/g,'').replace(/^\s*[^：:]{0,12}[：:]/,'').slice(0,20).trim();
+      if(!nm)nm=line.slice(0,20);
+      out.push({kind:'other',icon:'📌',name:nm,date:date,time:time,note:line.slice(0,60),on:false});
+    }
+  });
+  // 去重
+  var seen={},res=[];
+  out.forEach(function(it){
+    var k=it.kind+'|'+it.name+'|'+it.date+'|'+it.time;
+    if(seen[k])return;
+    seen[k]=1;res.push(it);
+  });
+  return res;
+}
+function previewSmartImport(){
+  var year=parseInt(document.getElementById('si-year').value,10)||siYearDefault();
+  var items=siParse(document.getElementById('si-text').value,year);
+  SI_STATE.items=items;
+  var box=document.getElementById('si-preview');
+  if(!items.length){box.innerHTML='<div style="font-size:12px;color:var(--text-light);padding:10px 0;">还没有识别到内容，粘贴一段确认短信试试～</div>';return;}
+  box.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin:10px 0 4px;">识别到 '+items.length+' 条（点选要导入的）</div>'+
+    '<div class="si-preview">'+items.map(function(it,i){
+      var kindTxt={transport:'交通',stay:'住宿',ticket:'门票',other:'其他'}[it.kind]||'其他';
+      return '<div class="si-line" onclick="siToggle('+i+')" style="cursor:pointer;">'+
+        '<span class="sl-i">'+(it.on?'✅':'⬜')+'</span>'+
+        '<span class="sl-b"><span class="sl-n">'+it.icon+' '+escapeHTML(it.name)+'</span>'+
+        '<span class="sl-m">'+kindTxt+(it.date?(' · '+it.date):'')+(it.time?(' '+it.time):'')+'</span></span>'+
+      '</div>';
+    }).join('')+'</div>';
+}
+function siToggle(i){
+  if(!SI_STATE.items[i])return;
+  SI_STATE.items[i].on=!SI_STATE.items[i].on;
+  previewSmartImport();
+}
+function applySmartImport(){
+  var items=(SI_STATE.items||[]).filter(function(x){return x.on;});
+  if(!items.length){showToast('请先勾选要导入的条目');return;}
+  var sel=document.getElementById('si-trip');
+  var tripId=sel?sel.value:'__new__';
+  var t=null;
+  if(tripId==='__new__'){
+    t={id:uid(),title:'导入的行程',destination:'',status:'upcoming',startDate:'',endDate:'',cover:'',days:[],budget:{total:0},updatedAt:new Date().toISOString()};
+    data.trips.unshift(t);
+  }else{
+    t=data.trips.find(function(x){return x.id===tripId;});
+  }
+  if(!t){showToast('找不到目标行程');return;}
+  if(!t.days)t.days=[];
+  // 按日期归组
+  var byDate={};
+  var noDate=[];
+  items.forEach(function(it){
+    if(it.date){(byDate[it.date]=byDate[it.date]||[]).push(it);}
+    else noDate.push(it);
+  });
+  var dates=Object.keys(byDate).sort();
+  if(!dates.length&&!t.days.length){
+    t.days.push({date:new Date().toISOString().slice(0,10),weather:'',locations:[]});
+  }
+  dates.forEach(function(dstr){
+    var day=t.days.find(function(d){return d.date===dstr;});
+    if(!day){day={date:dstr,weather:'',locations:[]};t.days.push(day);}
+    byDate[dstr].forEach(function(it){
+      day.locations.push({id:uid(),name:it.name,type:it.kind==='transport'?'transport':it.kind==='stay'?'stay':it.kind==='ticket'?'attraction':'other',
+        time:it.time||'',distance:null,duration:null,guide:it.note||'',feeling:'',photos:[],budget:{total:0,items:[]}});
+    });
+    day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+  });
+  if(noDate.length&&t.days.length){
+    var first=t.days[0];
+    noDate.forEach(function(it){
+      first.locations.push({id:uid(),name:it.name,type:it.kind==='transport'?'transport':it.kind==='stay'?'stay':'other',
+        time:it.time||'',distance:null,duration:null,guide:it.note||'',feeling:'',photos:[],budget:{total:0,items:[]}});
+    });
+    first.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+  }
+  t.days.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+  t.startDate=t.days.length?t.days[0].date:t.startDate;
+  t.endDate=t.days.length?t.days[t.days.length-1].date:t.endDate;
+  if(tripId==='__new__')t.title=(t.destination||'')+'导入行程';
+  t.updatedAt=new Date().toISOString();
+  saveDataLocal();
+  closeModal('smart-import-modal');
+  renderTrips();renderCal();renderBudget();
+  showToast('已导入 '+items.length+' 条到「'+(t.title||'行程')+'」');
+  if(typeof syncPushNow==='function')syncPushNow();
+  openTrip(t.id);showPage('trip-detail');
+}
+
+/* ---------------- v99-8: 地点轻互动 ---------------- */
+function locAuthor(){return (data.settings&&data.settings.name)||'我';}
+function toggleLocLike(tripId,locId){
+  var found=null;
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){if(l.id===locId)found=l;});
+    });
+  });
+  if(!found)return;
+  if(!found.likes)found.likes=[];
+  var me=locAuthor();
+  var i=found.likes.indexOf(me);
+  if(i>=0)found.likes.splice(i,1);else found.likes.push(me);
+  var t=data.trips.find(function(x){return x.id===tripId;});
+  if(t)t.updatedAt=new Date().toISOString();
+  saveDataLocal();
+  renderTimeline();
+  renderTripDetailExtras();
+  if(typeof syncPushNow==='function')syncPushNow();
+}
+function addLocComment(tripId,locId){
+  var txt=prompt('写一句留言（30 字内）');
+  if(txt===null)return;
+  txt=String(txt).trim().slice(0,30);
+  if(!txt)return;
+  var found=null;
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){if(l.id===locId)found=l;});
+    });
+  });
+  if(!found)return;
+  if(!found.comments)found.comments=[];
+  found.comments.push({by:locAuthor(),text:txt,ts:Date.now()});
+  var t=data.trips.find(function(x){return x.id===tripId;});
+  if(t)t.updatedAt=new Date().toISOString();
+  saveDataLocal();
+  renderTimeline();
+  renderTripDetailExtras();
+  showToast('留言已保存');
+  if(typeof syncPushNow==='function')syncPushNow();
+}
+function locReactHTML(l){
+  var likes=(l.likes||[]);
+  var cmts=l.comments||[];
+  var me=locAuthor();
+  var liked=likes.indexOf(me)>=0;
+  var html='<div class="loc-react" data-loc="'+l.id+'">'+
+    '<span class="react-btn'+(liked?' on':'')+'" onclick="event.stopPropagation();toggleLocLike(\''+(currentTripId||'')+'\',\''+l.id+'\')">👍 '+(likes.length||'')+'</span>'+
+    '<span class="react-btn" onclick="event.stopPropagation();addLocComment(\''+(currentTripId||'')+'\',\''+l.id+'\')">💬 '+(cmts.length||'')+'</span>';
+  html+='</div>';
+  if(cmts.length){
+    html+='<div class="loc-react">'+cmts.slice(-2).map(function(c){
+      return '<div class="react-cmt"><b>'+escapeHTML(c.by)+'：</b>'+escapeHTML(c.text)+'</div>';
+    }).join('')+'</div>';
+  }
+  return html;
+}
+
+/* ---------------- v99-7: 预算导出 CSV ---------------- */
+function exportBudgetCsv(){
+  var catNames={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+  var trips=budgetFilterTripId==='all'?(data.trips||[]):(data.trips||[]).filter(function(t){return t.id===budgetFilterTripId;});
+  var rows=[['行程','日期','地点','分类','备注','金额(元)']];
+  var total=0;
+  trips.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        (l.budget&&l.budget.items||[]).forEach(function(it){
+          var amt=Number(it.amt)||0;
+          total+=amt;
+          rows.push([t.title||'',d.date||'',l.name||'',catNames[it.cat]||it.cat||'',it.note||'',amt.toFixed(2)]);
+        });
+      });
+    });
+  });
+  if(rows.length===1){showToast('还没有预算明细可导出');return;}
+  rows.push(['合计','','','','',total.toFixed(2)]);
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      var v=String(c==null?'':c);
+      return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v;
+    }).join(',');
+  }).join('\r\n');
+  // BOM 让 Excel 正确识别 UTF-8
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  var name=(budgetFilterTripId==='all'?'全部行程':(trips[0]&&trips[0].title||'行程'));
+  a.download='预算明细_'+name+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);if(a.parentNode)a.parentNode.removeChild(a);},500);
+  showToast('已导出 '+(rows.length-2)+' 条明细');
+}
+
+/* ---------------- v99-6: 年度账单 / 选片影集 ---------------- */
+function yearStats(year){
+  var st={year:year,trips:0,days:0,cities:{},photos:0,km:0,spend:0,locs:0,monthSpend:[0,0,0,0,0,0,0,0,0,0,0,0],bestTrip:'',bestTripN:0};
+  (data.trips||[]).forEach(function(t){
+    var s=t.startDate||t.endDate||'';
+    if(!s||String(s).slice(0,4)!==String(year)){
+      // 也接受跨年的行程：只要任意一天落在这一年
+      var hit=false;
+      (t.days||[]).forEach(function(d){if(d.date&&String(d.date).slice(0,4)===String(year))hit=true;});
+      if(!hit)return;
+    }
+    st.trips++;
+    var dayN=0;
+    (t.days||[]).forEach(function(d){
+      if(d.date&&String(d.date).slice(0,4)!==String(year))return;
+      dayN++;
+      (d.locations||[]).forEach(function(l){
+        st.locs++;
+        st.photos+=((l.photos&&l.photos.length)||l._photoCount||0);
+        var dn=parseFloat(l.distance);
+        if(!isNaN(dn)&&dn>0)st.km+=dn;
+        (l.budget&&l.budget.items||[]).forEach(function(it){
+          var amt=Number(it.amt)||0;
+          st.spend+=amt;
+          var mo=parseInt(String(d.date||'').slice(5,7),10);
+          if(mo>=1&&mo<=12)st.monthSpend[mo-1]+=amt;
+        });
+      });
+    });
+    st.days+=dayN;
+    var dest=(t.destination||'').trim();
+    if(dest)st.cities[dest]=1;
+    if(dayN>st.bestTripN){st.bestTripN=dayN;st.bestTrip=t.title||dest;}
+  });
+  if(st.km===0&&Object.keys(st.cities).length)st.km=Object.keys(st.cities).length*200;
+  return st;
+}
+function availableYears(){
+  var set={};
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      if(d.date)set[String(d.date).slice(0,4)]=1;
+    });
+    if(t.startDate)set[String(t.startDate).slice(0,4)]=1;
+  });
+  var y=Object.keys(set).sort().reverse();
+  if(!y.length)y=[String(new Date().getFullYear())];
+  return y;
+}
+function openYearPoster(){
+  var sel=document.getElementById('year-select');
+  if(sel){
+    var years=availableYears();
+    sel.innerHTML=years.map(function(y){return '<option value="'+y+'">'+y+' 年</option>';}).join('');
+  }
+  document.getElementById('year-modal').classList.add('active');
+  renderYearPoster();
+}
+function drawYearPoster(st,photos,canvas){
+  var W=640,H=980;
+  canvas.width=W;canvas.height=H;
+  var c=canvas.getContext('2d');
+  // background
+  var g=c.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#F5F3FF');g.addColorStop(0.5,'#FCE7F3');g.addColorStop(1,'#EDE9FE');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  // decorative blobs
+  function blob(x,y,r,col){var rg=c.createRadialGradient(x,y,0,x,y,r);rg.addColorStop(0,col);rg.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=rg;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();}
+  blob(560,60,150,'rgba(167,139,250,.35)');blob(60,900,180,'rgba(236,72,153,.20)');
+  // header
+  c.fillStyle='#5B21B6';c.font='bold 46px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.textAlign='center';
+  c.fillText(st.year+' 旅行账单',W/2,96);
+  c.fillStyle='#7C3AED';c.font='20px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.fillText((data.settings&&data.settings.name||'Iris')+' 的这一年 ✨',W/2,132);
+  // big numbers
+  var cards=[
+    ['🧳 旅行',st.trips+' 次'],
+    ['📅 天数',st.days+' 天'],
+    ['🌍 城市',Object.keys(st.cities).length+' 座'],
+    ['📷 照片',st.photos+' 张'],
+    ['👣 里程',Math.round(st.km)+' km'],
+    ['💰 花费','¥'+Math.round(st.spend)]
+  ];
+  var bx=48,by=180,bw=(W-96-20)/2,bh=86,gx=20,gy=16;
+  cards.forEach(function(cd,i){
+    var col=i%2,row=Math.floor(i/2);
+    var x=bx+col*(bw+gx),y=by+row*(bh+gy);
+    c.fillStyle='rgba(255,255,255,.78)';
+    c.beginPath();c.roundRect?c.roundRect(x,y,bw,bh,16):c.rect(x,y,bw,bh);c.fill();
+    c.strokeStyle='rgba(124,58,237,.25)';c.lineWidth=1.5;c.stroke();
+    c.textAlign='left';
+    c.fillStyle='#6B5E86';c.font='15px "PingFang SC",sans-serif';
+    c.fillText(cd[0],x+18,y+32);
+    c.fillStyle='#5B21B6';c.font='bold 30px "PingFang SC",sans-serif';
+    c.fillText(cd[1],x+18,y+68);
+  });
+  // monthly bars
+  var mx=48,my=by+3*(bh+gy)+24,mw=W-96,mh=150;
+  c.fillStyle='rgba(255,255,255,.78)';
+  c.beginPath();c.roundRect?c.roundRect(mx,my,mw,mh,16):c.rect(mx,my,mw,mh);c.fill();
+  c.strokeStyle='rgba(124,58,237,.25)';c.stroke();
+  c.fillStyle='#5B21B6';c.font='bold 16px "PingFang SC",sans-serif';c.textAlign='left';
+  c.fillText('📊 每月花费',mx+18,my+28);
+  var maxV=Math.max.apply(null,st.monthSpend.concat([1]));
+  var bw2=(mw-36-11*8)/12;
+  st.monthSpend.forEach(function(v,i){
+    var h=Math.max(3,(v/maxV)*(mh-90));
+    var x=mx+18+i*(bw2+8),y=my+mh-26-h;
+    var bg=c.createLinearGradient(0,y,0,y+h);
+    bg.addColorStop(0,'#A78BFA');bg.addColorStop(1,'#7C3AED');
+    c.fillStyle=bg;
+    c.beginPath();c.roundRect?c.roundRect(x,y,bw2,h,5):c.rect(x,y,bw2,h);c.fill();
+    c.fillStyle='#8B7BA8';c.font='11px "PingFang SC",sans-serif';c.textAlign='center';
+    c.fillText((i+1)+'',x+bw2/2,my+mh-10);
+  });
+  // cities
+  var cy=my+mh+24;
+  var cities=Object.keys(st.cities);
+  c.textAlign='left';
+  c.fillStyle='#5B21B6';c.font='bold 16px "PingFang SC",sans-serif';
+  c.fillText('🌍 到过的地方',mx,cy+6);
+  c.fillStyle='#6B5E86';c.font='15px "PingFang SC",sans-serif';
+  var line=cities.length?cities.join(' · '):'今年还没有出行记录，下一次去哪儿呢？';
+  var words=line.split('');var ln='';var ly=cy+34;
+  for(var i=0;i<words.length;i++){
+    if(c.measureText(ln+words[i]).width>mw-8){c.fillText(ln,mx,ly);ln='';ly+=24;}
+    ln+=words[i];
+  }
+  if(ln)c.fillText(ln,mx,ly);
+  // photos strip
+  var py=ly+26;
+  if(photos&&photos.length){
+    var n=Math.min(4,photos.length);
+    var pw=(W-96-3*10)/4;
+    for(var k=0;k<n;k++){
+      var img=photos[k];
+      try{
+        c.save();
+        c.beginPath();c.roundRect?c.roundRect(48+k*(pw+10),py,pw,pw*0.72,12):c.rect(48+k*(pw+10),py,pw,pw*0.72);
+        c.clip();
+        c.drawImage(img,48+k*(pw+10),py,pw,pw*0.72);
+        c.restore();
+      }catch(e){}
+    }
+    py+=pw*0.72+16;
+  }
+  // footer
+  c.textAlign='center';
+  c.fillStyle='#8B7BA8';c.font='14px "PingFang SC",sans-serif';
+  c.fillText('薄荷旅行手账 · '+APP_VERSION,W/2,H-40);
+  c.fillStyle='#7C3AED';c.font='15px "PingFang SC",sans-serif';
+  var msg=st.trips>0?('这一年走过 '+st.days+' 天，下一站想去哪儿？'):'新的一年，去一个没去过的地方吧 ✨';
+  c.fillText(msg,W/2,H-68);
+}
+function collectYearPhotos(year,limit){
+  var out=[];
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      if(d.date&&String(d.date).slice(0,4)!==String(year))return;
+      (d.locations||[]).forEach(function(l){
+        (l.photos||[]).forEach(function(p){if(out.length<limit)out.push({src:p,name:l.name});});
+      });
+    });
+  });
+  return out;
+}
+var YEAR_STATE={canvas:null,imgs:[]};
+function renderYearPoster(){
+  var box=document.getElementById('year-poster-box');
+  if(!box)return;
+  var sel=document.getElementById('year-select');
+  var year=sel?sel.value:String(new Date().getFullYear());
+  var st=yearStats(year);
+  var picks=collectYearPhotos(year,4);
+  box.innerHTML='<canvas class="year-poster-canvas" id="year-canvas"></canvas>'+
+    '<div style="text-align:center;font-size:11px;color:var(--text-light);margin-top:8px;">长图可保存到相册，或直接分享给朋友 💜</div>';
+  var cv=document.getElementById('year-canvas');
+  var loaders=picks.map(function(p){
+    return new Promise(function(res){
+      var im=new Image();
+      im.onload=function(){res(im);};
+      im.onerror=function(){res(null);};
+      im.src=p.src;
+    });
+  });
+  Promise.all(loaders).then(function(imgs){
+    YEAR_STATE.imgs=imgs.filter(Boolean);
+    YEAR_STATE.canvas=cv;
+    drawYearPoster(st,YEAR_STATE.imgs,cv);
+  });
+}
+function downloadYearPoster(){
+  var cv=document.getElementById('year-canvas');
+  if(!cv){showToast('请先生成账单');return;}
+  try{
+    var url=cv.toDataURL('image/png');
+    var a=document.createElement('a');
+    a.href=url;a.download='旅行账单_'+(document.getElementById('year-select').value)+'.png';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){if(a.parentNode)a.parentNode.removeChild(a);},400);
+    showToast('长图已保存到下载 💜');
+  }catch(e){showToast('保存失败，可长按图片另存');}
+}
+var STORY_STATE={picks:[],all:[]};
+function openStoryPicker(){
+  var year=document.getElementById('year-select')?document.getElementById('year-select').value:String(new Date().getFullYear());
+  STORY_STATE.all=collectYearPhotos(year,60);
+  STORY_STATE.picks=[];
+  renderStoryGrid();
+  document.getElementById('story-modal').classList.add('active');
+}
+function renderStoryGrid(){
+  var g=document.getElementById('story-grid');
+  if(!g)return;
+  if(!STORY_STATE.all.length){g.innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--text-light);font-size:12px;padding:20px 0;">这一年还没有照片 📷</div>';return;}
+  g.innerHTML=STORY_STATE.all.map(function(p,i){
+    var on=STORY_STATE.picks.indexOf(i)>=0;
+    return '<div class="story-cell'+(on?' sel':'')+'" onclick="storyToggle('+i+')">'+
+      '<img src="'+p.src+'" loading="lazy"><div class="sc-check">✓</div></div>';
+  }).join('');
+}
+function storyToggle(i){
+  var k=STORY_STATE.picks.indexOf(i);
+  if(k>=0)STORY_STATE.picks.splice(k,1);
+  else{
+    if(STORY_STATE.picks.length>=12){showToast('最多选 12 张');return;}
+    STORY_STATE.picks.push(i);
+  }
+  renderStoryGrid();
+}
+function generateStoryPoster(){
+  var picks=STORY_STATE.picks.map(function(i){return STORY_STATE.all[i];}).filter(Boolean);
+  if(!picks.length){showToast('请先选择照片');return;}
+  var loaders=picks.map(function(p){
+    return new Promise(function(res){
+      var im=new Image();im.onload=function(){res(im);};im.onerror=function(){res(null);};im.src=p.src;
+    });
+  });
+  Promise.all(loaders).then(function(imgs){
+    imgs=imgs.filter(Boolean);
+    var W=640,cell=(W-40-2*8)/3;
+    var rows=Math.ceil(imgs.length/3);
+    var H=180+rows*(cell+8)+90;
+    var cv=document.createElement('canvas');
+    cv.width=W;cv.height=H;
+    var c=cv.getContext('2d');
+    var g=c.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,'#F5F3FF');g.addColorStop(1,'#FCE7F3');
+    c.fillStyle=g;c.fillRect(0,0,W,H);
+    c.fillStyle='#5B21B6';c.font='bold 32px "PingFang SC",sans-serif';c.textAlign='center';
+    c.fillText('🎞 这一年的高光时刻',W/2,72);
+    c.fillStyle='#7C3AED';c.font='16px "PingFang SC",sans-serif';
+    c.fillText(imgs.length+' 张照片 · '+APP_VERSION,W/2,104);
+    imgs.forEach(function(im,i){
+      var col=i%3,row=Math.floor(i/3);
+      var x=20+col*(cell+8),y=140+row*(cell+8);
+      try{
+        c.save();
+        c.beginPath();c.roundRect?c.roundRect(x,y,cell,cell,12):c.rect(x,y,cell,cell);
+        c.clip();
+        var sc=Math.max(cell/im.width,cell/im.height);
+        var dw=im.width*sc,dh=im.height*sc;
+        c.drawImage(im,x+(cell-dw)/2,y+(cell-dh)/2,dw,dh);
+        c.restore();
+      }catch(e){}
+    });
+    c.fillStyle='#8B7BA8';c.font='13px "PingFang SC",sans-serif';c.textAlign='center';
+    c.fillText('薄荷旅行手账 · 记录每一段旅程 ✨',W/2,H-30);
+    closeModal('story-modal');
+    var box=document.getElementById('year-poster-box');
+    if(box){
+      box.innerHTML='<canvas class="year-poster-canvas" id="year-canvas"></canvas>'+
+        '<div style="text-align:center;font-size:11px;color:var(--text-light);margin-top:8px;">影集已生成，可保存或长按分享 💜</div>';
+      var dst=document.getElementById('year-canvas');
+      dst.width=W;dst.height=H;
+      dst.getContext('2d').drawImage(cv,0,0);
+      YEAR_STATE.canvas=dst;
+    }
+    showToast('影集已生成 ✨');
+  });
+}
+
+/* ---------------- v99-10: 路线地图（默认零成本示意图，可选腾讯地图） ---------------- */
+var MAP_KEY_STORE='lattiao_tmap_key';
+function mapKey(){try{return (localStorage.getItem(MAP_KEY_STORE)||'').trim();}catch(e){return '';}}
+function setMapKey(v){try{localStorage.setItem(MAP_KEY_STORE,(v||'').trim());}catch(e){}}
+function openMapSettings(){
+  var i=document.getElementById('map-key-input');
+  if(i)i.value=mapKey();
+  var st=document.getElementById('map-key-status');
+  if(st)st.textContent=mapKey()?'当前：已配置 Key，行程详情将显示真实地图（GCJ-02）':'当前：未配置，使用免费路线示意图';
+  document.getElementById('map-settings-modal').classList.add('active');
+}
+function saveMapKey(){
+  var v=(document.getElementById('map-key-input').value||'').trim();
+  setMapKey(v);
+  closeModal('map-settings-modal');
+  showToast(v?'地图 Key 已保存':'已清空，恢复路线示意图');
+  if(currentTripId)renderTripDetailExtras();
+}
+function clearMapKey(){
+  var i=document.getElementById('map-key-input');
+  if(i)i.value='';
+  setMapKey('');
+  showToast('已清空地图 Key');
+}
+var TMAP={loaded:false,loading:false,map:null,markerLayer:null};
+function loadTMap(cb){
+  if(TMAP.loaded){cb(true);return;}
+  var key=mapKey();
+  if(!key){cb(false);return;}
+  if(TMAP.loading){setTimeout(function(){loadTMap(cb);},300);return;}
+  TMAP.loading=true;
+  var sc=document.createElement('script');
+  // 合规：仅使用腾讯位置服务；key 由用户自行申请并只存在本机
+  sc.src='https://map.qq.com/api/gljs?v=1.exp&key='+encodeURIComponent(key);
+  sc.onload=function(){TMAP.loaded=true;TMAP.loading=false;cb(!!(window.TMap&&window.TMap.Map));};
+  sc.onerror=function(){TMAP.loading=false;cb(false);};
+  document.head.appendChild(sc);
+}
+function drawSvgRoute(day,container){
+  var dlocs=(day&&day.locations)||[];
+  var W=400,H=200;
+  if(!dlocs.length){
+    container.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-sec);font-size:13px;">'+
+      '<div style="font-size:38px;opacity:.45;margin-bottom:6px;">🗺️</div><div>这一天还没有地点，添加后会自动绘制路线</div></div>';
+    return;
+  }
+  var PAD=40,n=dlocs.length,pts=[];
+  for(var k=0;k<n;k++){
+    var x=PAD+(W-2*PAD)*(n===1?0.5:k/(n-1));
+    var y=H*0.5+Math.sin((k/n)*Math.PI*2)*18+(k%2===0?-8:8);
+    pts.push({x:x,y:y,loc:dlocs[k],idx:k});
+  }
+  var pathD='M'+pts[0].x+' '+pts[0].y;
+  for(var k2=1;k2<pts.length;k2++){
+    var mx=(pts[k2-1].x+pts[k2].x)/2;
+    var my=(pts[k2-1].y+pts[k2].y)/2-22;
+    pathD+=' Q'+mx+' '+my+' '+pts[k2].x+' '+pts[k2].y;
+  }
+  var nodesSvg=pts.map(function(p){
+    return '<g>'+
+      '<circle cx="'+p.x+'" cy="'+p.y+'" r="11" fill="var(--card)" stroke="var(--primary)" stroke-width="3"/>'+
+      '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="var(--primary)">'+(p.idx+1)+'</text>'+
+      '<text x="'+p.x+'" y="'+(p.y+25)+'" text-anchor="middle" font-size="10" fill="var(--primary-dark)" font-weight="600">'+(p.loc.time||'--')+'</text>'+
+      '<text x="'+p.x+'" y="'+(p.y+38)+'" text-anchor="middle" font-size="10" fill="var(--text-sec)">'+
+        (p.loc.name&&p.loc.name.length>6?escapeHTML(p.loc.name.slice(0,6))+'…':escapeHTML(p.loc.name||''))+
+      '</text></g>';
+  }).join('');
+  container.innerHTML=
+    '<svg class="route-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice">'+
+      '<rect width="'+W+'" height="'+H+'" fill="var(--muted-bg)"/>'+
+      '<path d="M0 '+H+' Q100 '+(H-30)+' 200 '+H+' T400 '+(H-10)+' L400 '+H+' Z" fill="var(--primary)" opacity=".10"/>'+
+      '<path d="M50 '+H+' Q150 '+(H-50)+' 250 '+(H-20)+' T400 '+(H-30)+' L400 '+H+' Z" fill="var(--primary)" opacity=".06"/>'+
+      '<path d="'+pathD+'" stroke="var(--primary)" stroke-width="2.5" fill="none" stroke-dasharray="5 4" opacity=".7"/>'+
+      nodesSvg+
+    '</svg>';
+}
+function renderRouteMap(t,day){
+  var fb=document.getElementById('td-map-fallback');
+  var real=document.getElementById('td-map-real');
+  var label=document.getElementById('td-map-label');
+  var setup=document.getElementById('td-map-setup');
+  if(!fb)return;
+  var dlocs=(day&&day.locations)||[];
+  drawSvgRoute(day,fb);
+  if(label)label.textContent='🗺 '+(dlocs.length?(dlocs.length+' 站 · 路线示意'):'路线示意');
+  var withCoord=dlocs.filter(function(l){
+    var la=parseFloat(l.lat),ln=parseFloat(l.lng);
+    return !isNaN(la)&&!isNaN(ln)&&la>3&&la<54&&ln>73&&ln<136;
+  });
+  if(setup)setup.classList.toggle('on',!mapKey());
+  if(!mapKey()){
+    if(real)real.innerHTML='';
+    if(fb)fb.style.display='';
+    return;
+  }
+  loadTMap(function(ok){
+    if(!ok){
+      if(fb)fb.style.display='';
+      if(setup)setup.classList.add('on');
+      showToast('地图加载失败，已回退到路线示意图');
+      return;
+    }
+    if(withCoord.length<2){
+      if(fb)fb.style.display='';
+      if(setup)setup.classList.add('on');
+      return;
+    }
+    try{
+      if(fb)fb.style.display='none';
+      if(setup)setup.classList.remove('on');
+      if(label)label.textContent='🗺 '+withCoord.length+' 站 · 真实地图';
+      var center=real.__center;
+      var latlngs=withCoord.map(function(l){return new TMap.LatLng(parseFloat(l.lat),parseFloat(l.lng));});
+      if(!TMAP.map){
+        TMAP.map=new TMap.Map(real,{zoom:13,center:latlngs[0],baseMap:{type:'vector'}});
+      }else{
+        TMAP.map.setCenter(latlngs[0]);
+      }
+      if(TMAP.markerLayer){try{TMAP.markerLayer.setMap(null);}catch(e){}}
+      if(TMAP.lineLayer){try{TMAP.lineLayer.setMap(null);}catch(e){}}
+      TMAP.markerLayer=new TMap.MultiMarker({
+        map:TMAP.map,
+        styles:{m0:new TMap.MarkerStyle({width:22,height:30,anchor:{x:11,y:30},
+          src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30"><path d="M11 0C5 0 0 5 0 11c0 8 11 19 11 19s11-11 11-19C22 5 17 0 11 0z" fill="#7C3AED"/><circle cx="11" cy="11" r="4" fill="#fff"/></svg>')})},
+        geometries:latlngs.map(function(p,i){return {id:'p'+i,styleId:'m0',position:p};})
+      });
+      TMAP.lineLayer=new TMap.MultiPolyline({
+        map:TMAP.map,
+        styles:{l0:new TMap.PolylineStyle({color:'#7C3AED',width:5,borderWidth:1,borderColor:'#FFFFFF',lineCap:'round',showArrow:true})},
+        geometries:[{id:'r',styleId:'l0',paths:latlngs}]
+      });
+      var b=new TMap.LatLngBounds();
+      latlngs.forEach(function(p){b.extend(p);});
+      TMAP.map.fitBounds(b,{padding:40});
+    }catch(e){
+      if(fb)fb.style.display='';
+      if(setup)setup.classList.add('on');
+    }
+  });
+}
+
 function init(){
   // v76: render FIRST, then hydrate photos — waiting for the full IndexedDB
   // read before the first paint makes startup feel slow with many photos.
@@ -7363,6 +8696,15 @@ function init(){
   if(ghHasToken()){syncStart();}else{setSyncStatus('offline');}
   // v98:首页已渲染完，撤掉首屏骨架
   hideBootSkeleton();
+  // v99: 通知徽标 / 照片同步进度 / 待同步队列
+  try{
+    updateNotifBadge();
+    updatePhotoSyncUI();
+    updateQueueChip();
+    collectNotifEvents();
+    var _n=notifUnread();
+    if(_n>0)showToast('🔔 有 '+_n+' 条新通知，点右上角铃铛查看');
+  }catch(e){}
   // v74: departure reminder — check on launch, then every 6h
   setTimeout(function(){maybeEnableDepartureReminders();},4000);
   setInterval(function(){checkDepartureReminders(true);},6*3600000);
