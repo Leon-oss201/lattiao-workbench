@@ -77,6 +77,7 @@
   --trip-mid-bg:linear-gradient(135deg,#EDE9FE,#F5F3FF);
   --trip-mid-fg:var(--primary-dark);
   --muted-bg:var(--primary-light);
+  --skeleton-sheen:rgba(124,58,237,.13);
   --muted-fg:var(--text);
   /* v87: bottom tab bar surface — white pill in light, deep purple in dark */
   --nav-bg:rgba(255,255,255,.95);
@@ -119,6 +120,7 @@
   --trip-mid-bg:linear-gradient(135deg,#3D2B5F,#4C3878);
   --trip-mid-fg:#EDE9F8;
   --muted-bg:#3D2B5F;
+  --skeleton-sheen:rgba(167,139,250,.20);
   --muted-fg:#EDE9F8;
   /* v87 dark nav bar + sync pill color */
   --nav-bg:rgba(38,32,64,.95);
@@ -170,6 +172,7 @@
     --sync-synced-color:#C4B5FD;
     --trip-mid-fg:#EDE9F8;
     --muted-bg:#3D2B5F;
+  --skeleton-sheen:rgba(167,139,250,.20);
     --muted-fg:#EDE9F8;
     --info-bg:rgba(91,192,222,.15);--info-fg:#5BC0DE;
     --success-bg:rgba(82,183,120,.15);--success-fg:#52B788;
@@ -197,6 +200,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 /* Layout */
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:78px;overflow-x:hidden;}
+#boot-skeleton{position:fixed;inset:0;z-index:900;background:var(--bg);padding:16px 14px;max-width:480px;margin:0 auto;}
+#boot-skeleton.hide{opacity:0;pointer-events:none;transition:opacity .2s ease;}
+#boot-skeleton .bs-hero{height:132px;border-radius:20px;margin-bottom:14px;}
+#boot-skeleton .bs-chips{display:flex;gap:8px;margin-bottom:14px;}
+#boot-skeleton .bs-chips span{height:34px;flex:1;border-radius:12px;}
+#boot-skeleton .bs-card{height:78px;border-radius:16px;margin-bottom:10px;}
+#boot-skeleton .bs-hero,#boot-skeleton .bs-chips span,#boot-skeleton .bs-card{background:var(--muted-bg);position:relative;overflow:hidden;}
+#boot-skeleton .bs-hero::after,#boot-skeleton .bs-chips span::after,#boot-skeleton .bs-card::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--skeleton-sheen),transparent);animation:shimmer 1.3s infinite;}
+@media (prefers-reduced-motion:reduce){#boot-skeleton .bs-hero::after,#boot-skeleton .bs-chips span::after,#boot-skeleton .bs-card::after{animation:none;}}
 .page{display:none;animation:fade .25s ease;}
 .page.active{display:block;}
 @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -332,6 +344,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-row-card:active{transform:scale(.99);}
 .trip-row-card .trc-cover{width:90px;height:72px;border-radius:12px;background:linear-gradient(135deg,#C4B5FD,#A78BFA);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;}
 .trip-row-card .trc-cover img{width:100%;height:100%;object-fit:cover;}
+/* v98: no-cover placeholder — the destination initial on a stable hashed
+   gradient, instead of a lone suitcase emoji floating in an empty block.
+   Every gradient stop below clears 3.5:1 against white text (>=3:1 needed for
+   the 30px display size), so it stays readable in both themes. */
+.trip-row-card .trc-cover-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;font-weight:700;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.28);letter-spacing:1px;}
 .trip-row-card .trc-body{flex:1;min-width:0;}
 .trip-row-card .trc-name{font-size:15px;font-weight:700;margin-bottom:4px;padding-right:56px;}
 .trip-row-card .trc-dates{font-size:11px;color:var(--text-light);margin-bottom:4px;}
@@ -463,6 +480,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-card{border-radius:var(--radius);overflow:hidden;background:var(--card);margin-bottom:14px;box-shadow:var(--shadow);cursor:pointer;}
 .trip-card .tc-cover{aspect-ratio:16/9;background:linear-gradient(135deg,#C4B5FD,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;position:relative;overflow:hidden;}
 .trip-card .tc-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+/* v98: no-cover placeholder for the trips-page card — same deterministic
+   gradient + destination initial as the home-page row card, so a trip looks
+   the same everywhere. White on every stop below clears 3.5:1 at 36px. */
+.trip-card .tc-cover .tc-cover-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:44px;font-weight:700;line-height:1;text-shadow:0 2px 6px rgba(0,0,0,.3);letter-spacing:2px;}
 .trip-card .tc-body{padding:12px 14px;}
 .trip-card .tc-title{font-size:15px;font-weight:700;}
 .trip-card .tc-meta{font-size:11px;color:var(--text-sec);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -738,6 +759,10 @@ img.photo-fade.loaded{opacity:1;}
 .album-tab{flex:0 0 auto;padding:6px 14px;border-radius:18px;background:var(--card);color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all .2s;}
 .album-tab.active{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
 .album-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 12px 14px;}
+.album-sentinel{grid-column:1/-1;text-align:center;padding:18px 0 10px;font-size:12px;color:var(--text-sec);}
+.album-spinner{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:6px;border-radius:50%;border:2px solid var(--border-strong);border-top-color:var(--primary-solid);animation:album-spin .7s linear infinite;}
+@keyframes album-spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.album-spinner{animation:none;}}
 .album-cell{aspect-ratio:1;background:var(--album-cell-grad);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
 .album-cell img{width:100%;height:100%;object-fit:cover;}
 .album-cell .album-emo{font-size:32px;opacity:.5;}
@@ -790,6 +815,32 @@ img.photo-fade.loaded{opacity:1;}
     <button class="btn btn-primary" style="flex:1;padding:8px 0;" onclick="dismissA2hs()">好</button>
   </div>
 </div>
+<!-- v98: boot skeleton. The single-file app ships ~390 KB of HTML+JS; on a
+     phone that parse costs 150-300 ms of blank screen. These placeholders are
+     plain markup that paints immediately, then hideBootSkeleton() removes them
+     once the app has rendered (with a 3 s failsafe so a script error can never
+     leave the user staring at a shimmering shell). -->
+<div id="boot-skeleton" aria-hidden="true">
+  <div class="bs-hero"></div>
+  <div class="bs-chips"><span></span><span></span><span></span><span></span></div>
+  <div class="bs-card"></div>
+  <div class="bs-card"></div>
+  <div class="bs-card"></div>
+</div>
+<script>
+// Failsafe: if anything during startup throws, the skeleton must still go away
+// after 3 s so the user is never stuck on a shimmering shell. Runs inline (and
+// therefore early) on purpose — it cannot depend on the main app script.
+setTimeout(function(){
+  try{
+    var e=document.getElementById('boot-skeleton');
+    if(!e||e.dataset.done)return;
+    e.dataset.done='1';
+    e.classList.add('hide');
+    setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},240);
+  }catch(err){}
+},3000);
+</script>
 <div class="app">
 
   <!-- ====== HOME ====== -->
@@ -1593,7 +1644,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v97';
+var APP_VERSION='v98';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1665,7 +1716,9 @@ function loadData(){
         });
       });
       if(needsSlim&&typeof buildTextPayload==='function'){
-        var slim=buildTextPayload();
+        var slimChunks=[];
+        (data.trips||[]).forEach(function(t){slimChunks=slimChunks.concat(buildPhotoChunks(t));});
+        var slim=buildTextPayload(slimChunks);
         var d2=JSON.parse(JSON.stringify(data));
         // rebuild data.trips from slim payload (keeps settings etc.)
         data.trips=slim.trips;
@@ -2261,6 +2314,22 @@ function mergeTrips(localTrips,remoteTrips){
       if(!d||!d.locations)return;
       d.locations.forEach(function(l){ if(l&&l.id&&localPhotoMap[l.id]&&(!l.photos||!l.photos.length))l.photos=localPhotoMap[l.id]; });
     });
+    // v98: `_chunkCount` (how many cloud chunk files a location owns) is a hint,
+    // not user data — losing it only costs a slower fallback probe. If the
+    // winning side dropped it, inherit the other side's value so parallel chunk
+    // fetching keeps working across mixed-version clients.
+    (local.days||[]).forEach(function(d){
+      if(!d||!d.locations)return;
+      d.locations.forEach(function(l){
+        if(!l||!l.id||l._chunkCount)return;
+        var remoteLoc=null;
+        (remote.days||[]).forEach(function(rd){
+          if(remoteLoc||!rd||!rd.locations)return;
+          rd.locations.forEach(function(rl){ if(rl&&rl.id===l.id&&rl._chunkCount)remoteLoc=rl; });
+        });
+        if(remoteLoc)l._chunkCount=remoteLoc._chunkCount;
+      });
+    });
     // Merge top-level trip photos by URL
     var photoSet={};
     (local.photos||[]).forEach(function(p){ if(p)photoSet[p]=true; });
@@ -2509,7 +2578,21 @@ function buildPhotoChunks(t){
   });
   return out;
 }
-function buildTextPayload(){
+function buildTextPayload(photoChunks){
+  // v98: photoChunks (already computed by the caller) is used to publish
+  // `l._chunkCount` — how many chunk FILES this location occupies in the cloud.
+  // A reader that knows the count fires every chunk request at once (1 RTT)
+  // instead of probing indices one window at a time.
+  // v98.1: `[^/]+` (NOT `[^/_]+`) — every real location id contains underscores
+  // (id_1788192291774_jbk7vb), so the old `[^/_]+` pattern could never match and
+  // _chunkCount was silently never published. Take the LAST `_<digits>.json`.
+  var chunkCountByLoc={};
+  (photoChunks||[]).forEach(function(c){
+    var m=c.path.match(/\/([^/]+)_(\d+)\.json$/);
+    if(!m)return;
+    var locId=m[1],idx=parseInt(m[2],10);
+    if(!chunkCountByLoc[locId]||idx+1>chunkCountByLoc[locId])chunkCountByLoc[locId]=idx+1;
+  });
   var now=new Date().toISOString();
   var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{}};
   data.trips.forEach(function(t){
@@ -2522,6 +2605,8 @@ function buildTextPayload(){
       (d.locations||[]).forEach(function(l){
         if(l.photos&&l.photos.length)l._photoCount=l.photos.length;
         l.photos=[]; // photos live in separate chunk files now
+        var n=chunkCountByLoc[l.id]||0;
+        if(n)l._chunkCount=n; else delete l._chunkCount;
       });
     });
     remoteData.trips.push(c);
@@ -2745,15 +2830,51 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
     if(cHave&&!forceRemote&&!(want>cHave)){loc.photos=photos;return photos;}
     var all=[];
     var maxChunk=30;
-    function readNext(i){
-      if(i>=maxChunk)return Promise.resolve();
-      return ghReadPhotoChunk('data/photos/'+tripId+'/'+loc.id+'_'+i+'.json').then(function(chunk){
-        if(!chunk||!chunk.photos||!chunk.photos.length)return Promise.resolve(); // first missing = stop
-        all=all.concat(chunk.photos);
-        return readNext(i+1);
-      }).catch(function(){return Promise.resolve();});
+    // v98: read chunks CONCURRENTLY instead of one serial round-trip each.
+    // Old behaviour: readNext(0) → wait → readNext(1) → wait … so a location
+    // with 6 photos (3 chunks + 1 miss probe) cost 4 sequential RTTs. With a
+    // 20-location trip at RTT≈180ms that was 5-7 s before photos appeared.
+    // Now: if the cloud told us the chunk count (loc._chunkCount, written on
+    // upload) we fire all of them at once — 1 RTT total. Otherwise we probe in
+    // windows of CHUNK_READ_CONCURRENCY and stop at the first gap, which is
+    // still ~3x faster than fully serial and stays correct for legacy data
+    // uploaded before _chunkCount existed.
+    var CHUNK_READ_CONCURRENCY=4;
+    function fetchChunk(i){
+      return ghReadPhotoChunk('data/photos/'+tripId+'/'+loc.id+'_'+i+'.json')
+        .then(function(chunk){return {i:i,chunk:chunk};})
+        .catch(function(){return {i:i,chunk:null};});
     }
-    return readNext(0).then(function(){
+    // Collect results in strict index order; the first empty chunk ends the run.
+    function mergeWindow(res){
+      res.sort(function(a,b){return a.i-b.i;});
+      for(var n=0;n<res.length;n++){
+        var r=res[n];
+        if(!(r.chunk&&r.chunk.photos&&r.chunk.photos.length))return false;
+        all=all.concat(r.chunk.photos);
+      }
+      return true;
+    }
+    function readWindow(start,count,exact){
+      if(start>=maxChunk)return Promise.resolve();
+      var want=Math.min(count,maxChunk-start);
+      if(want<=0)return Promise.resolve();
+      var idxs=[];
+      for(var k=0;k<want;k++)idxs.push(start+k);
+      return Promise.all(idxs.map(fetchChunk)).then(function(res){
+        if(!mergeWindow(res))return Promise.resolve(); // gap → done
+        if(exact)return Promise.resolve();             // count was known → done
+        return readWindow(start+res.length,CHUNK_READ_CONCURRENCY,false);
+      });
+    }
+    var known=loc._chunkCount||0;
+    var startPromise=known>0?readWindow(0,known,true):readWindow(0,CHUNK_READ_CONCURRENCY,false);
+    return startPromise.then(function(){
+      // Safety net: if a known count came back short of what the cloud claims,
+      // probe onward so a stale _chunkCount can never truncate someone's photos.
+      if(known>0&&all.length<want)return readWindow(known,CHUNK_READ_CONCURRENCY,false);
+      return Promise.resolve();
+    }).then(function(){
       if(all.length){loc.photos=all;photoCachePut(key,all);}
       return all;
     });
@@ -2869,26 +2990,37 @@ function prefetchAllTripPhotos(){
     try{saveDataLocal();}catch(e){}
   }).catch(function(){});
 }
-// v71: fetch trip covers from cloud files (data/covers/{tripId}.json) for any
-// trip marked _hasCover but without a cover in memory. Non-blocking.
+// v98.1: fetch trip covers from cloud files (data/covers/{tripId}.json) only
+// when we don't already have them.  Adds in-flight deduplication (the previous
+// code fired a fresh request on every sync poll → 25 pulls × 2 trips ≈ 50
+// cover reads per sync test) and reads IndexedDB cover cache before network.
 function ensureTripCovers(){
   if(!ghHasToken())return;
+  if(!GH.coverFetch)GH.coverFetch={};
   (data.trips||[]).forEach(function(t){
     if(!t||!t.id)return;
     if(!t._hasCover&&(!t.cover||!t.cover.length))return;
     if(t.cover&&t.cover.length>100)return; // already have it
-    geGetRaw('data/covers/'+t.id+'.json',20000).then(function(m){
-      if(!m||!m.content)return;
-      try{
-        var obj=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
-        if(obj&&obj.cover&&obj.cover.length>100){
-          t.cover=obj.cover;t._hasCover=1;
-          if(typeof photoCachePut==='function')photoCachePut('cover_'+t.id,[t.cover]);
-          try{saveDataLocal();}catch(e){}
-          renderAll();
-        }
-      }catch(e){}
-    }).catch(function(){});
+    if(GH.coverFetch[t.id])return;          // in-flight
+    GH.coverFetch[t.id]=photoCacheGet('cover_'+t.id).then(function(cached){
+      if(cached&&cached.length&&cached[0]&&cached[0].length>100){
+        t.cover=cached[0];t._hasCover=1;
+        renderAll();
+        return 'cached';
+      }
+      return geGetRaw('data/covers/'+t.id+'.json',20000).then(function(m){
+        if(!m||!m.content)return;
+        try{
+          var obj=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
+          if(obj&&obj.cover&&obj.cover.length>100){
+            t.cover=obj.cover;t._hasCover=1;
+            if(typeof photoCachePut==='function')photoCachePut('cover_'+t.id,[t.cover]);
+            try{saveDataLocal();}catch(e){}
+            renderAll();
+          }
+        }catch(e){}
+      });
+    }).catch(function(){}).then(function(){ delete GH.coverFetch[t.id]; },function(){ delete GH.coverFetch[t.id]; });
   });
 }
 // v91: upload a single photo chunk. Uses GH.photoChunkSha so an existing chunk
@@ -2965,9 +3097,11 @@ function syncPushNow(){
   setSyncStatus('syncing');
   // v47+: trips.json is now text-only (KB) so it uploads in one fast PUT.
   // Photos go in per-location chunk files that stay under 1MB each.
-  var remoteData=buildTextPayload();
+  // v98: chunk list is computed first so buildTextPayload can publish
+  // l._chunkCount (lets readers fetch every chunk in one parallel burst).
   var photoChunks=[];
   (data.trips||[]).forEach(function(t){photoChunks=photoChunks.concat(buildPhotoChunks(t));});
+  var remoteData=buildTextPayload(photoChunks);
   var attempt=function(tried){
     // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
     var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
@@ -3254,6 +3388,16 @@ function syncStart(){
     // v66: 30s polling (was 60s) — collaborators' edits arrive up to 2x faster.
     // Free GitHub token allows 5000 req/h, two devices @30s ≈ 240/h, well within.
     GH.syncTimer=setInterval(function(){
+      // v98: skip the poll while the app is in the background. iOS/Android
+      // suspend timers anyway, but desktop browsers keep firing — burning API
+      // quota and battery for changes the user cannot see. We still allow one
+      // low-frequency keep-alive every 5 min so a long session is roughly in
+      // sync, and the visibilitychange handler pulls immediately on return.
+      if(typeof document!=='undefined'&&document.hidden){
+        GH._bgTicks=(GH._bgTicks||0)+1;
+        if(GH._bgTicks*30<300)return;
+        GH._bgTicks=0;
+      }
       syncPull();
       // v63: periodic photo reconciliation — re-upload any local photo whose
       // cloud chunk is missing (throttled to 15 min inside the function).
@@ -3267,8 +3411,13 @@ function syncStart(){
   // returns to the app, but only on the trip-detail page (where it actually matters).
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){
-      var active=document.querySelector('.page.active');
-      if(active&&active.id==='page-trip-detail')syncPull();
+      // v98: coming back from the background is exactly when a collaborator may
+      // have changed something, and we deliberately did NOT poll while hidden —
+      // so pull right away on ANY page (the old code only did this on the trip
+      // detail page, leaving the calendar/home stale after a background stint).
+      // syncPull() self-throttles, so this cannot stampede the API.
+      GH._bgTicks=0;
+      syncPull();
       // v63: also reconcile photos when the app comes back to foreground
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
     }
@@ -3865,16 +4014,16 @@ function updateTripDayWeatherUI(w){
   var alertEl=document.getElementById('td-weather-alert');
   if(!alertEl)return;
   var alerts=[];
-  if(typeof w.rainProb==='number'&&w.rainProb>=30)alerts.push({cls:'rain',icon:'☂️',text:'Iris，降雨概率 '+Math.round(w.rainProb)+'%，出门记得带伞'});
-  if(typeof w.uv==='number'&&w.uv>=6)alerts.push({cls:'uv',icon:'🧴',text:'Iris，紫外线 '+Math.round(w.uv)+'，注意防晒'});
-  if(typeof w.tempMax==='number'&&w.tempMax>=35)alerts.push({cls:'hot',icon:'🥵',text:'Iris，高温 '+Math.round(w.tempMax)+'°C，注意防暑降温'});
-  if(typeof w.tempMin==='number'&&w.tempMin<=5)alerts.push({cls:'cold',icon:'🧣',text:'Iris，'+Math.round(w.tempMin)+'°C 偏冷，加件外套'});
-  if(typeof w.wind==='number'&&w.wind>=30)alerts.push({cls:'wind',icon:'🌬',text:'Iris，风力 '+Math.round(w.wind)+'km/h，户外注意'});
+  if(typeof w.rainProb==='number'&&w.rainProb>=30)alerts.push({cls:'rain',icon:'☂️',text:'降雨 '+Math.round(w.rainProb)+'% 记得带伞'});
+  if(typeof w.uv==='number'&&w.uv>=6)alerts.push({cls:'uv',icon:'🧴',text:'紫外线 '+Math.round(w.uv)+' 注意防晒'});
+  if(typeof w.tempMax==='number'&&w.tempMax>=35)alerts.push({cls:'hot',icon:'🥵',text:Math.round(w.tempMax)+'°C 注意防暑'});
+  if(typeof w.tempMin==='number'&&w.tempMin<=5)alerts.push({cls:'cold',icon:'🧣',text:Math.round(w.tempMin)+'°C 加件外套'});
+  if(typeof w.wind==='number'&&w.wind>=30)alerts.push({cls:'wind',icon:'🌬',text:'风力 '+Math.round(w.wind)+' 注意'});
   if(alerts.length){
     // Real warnings beat the mood lines — stop the rotator while showing them.
     clearWeatherMood();
     alertEl.style.display='flex';
-    alertEl.innerHTML=alerts.map(function(a){return '<span class="weather-alert '+a.cls+'">'+a.icon+' '+a.text+'</span>';}).join('');
+    alertEl.innerHTML=alerts.map(function(a,i){return '<span class="weather-alert '+a.cls+'">'+a.icon+' '+(i===0?'Iris，':'')+a.text+'</span>';}).join('');
   }else{
     // No warnings → pep-talk rotator. Never empty.
     startWeatherMood(alertEl);
@@ -4200,7 +4349,7 @@ function renderHome(){
       var cls=tripCountdown(t)&&tripCountdown(t).type==='done'?' trip-row-card trc-finished':' trip-row-card';
       html+='<div class="'+cls+'" onclick="openTrip(\''+t.id+'\')">'+
         cdBadge+
-        '<div class="trc-cover'+(t.cover?'':' photo-skeleton')+'">'+(t.cover?'<img loading="lazy" class="photo-fade" src="'+t.cover+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');">':'🧳')+'</div>'+
+        '<div class="trc-cover">'+(t.cover?'<img loading="lazy" class="photo-fade" src="'+t.cover+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');">':coverPlaceholderHTML(t))+'</div>'+
         '<div class="trc-body">'+
           '<div class="trc-name">'+escapeHTML(t.title)+chip+'</div>'+
           '<div class="trc-dates">📅 '+dur+'</div>'+
@@ -4472,6 +4621,27 @@ function calDayClick(y,m,d){calDate=new Date(y,m-1,d);renderCal();}
 // ============ Trips ============
 var tripsTabFilter='upcoming';
 var tripsTagFilter='all';
+// v98: trip-cover placeholder. Pick a gradient deterministically from the
+// destination name so the same trip always gets the same colour, and show its
+// first character — a big empty gradient block told the user nothing.
+var COVER_PLACEHOLDER_PAL=[
+  ['#7C3AED','#EC4899'],
+  ['#6D28D9','#A855F7'],
+  ['#075985','#0369A1'],
+  ['#065F46','#0E7490'],
+  ['#9A3412','#B45309'],
+  ['#9F1239','#BE123C']
+];
+function coverPlaceholderInner(t,cls){
+  var name=(t&&(t.destination||t.title))||'';
+  var h=0;
+  for(var i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+  var pair=COVER_PLACEHOLDER_PAL[h%COVER_PLACEHOLDER_PAL.length];
+  var trimmed=name.trim();
+  var ch=escapeHTML(trimmed?trimmed.charAt(0):'?');
+  return '<span class="'+cls+'" style="background:linear-gradient(135deg,'+pair[0]+','+pair[1]+');">'+ch+'</span>';
+}
+function coverPlaceholderHTML(t){return coverPlaceholderInner(t,'trc-cover-ph');}
 function renderTrips(){
   var city=getCityFromHero();
   document.getElementById('trips-hero-title').textContent=city+'行程规划';
@@ -4516,7 +4686,8 @@ function renderTrips(){
       renderList=show.slice(0,TRIP_PAGE_SIZE);
     }
     renderList.forEach(function(t){
-      var cover=t.cover?('<img src="'+t.cover+'">'):(Math.abs(hashCode(t.id))%3===0?'🗻':Math.abs(hashCode(t.id))%3===1?'🏯':'🌊');
+      // v98: was a lone emoji (🗻/🏯/🌊) floating in a big gradient block
+      var cover=t.cover?('<img src="'+t.cover+'" loading="lazy">'):coverPlaceholderInner(t,'tc-cover-ph');
       var dur='';
       if(t.startDate&&t.endDate){var days=daysBetween(t.startDate,t.endDate)+1;dur=fmtDateShort(t.startDate)+' ~ '+fmtDateShort(t.endDate)+' · '+days+'天'+ (days>1?Math.floor(days/2)+'晚':'');}
       else if(t.startDate)dur=fmtDate(t.startDate);
@@ -6787,6 +6958,9 @@ function pvRender(){
 // ============ Photo Album (v73) ============
 var ALBUM_FILTER='all';
 function openAlbum(){
+  // Opening the album is a fresh view: start from page 1 instead of whatever
+  // the user had scrolled through last time.
+  ALBUM_STATE.rendered=0;
   showPage('album');
   renderAlbum();
 }
@@ -6810,6 +6984,112 @@ function collectAlbumPhotos(filter){
   });
   return list;
 }
+// v98: paginated album rendering.
+// Previously EVERY photo's base64 string was injected into the DOM in one
+// innerHTML write — 300 photos ≈ 71.6 MB of DOM string, and once the browser
+// decodes them to bitmaps (5-6 MB each at 1400px) iOS Safari blows past its
+// ~1-1.5 GB memory ceiling and the tab is killed. `loading="lazy"` does NOT
+// help here: the bytes are already inside the src attribute, so there is no
+// network request left to defer.
+// Now: render ALBUM_PAGE cells, append the next page when the sentinel scrolls
+// into view, and hard-cap the live DOM at ALBUM_MAX_CELLS.
+var ALBUM_PAGE=60;
+var ALBUM_MAX_CELLS=600;
+var ALBUM_STATE={photos:[],rendered:0,lastMonth:'',obs:null,loading:false};
+function albumMonthLabel(d){
+  return (d||'').slice(0,4)+' 年 '+parseInt((d||'').slice(5,7),10)+' 月';
+}
+// Build cells for photos [from,to), continuing the month-grouping state so a
+// page boundary never duplicates (or drops) a month header.
+function albumBuildCells(from,to){
+  var photos=ALBUM_STATE.photos,g='';
+  for(var i=from;i<to&&i<photos.length;i++){
+    var p=photos[i];
+    var m=(p.d||'').slice(0,7);
+    if(m&&m!==ALBUM_STATE.lastMonth){
+      ALBUM_STATE.lastMonth=m;
+      g+='<div class="album-month" style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--primary-dark);padding:12px 2px 6px;">'+albumMonthLabel(p.d)+'</div>';
+    }
+    g+='<div class="album-cell photo-skeleton" data-i="'+i+'"><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(p.locName||'')+'</div></div>';
+  }
+  return g;
+}
+function albumSentinelText(){
+  var st=ALBUM_STATE;
+  if(st.photos.length&&st.rendered>=st.photos.length)return '已经看完全部 '+st.photos.length+' 张照片啦 ✨';
+  if(st.rendered>=ALBUM_MAX_CELLS)return '已显示最近 '+ALBUM_MAX_CELLS+' 张，更早的照片请到行程内查看';
+  return '<span class="album-spinner"></span>上滑加载更多…';
+}
+function albumUpdateSentinel(){
+  var sen=document.querySelector('#album-grid-wrap .album-sentinel');
+  if(sen)sen.innerHTML=albumSentinelText();
+}
+function albumDisconnect(){
+  if(ALBUM_STATE.obs){try{ALBUM_STATE.obs.disconnect();}catch(e){}ALBUM_STATE.obs=null;}
+}
+function albumAppendPage(){
+  var st=ALBUM_STATE;
+  var wrap=document.getElementById('album-grid-wrap');
+  if(!wrap||st.loading)return;
+  var grid=wrap.querySelector('.album-grid');
+  if(!grid)return;
+  if(st.rendered>=st.photos.length||st.rendered>=ALBUM_MAX_CELLS){albumUpdateSentinel();return;}
+  st.loading=true;
+  var to=Math.min(st.rendered+ALBUM_PAGE,st.photos.length,ALBUM_MAX_CELLS);
+  var sen=grid.querySelector('.album-sentinel');
+  // String→fragment in one parse, then move nodes in (never re-touch nodes
+  // already in the grid, so the browser does not re-decode loaded images).
+  var frag=document.createElement('div');
+  frag.innerHTML=albumBuildCells(st.rendered,to);
+  while(frag.firstChild){
+    if(sen)grid.insertBefore(frag.firstChild,sen);
+    else grid.appendChild(frag.firstChild);
+  }
+  st.rendered=to;
+  st.loading=false;
+  albumUpdateSentinel();
+}
+function albumObserveSentinel(){
+  albumDisconnect();
+  var sen=document.querySelector('#album-grid-wrap .album-sentinel');
+  if(!sen)return;
+  if(!ALBUM_STATE.photos.length)return;
+  if(typeof IntersectionObserver!=='undefined'){
+    ALBUM_STATE.obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting)albumAppendPage();});
+    },{root:null,rootMargin:'400px 0px'});
+    ALBUM_STATE.obs.observe(sen);
+    return;
+  }
+  // Fallback for very old iOS (<12.2) without IntersectionObserver. The page
+  // scrolls on the window (`.app` has no overflow-y), so listen there too.
+  ALBUM_STATE.obs={
+    disconnect:function(){
+      window.removeEventListener('scroll',albumScrollFallback);
+      window.removeEventListener('resize',albumScrollFallback);
+    }
+  };
+  window.addEventListener('scroll',albumScrollFallback,{passive:true});
+  window.addEventListener('resize',albumScrollFallback);
+}
+function albumScrollFallback(){
+  var sen=document.querySelector('#album-grid-wrap .album-sentinel');
+  if(!sen)return;
+  var r=sen.getBoundingClientRect();
+  if(r.top<window.innerHeight+400)albumAppendPage();
+}
+// One delegated listener for the whole grid instead of one per cell — with 600
+// cells that is 600 fewer listeners and no leak when pages are appended.
+function albumCellClick(e){
+  var el=e.target;
+  while(el&&el!==e.currentTarget){
+    if(el.classList&&el.classList.contains('album-cell'))break;
+    el=el.parentElement;
+  }
+  if(!el||!el.classList||!el.classList.contains('album-cell'))return;
+  var i=parseInt(el.dataset.i,10)||0;
+  viewPhotos(ALBUM_STATE.photos.map(function(x){return x.src;}),i);
+}
 function renderAlbum(){
   var tabsEl=document.getElementById('album-tabs');
   var wrap=document.getElementById('album-grid-wrap');
@@ -6822,6 +7102,10 @@ function renderAlbum(){
   tabsEl.innerHTML=html;
   tabsEl.querySelectorAll('.album-tab').forEach(function(el){
     el.addEventListener('click',function(){
+      // Switching trip = a different photo set, so reset paging. (The keep-range
+      // logic inside draw() is only meant for the same filter growing as photo
+      // chunks stream in from the cloud.)
+      ALBUM_STATE.rendered=0;
       ALBUM_FILTER=el.dataset.filter;
       renderAlbum();
     });
@@ -6841,32 +7125,27 @@ function renderAlbum(){
   });
   var draw=function(){
     var photos=collectAlbumPhotos(ALBUM_FILTER);
-    document.getElementById('album-summary').textContent=photos.length?'共 '+photos.length+' 张照片':'还没有照片';
+    var sumEl=document.getElementById('album-summary');
+    if(sumEl)sumEl.textContent=photos.length?'共 '+photos.length+' 张照片':'还没有照片';
+    albumDisconnect();
+    // Keep whatever the user had already scrolled through across a redraw
+    // (the photo set only grows as chunks arrive) so the grid never jumps.
+    var keep=Math.max(ALBUM_PAGE,Math.min(ALBUM_STATE.rendered||0,ALBUM_MAX_CELLS));
+    ALBUM_STATE.photos=photos;
+    ALBUM_STATE.rendered=0;
+    ALBUM_STATE.lastMonth='';
     if(!photos.length){
       wrap.innerHTML='<div class="album-empty"><div style="font-size:40px;margin-bottom:10px;">📷</div><div>还没有照片</div><div style="font-size:11px;margin-top:6px;">去每个地点选照片保存，就会出现在这里</div></div>';
       return;
     }
-    var g='<div class="album-grid">';
-    // v79: group by month — insert a sticky month header when the month changes
-    var lastMonth='';
-    photos.forEach(function(p,i){
-      var info=p.locName||'';
-      var m=(p.d||'').slice(0,7); // YYYY-MM
-      if(m&&m!==lastMonth){
-        lastMonth=m;
-        var ym=(p.d||'').slice(0,4)+' 年 '+parseInt((p.d||'').slice(5,7),10)+' 月';
-        g+='<div class="album-month" style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--primary-dark);padding:12px 2px 6px;">'+ym+'</div>';
-      }
-      g+='<div class="album-cell photo-skeleton" data-i="'+i+'"><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(info)+'</div></div>';
-    });
-    g+='</div>';
-    wrap.innerHTML=g;
-    wrap.querySelectorAll('.album-cell').forEach(function(c){
-      c.addEventListener('click',function(){
-        var i=parseInt(c.dataset.idx||c.dataset.i,10)||0;
-        viewPhotos(photos.map(function(x){return x.src;}),i);
-      });
-    });
+    var first=Math.min(keep,photos.length,ALBUM_MAX_CELLS);
+    wrap.innerHTML='<div class="album-grid">'+albumBuildCells(0,first)+
+      '<div class="album-sentinel" style="grid-column:1/-1;">'+albumSentinelText()+'</div></div>';
+    ALBUM_STATE.rendered=first;
+    // Same function reference every time → addEventListener de-dupes, so this
+    // is safe to call on every redraw.
+    wrap.addEventListener('click',albumCellClick);
+    albumObserveSentinel();
   };
   if(!jobs.length){draw();return;}
   draw(); // show what we have now, refresh when more photos arrive
@@ -6995,6 +7274,16 @@ function confirmFavToTrip(favId){
 // ============ Init ============
 // v73: dark mode + font scaling — apply the user's saved preference before
 // the first render so we don't get a light → dark flash.
+// v98: boot skeleton control. Called once the first real render has happened;
+// the setTimeout in the inline boot script guarantees it disappears even if a
+// later startup step throws.
+function hideBootSkeleton(){
+  var el=document.getElementById('boot-skeleton');
+  if(!el||el.dataset.done)return;
+  el.dataset.done='1';
+  el.classList.add('hide');
+  setTimeout(function(){if(el&&el.parentNode)el.parentNode.removeChild(el);},240);
+}
 function applyAppearance(){
   var s=data.settings||{};
   // v86: explicit light/dark/auto — the previous `classList.toggle('dark', ...)`
@@ -7072,6 +7361,8 @@ function init(){
   });
   document.getElementById('photo-viewer').addEventListener('click',function(){closePhotoViewer();});
   if(ghHasToken()){syncStart();}else{setSyncStatus('offline');}
+  // v98:首页已渲染完，撤掉首屏骨架
+  hideBootSkeleton();
   // v74: departure reminder — check on launch, then every 6h
   setTimeout(function(){maybeEnableDepartureReminders();},4000);
   setInterval(function(){checkDepartureReminders(true);},6*3600000);
