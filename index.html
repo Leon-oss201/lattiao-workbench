@@ -34,6 +34,9 @@
      boundary is the only thing marking it as an input, so WCAG 1.4.11 needs 3:1. */
   --border-strong:#9B6BE8;
   --album-hero-grad:linear-gradient(180deg,#F5F3FF,#EDE9FE);
+  /* v97: 内联总结卡片的渐变底。深色值给 --text 12.1:1、
+     --primary-dark 7.8:1、--text-light 5.5:1。 */
+  --summary-grad:linear-gradient(135deg,#F5F3FF,#FDF2F8);
   /* v96: floating controls that sit ON TOP of a photo/hero of unknown colour. */
   --on-media:rgba(26,21,48,.82);--on-media-fg:#fff;
   --album-cell-grad:linear-gradient(135deg,#C4B5FD,#A78BFA);
@@ -96,7 +99,10 @@
   --primary-solid:#6D28D9;
   --border-strong:#7A6AA8;
   --album-hero-grad:linear-gradient(180deg,#262040,#2E2648);
+  --summary-grad:linear-gradient(135deg,#2A1E47,#33224A);
   --album-cell-grad:linear-gradient(135deg,#3D2B5F,#4C3878);
+  /* v96: floating controls that sit ON TOP of a photo/hero of unknown colour. */
+  --on-media:rgba(26,21,48,.82);--on-media-fg:#fff;
   --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
   /* v95: on dark cards the bright orange reads fine as text (8.1:1), so -fg
      matches --accent here; only the solid button fill stays deep. */
@@ -146,6 +152,7 @@
     --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
     --primary-solid:#6D28D9;--border-strong:#7A6AA8;
     --album-hero-grad:linear-gradient(180deg,#262040,#2E2648);
+    --summary-grad:linear-gradient(135deg,#2A1E47,#33224A);
     --on-media:rgba(26,21,48,.82);--on-media-fg:#fff;
     --album-cell-grad:linear-gradient(135deg,#3D2B5F,#4C3878);
     --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
@@ -526,7 +533,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-card .tl-meta{font-size:11px;color:var(--text-sec);display:flex;gap:8px;flex-wrap:wrap;}
 .tl-card .tl-meta span{display:inline-flex;align-items:center;gap:3px;}
 
-.td-map{margin:14px 18px;border-radius:var(--radius);overflow:hidden;background:linear-gradient(135deg,#F5F3FF,#F2E9D9);height:200px;position:relative;}
+.td-map{margin:14px 18px;border-radius:var(--radius);overflow:hidden;background:var(--muted-bg);height:200px;position:relative;}
 .td-map .map-svg{position:absolute;inset:0;width:100%;height:100%;}
 .td-map .map-label{position:absolute;top:10px;left:14px;background:var(--card);box-shadow:var(--shadow);padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;color:var(--primary-dark);}
 
@@ -1136,7 +1143,7 @@ img.photo-fade.loaded{opacity:1;}
       <div class="pro-highlight"><div class="ph-v" id="ph-farthest">—</div><div class="ph-l">最远目的地</div></div>
       <div class="pro-highlight"><div class="ph-v" id="ph-photoday">—</div><div class="ph-l">照片最多的一天</div></div>
     </div>
-    <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,#F5F3FF,#FDF2F8);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
+    <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div class="menu-card">
       <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
@@ -1566,8 +1573,8 @@ function showUpdateBanner(latest){
     if(document.getElementById('update-banner'))return;
     var bar=document.createElement('div');
     bar.id='update-banner';
-    bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;max-width:480px;margin:0 auto;background:linear-gradient(135deg,#7C3AED,#FF8C42);color:#fff;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(124,58,237,.35);cursor:pointer;';
-    bar.innerHTML='✨ 发现新版本 '+latest+'<span style="margin-left:auto;background:rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-size:12px;">点击刷新</span>';
+    bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;max-width:480px;margin:0 auto;background:linear-gradient(135deg,#6D28D9,#C2410C);color:#fff;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(124,58,237,.35);cursor:pointer;';
+    bar.innerHTML='✨ 发现新版本 '+latest+'<span style="margin-left:auto;background:rgba(0,0,0,.28);padding:4px 12px;border-radius:20px;font-size:12px;">点击刷新</span>';
     // v90: before reloading, nudge the service worker to re-download sw.js so
     // the new SW takes over on the next load (a reload alone could otherwise
     // still be served by the cached old SW).
@@ -1586,7 +1593,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v96';
+var APP_VERSION='v97';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4447,7 +4454,7 @@ function renderCalLocationDetails(l){
     // v66: photo placeholder while chunks are still loading
     html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📷 照片</b></div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">'+
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#EDE9FE,#F5F3FF);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">📷 '+l._photoCount+'</div>'+
+      '<div style="aspect-ratio:1;border-radius:6px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-sec);font-weight:600;">📷 '+l._photoCount+'</div>'+
       '</div>';
   }
   if(l.budget&&l.budget.items&&l.budget.items.length){
@@ -4680,16 +4687,16 @@ function generateCoverSvg(tpl,title,dest){
   var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
   var bg,accent,deco='';
   if(tpl==='ink'){bg='#7C3AED';accent='#EDE9FE';deco='<circle cx="300" cy="60" r="90" fill="#A78BFA" opacity=".5"/><path d="M0 300 L120 240 L240 270 L360 220 L500 250 L600 230 L600 400 L0 400 Z" fill="#C4B5FD" opacity=".6"/><path d="M60 330 L160 290 L280 320 L400 280 L520 310 L600 295" stroke="#EDE9FE" stroke-width="2" fill="none" opacity=".5"/>';}
-  else if(tpl==='journal'){bg='#F97316';accent='#FFFBEB';deco='<rect x="30" y="30" width="540" height="330" rx="18" fill="none" stroke="#FBBF24" stroke-width="3" opacity=".8"/><circle cx="420" cy="90" r="50" fill="#FBBF24" opacity=".5"/><path d="M0 300 Q150 260 300 290 T600 270 L600 400 L0 400 Z" fill="#FB923C" opacity=".4"/>';}
+  else if(tpl==='journal'){bg='#C2410C';accent='#FFF7ED';deco='<rect x="30" y="30" width="540" height="330" rx="18" fill="none" stroke="#FBBF24" stroke-width="3" opacity=".8"/><circle cx="420" cy="90" r="50" fill="#FBBF24" opacity=".5"/><path d="M0 300 Q150 260 300 290 T600 270 L600 400 L0 400 Z" fill="#FB923C" opacity=".4"/>';}
   else if(tpl==='minimal'){bg='#1F182E';accent='#C4B5FD';deco='<rect x="40" y="40" width="520" height="320" fill="none" stroke="#7C3AED" stroke-width="2" opacity=".7"/><circle cx="500" cy="80" r="60" fill="none" stroke="#7C3AED" stroke-width="1.5" opacity=".5"/><path d="M40 350 L560 350" stroke="#7C3AED" stroke-width="1" opacity=".6"/>';}
-  else{bg='#0EA5E9';accent='#E0F2FE';deco='<circle cx="500" cy="70" r="50" fill="#FDE68A" opacity=".9"/><path d="M0 320 L120 260 L240 300 L360 240 L480 290 L600 250 L600 400 L0 400 Z" fill="#7DD3FC" opacity=".6"/><path d="M0 350 L160 300 L320 340 L500 290 L600 330 L600 400 L0 400 Z" fill="#38BDF8" opacity=".5"/>';}
+  else{bg='#0369A1';accent='#E0F2FE';deco='<circle cx="500" cy="70" r="50" fill="#FDE68A" opacity=".9"/><path d="M0 320 L120 260 L240 300 L360 240 L480 290 L600 250 L600 400 L0 400 Z" fill="#7DD3FC" opacity=".6"/><path d="M0 350 L160 300 L320 340 L500 290 L600 330 L600 400 L0 400 Z" fill="#38BDF8" opacity=".5"/>';}
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">'+
     '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+bg+'"/><stop offset="1" stop-color="'+bg+'"/></linearGradient></defs>'+
     '<rect width="600" height="400" fill="url(#bg)"/>'+deco+
     '<text x="300" y="180" font-size="46" font-weight="700" fill="'+accent+'" text-anchor="middle" font-family="Songti SC,STSong,serif">'+esc(title)+'</text>'+
     (dest?'<text x="300" y="230" font-size="26" fill="'+accent+'" opacity=".9" text-anchor="middle">📍 '+esc(dest)+'</text>':'')+
-    '<text x="300" y="370" font-size="18" fill="'+accent+'" opacity=".7" text-anchor="middle">🍃 薄荷旅行手账</text>'+
+    '<text x="300" y="370" font-size="18" fill="'+accent+'" text-anchor="middle">🍃 薄荷旅行手账</text>'+
     '</svg>'
   );
 }
@@ -4986,7 +4993,7 @@ function renderTimeline(){
     }else if(l._photoCount>0){
       // v66: loading placeholder — photos will swap in when prefetch finishes
       photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
-        '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#EDE9FE,#F5F3FF);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">📷 '+l._photoCount+'</div>'+
+        '<div style="aspect-ratio:1;border-radius:6px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-sec);font-weight:600;">📷 '+l._photoCount+'</div>'+
         '</div>';
     }
     html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
@@ -5340,7 +5347,7 @@ function renderTripDetailExtras(){
       }else if(t.summary&&(t.summary.best||t.summary.revisit||t.summary.perPerson)){
         sumSec.style.display='block';
         var sp=t.summary;
-        sumEl.innerHTML='<div style="background:linear-gradient(135deg,#F5F3FF,#FDF2F8);border:1px solid var(--border);border-radius:14px;padding:14px;">'+
+        sumEl.innerHTML='<div style="background:var(--summary-grad);border:1px solid var(--border);border-radius:14px;padding:14px;">'+
           '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;">💜 这段旅程的回忆</div>'+
           (sp.best?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px;">🏆 <b>最棒：</b>'+escapeHTML(sp.best)+'</div>':'')+
           (sp.revisit?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px;">📍 <b>想再去：</b>'+escapeHTML(sp.revisit)+'</div>':'')+
@@ -5368,7 +5375,7 @@ function renderTripDetailExtras(){
     var day=t.days[currentTripDay]||t.days[0];
     var dlocs=(day&&day.locations)||[];
     if(dlocs.length===0){
-      mEl.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;background:linear-gradient(135deg,#F5F3FF,#F2E9D9);">'+
+      mEl.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-sec);font-size:13px;background:var(--muted-bg);">'+
         '<div style="font-size:38px;opacity:.45;margin-bottom:6px;">🗺️</div>'+
         '<div>这一天还没有地点，添加后会自动绘制路线</div>'+
         '</div><div class="map-label">🗺 路线示意</div>';
@@ -5393,20 +5400,20 @@ function renderTripDetailExtras(){
       var nodesSvg=pts.map(function(p){
         var c=typeColor[p.loc.type]||'#7C3AED';
         return '<g>'+
-          '<circle cx="'+p.x+'" cy="'+p.y+'" r="11" fill="#fff" stroke="'+c+'" stroke-width="3"/>'+
-          '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="'+c+'">'+(p.idx+1)+'</text>'+
-          '<text x="'+p.x+'" y="'+(p.y+25)+'" text-anchor="middle" font-size="10" fill="#4C1D95" font-weight="600">'+(p.loc.time||'--')+'</text>'+
-          '<text x="'+p.x+'" y="'+(p.y+38)+'" text-anchor="middle" font-size="10" fill="#6B7280">'+
+          '<circle cx="'+p.x+'" cy="'+p.y+'" r="11" fill="var(--card)" stroke="var(--primary)" stroke-width="3"/>'+
+          '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="var(--primary)">'+(p.idx+1)+'</text>'+
+          '<text x="'+p.x+'" y="'+(p.y+25)+'" text-anchor="middle" font-size="10" fill="var(--primary-dark)" font-weight="600">'+(p.loc.time||'--')+'</text>'+
+          '<text x="'+p.x+'" y="'+(p.y+38)+'" text-anchor="middle" font-size="10" fill="var(--text-sec)">'+
             (p.loc.name&&p.loc.name.length>6?escapeHTML(p.loc.name.slice(0,6))+'…':escapeHTML(p.loc.name||''))+
           '</text>'+
           '</g>';
       }).join('');
       mEl.innerHTML=
         '<svg class="map-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice">'+
-          '<rect width="'+W+'" height="'+H+'" fill="#F5F3FF"/>'+
-          '<path d="M0 '+H+' Q100 '+(H-30)+' 200 '+H+' T400 '+(H-10)+' L400 '+H+' Z" fill="#E9D5FF" opacity=".4"/>'+
-          '<path d="M50 '+H+' Q150 '+(H-50)+' 250 '+(H-20)+' T400 '+(H-30)+' L400 '+H+' Z" fill="#C4B5FD" opacity=".3"/>'+
-          '<path d="'+pathD+'" stroke="#7C3AED" stroke-width="2.5" fill="none" stroke-dasharray="5 4" opacity=".7"/>'+
+          '<rect width="'+W+'" height="'+H+'" fill="var(--muted-bg)"/>'+
+          '<path d="M0 '+H+' Q100 '+(H-30)+' 200 '+H+' T400 '+(H-10)+' L400 '+H+' Z" fill="var(--primary)" opacity=".10"/>'+
+          '<path d="M50 '+H+' Q150 '+(H-50)+' 250 '+(H-20)+' T400 '+(H-30)+' L400 '+H+' Z" fill="var(--primary)" opacity=".06"/>'+
+          '<path d="'+pathD+'" stroke="var(--primary)" stroke-width="2.5" fill="none" stroke-dasharray="5 4" opacity=".7"/>'+
           nodesSvg+
         '</svg>'+
         '<div class="map-label">🗺 路线 · '+dlocs.length+' 站</div>';
@@ -5469,13 +5476,19 @@ function renderPosterToCanvas(t,coverImg){
       var ratio=Math.max(W/coverImg.width,topH/coverImg.height);
       var w=coverImg.width*ratio,h=coverImg.height*ratio;
       ctx.drawImage(coverImg,(W-w)/2,(topH-h)/2,w,h);
-      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(0,0,W,topH);
+      // v97: 平铺 0.25 蒙版遇到浅色封面时，白字标题只有 1.84:1。
+      // 改成自上而下加强的渐变：照片顶部保留通透感，标题/副标题区足够深
+      // （纯白极端场景下标题 3.32:1、副标题 4.67:1）。
+      var scrim=ctx.createLinearGradient(0,0,0,topH);
+      scrim.addColorStop(0,'rgba(0,0,0,0.30)');
+      scrim.addColorStop(1,'rgba(0,0,0,0.58)');
+      ctx.fillStyle=scrim;ctx.fillRect(0,0,W,topH);
     }catch(e){
       ctx.fillStyle='#7C3AED';ctx.fillRect(0,0,W,topH);
     }
   }else{
     var grd=ctx.createLinearGradient(0,0,W,topH);
-    grd.addColorStop(0,'#7C3AED');grd.addColorStop(1,'#A78BFA');
+    grd.addColorStop(0,'#6D28D9');grd.addColorStop(1,'#7C3AED');
     ctx.fillStyle=grd;ctx.fillRect(0,0,W,topH);
   }
   // Title (cover or default)
@@ -5620,7 +5633,7 @@ function buildTripHTML(t){
   })();
   return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(t.title)+'</title><style>'+
     'body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#F5F3FF;margin:0;padding:16px;color:#1F182E;}'+
-    '.hero{background:linear-gradient(135deg,#7C3AED,#A78BFA);border-radius:18px;padding:22px 18px;color:#fff;margin-bottom:14px;}'+
+    '.hero{background:linear-gradient(135deg,#6D28D9,#7C3AED);border-radius:18px;padding:22px 18px;color:#fff;margin-bottom:14px;}'+
     '.hero h1{margin:0 0 6px;font-size:22px;}'+
     '.hero p{margin:0;font-size:12px;opacity:.9;}'+
     '.day{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 4px 16px rgba(124,58,237,.08);}'+
@@ -5629,7 +5642,7 @@ function buildTripHTML(t){
     '.loc:first-child{border-top:none;}'+
     '.loc-head{display:flex;align-items:center;gap:8px;}'+
     '.time{background:#F3E8FF;color:#7C3AED;font-size:11px;padding:2px 8px;border-radius:10px;}'+
-    '.tag{background:#FFEEDD;color:#B45309;font-size:10px;padding:2px 8px;border-radius:10px;}'+
+    '.tag{background:#FFEEDD;color:#92400E;font-size:10px;padding:2px 8px;border-radius:10px;}'+
     '.guide,.feel{font-size:13px;color:#6B5F7D;margin-top:6px;line-height:1.7;}'+
     '.ph{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}'+
     '.ph img{width:96px;height:96px;object-fit:cover;border-radius:10px;}'+
