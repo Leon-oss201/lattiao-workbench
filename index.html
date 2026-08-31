@@ -1460,7 +1460,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v91';
+var APP_VERSION='v92';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -1947,6 +1947,15 @@ function ghCacheWrite(remote){
 function tripsFingerprint(trips){
   if(!trips)return '';
   return trips.map(function(t){return t.id+'|'+(t.updatedAt||0);}).sort().join(',');
+}
+// v92: settings (heroBg/city/title/slogan/fontScale) must also trigger a push.
+// Otherwise changing only the home background is silently skipped because the
+// trip fingerprint hasn't changed — collaborators never see the new background.
+function settingsFingerprint(s){
+  if(!s||typeof s!=='object')return '';
+  return ['heroBg','city','heroTitle','slogan','fontScale','fxRate'].map(function(k){
+    return k+'='+(s[k]||'');
+  }).join('|');
 }
 
 function ghReadTrips(){
@@ -2811,7 +2820,10 @@ function syncPushNow(){
   }
   // Incremental push: if nothing changed since the last successful upload, skip
   // the whole round-trip (avoids re-uploading a 2MB+ photo payload for no reason).
-  var fp=tripsFingerprint(data.trips);
+  // v92: fingerprint must include settings (heroBg/city/title/slogan/fontScale),
+  // otherwise a background-only change has the same tripsFingerprint and is
+  // silently skipped — collaborators never see the new background.
+  var fp=tripsFingerprint(data.trips)+'::'+settingsFingerprint(data.settings);
   if(GH.lastPushFp&&GH.lastPushFp===fp){
     GH.lastSync=Date.now();setSyncStatus('synced');
     return Promise.resolve();
@@ -2882,7 +2894,7 @@ function syncPushNow(){
         }
         if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
         GH.pushBackoff=0;
-        GH.lastPushFp=fp; // remember what we uploaded so the next syncPushNow can skip
+        GH.lastPushFp=fp; // v92: combined trips+settings fingerprint, so future settings-only changes still push
         setSyncStatus('synced');
         // v61/v91: report photo outcome honestly — surface failures instead of
         // pretending everything uploaded (a silent gap is what made photos look
@@ -3402,12 +3414,12 @@ function getCityFromHero(){
   }
   return '杭州';
 }
-// v72.3: weather is driven by the nearest upcoming/active trip — not the
-// settings-city. Iris's rule:
+// v72.3 + v92: both the weather pill AND the "Hi, X" greeting follow the
+// nearest upcoming/active trip city. Iris's rule:
 //   1) If a trip is currently in progress (startDate ≤ today ≤ endDate) → its destination
 //   2) Else if a trip starts within the next 7 days → its destination
 //   3) Else (no upcoming trip, all trips done) → default to 上海
-// Settings-city still drives hero title/Hi greeting — only weather switches.
+// Settings-city still drives the editable hero title; the greeting/weather stay in sync.
 function getActiveWeatherCity(){
   var now=new Date();now.setHours(0,0,0,0);
   var trips=(data.trips||[]).slice();
@@ -4014,7 +4026,7 @@ function locTypeIcon(type){
 }
 
 function renderHome(){
-  var city=getCityFromHero();
+  var city=getActiveWeatherCity();
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   // hero-title: user-editable, persist into data.settings.heroTitle (不再跟 city 派生 —
@@ -4049,7 +4061,6 @@ function renderHome(){
   if(ups.length===0){
     html='<div class="empty">'+emptyArt(92)+'<div class="e-title" style="margin-top:4px;">还没有行程</div><div class="e-desc">点击下方按钮开始规划</div></div>';
   }else{
-    var city=getCityFromHero();
     ups.forEach(function(t){
       var cover=t.cover?('<img src="'+t.cover+'">'):'🧳';
       var dur='';
@@ -4067,7 +4078,7 @@ function renderHome(){
         '<div class="trc-body">'+
           '<div class="trc-name">'+escapeHTML(t.title)+chip+'</div>'+
           '<div class="trc-dates">📅 '+dur+'</div>'+
-          '<div class="trc-loc">📍 '+(t.destination?city+'·'+escapeHTML(t.destination):'未设置目的地')+wx+'</div>'+
+          '<div class="trc-loc">📍 '+(t.destination?escapeHTML(t.destination):'未设置目的地')+wx+'</div>'+
         '</div></div>';
     });
   }
