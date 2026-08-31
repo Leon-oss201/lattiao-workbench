@@ -26,6 +26,17 @@
 <style>
 :root{
   --primary:#7C3AED;--primary-dark:#5B21B6;--primary-light:#F3E8FF;--primary-lighter:#FAF5FF;
+  /* v96: --primary is deliberately LIGHTER in dark mode (#A78BFA) so it stays
+     readable as a text/icon colour — but white text on it then drops to 2.7:1.
+     Anything that fills with primary AND carries white text uses this instead. */
+  --primary-solid:#7C3AED;
+  /* v96: form-field outline. --border is a hairline divider (~1.3:1); a field's
+     boundary is the only thing marking it as an input, so WCAG 1.4.11 needs 3:1. */
+  --border-strong:#9B6BE8;
+  --album-hero-grad:linear-gradient(180deg,#F5F3FF,#EDE9FE);
+  /* v96: floating controls that sit ON TOP of a photo/hero of unknown colour. */
+  --on-media:rgba(26,21,48,.82);--on-media-fg:#fff;
+  --album-cell-grad:linear-gradient(135deg,#C4B5FD,#A78BFA);
   --accent:#FF8C42;--accent-soft:#FFEEDD;--accent2:#5BC0DE;
   /* v95: the brand orange / cyan stay for decorative fills (dots, borders,
      gradients), but text and solid buttons need their own deeper variants —
@@ -80,6 +91,12 @@
 /* v73: dark mode — overrides all the design tokens above for night viewing */
 :root.dark,html.dark{
   --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
+  /* v96: white on dark-mode --primary (#A78BFA) is only 2.72:1, so any element
+     that fills with primary AND carries white text must use this deeper fill. */
+  --primary-solid:#6D28D9;
+  --border-strong:#7A6AA8;
+  --album-hero-grad:linear-gradient(180deg,#262040,#2E2648);
+  --album-cell-grad:linear-gradient(135deg,#3D2B5F,#4C3878);
   --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
   /* v95: on dark cards the bright orange reads fine as text (8.1:1), so -fg
      matches --accent here; only the solid button fill stays deep. */
@@ -127,6 +144,10 @@
 @media (prefers-color-scheme: dark){
   :root:not(.light){
     --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
+    --primary-solid:#6D28D9;--border-strong:#7A6AA8;
+    --album-hero-grad:linear-gradient(180deg,#262040,#2E2648);
+    --on-media:rgba(26,21,48,.82);--on-media-fg:#fff;
+    --album-cell-grad:linear-gradient(135deg,#3D2B5F,#4C3878);
     --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
     --accent-fg:#FFA76B;--accent-solid:#B45309;--accent2-fg:#5BC0DE;
     --bg:#1A1530;--card:#262040;
@@ -176,7 +197,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .btn:active{transform:scale(.97);}
-.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
+/* v96: --primary-solid, not --primary. In dark mode --primary is #A78BFA
+   (bright, so it reads well as text) and white on it is only 2.72:1. */
+.btn-primary{background:var(--primary-solid);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
 :root.dark .btn-primary{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
 .btn-primary:hover{background:var(--primary-dark);}
 .btn-accent{background:var(--accent-solid);color:#fff;box-shadow:0 4px 14px rgba(255,140,66,.3);}
@@ -224,7 +247,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .bg-thumb-label{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;font-weight:600;color:#1F182E;background:rgba(255,255,255,.75);padding:2px 0;}
 /* v78: trip template chips */
 .tpl-chip{flex:0 0 auto;padding:8px 14px;border-radius:18px;background:var(--primary-lighter);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--primary-dark);cursor:pointer;transition:all .15s;}
-.tpl-chip:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+.tpl-chip:hover{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
 /* v78: explored cities card on home */
 .cities-scroll{display:flex;gap:10px;overflow-x:auto;padding:12px 16px;scrollbar-width:none;}
 .cities-scroll::-webkit-scrollbar{display:none;}
@@ -351,7 +374,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   .cal-day:active{background:var(--primary-light);}
   .cal-day .cal-day-num{font-weight:500;}
   .cal-day.muted{color:var(--text-light);opacity:.5;}
-  .cal-day.today{background:var(--primary);color:#fff;font-weight:700;}
+  .cal-day.today{background:var(--primary-solid);color:#fff;font-weight:700;}
   :root.dark .cal-day.today{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
   .cal-day.today .cal-day-num{font-weight:700;}
   /* v80: trip-range styling — connected pill across multiple days, more eye-
@@ -365,7 +388,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   .cal-day.trip-start .cal-day-num,.cal-day.trip-end .cal-day-num,.cal-day.trip-single .cal-day-num{font-size:11px;}
   /* v80: cal status banner — the loudest thing on the page */
   .cal-status-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin:12px 14px 0;border-radius:14px;box-shadow:var(--shadow);cursor:pointer;}
-  .cal-status-banner.live{background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;}
+  /* v96: darkened the top stop — the old #7C3AED->#A78BFA averaged to rgb(146,99,244),
+   which gave white 13px text only 3.95:1. Now 6.35:1. */
+  .cal-status-banner.live{background:linear-gradient(135deg,#6D28D9,#7C3AED);color:#fff;}
   .cal-status-banner.upcoming{background:var(--warn-bg);color:var(--warn-fg);}
   .cal-status-banner.done{background:var(--card);color:var(--text);}
   .cal-status-banner .csb-emoji{font-size:28px;line-height:1;}
@@ -415,7 +440,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tc-sticker{position:absolute;top:-6px;left:-6px;font-size:18px;transform:rotate(-12deg);filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));}
 /* v75: nav sort mode */
 .bottom-nav .bn-item.sorting{outline:2px dashed var(--primary);outline-offset:-2px;border-radius:10px;}
-.bottom-nav .bn-item.picked{background:var(--primary);color:#fff;border-radius:12px;}
+.bottom-nav .bn-item.picked{background:var(--primary-solid);color:#fff;border-radius:12px;}
 @keyframes navShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
 
 .trip-list{padding:14px 18px;}
@@ -451,9 +476,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.5) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:18px;color:#fff;}
 .td-hero h1{font-size:22px;font-weight:700;font-family:"Songti SC","STSong",serif;}
 .td-hero .sub{font-size:12px;opacity:.9;margin-top:4px;}
-.td-back{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border:none;font-size:18px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;}
+.td-back{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:50%;background:var(--pill-glass);color:var(--text);backdrop-filter:blur(8px);border:none;font-size:18px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;}
 .td-actions{position:absolute;top:14px;right:14px;display:flex;gap:8px;z-index:2;}
-.td-actions .btn-icon{background:rgba(255,255,255,.85);}
+/* v96: these float over the trip cover photo, which can be ANY colour. A white
+   glyph needs a scrim dark enough to survive a pure-white photo: rgba(26,21,48,.82)
+   gives 10.1:1 over white and 13.5:1 over the purple hero. */
+.td-actions .btn-icon{background:var(--on-media);color:var(--on-media-fg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 
 .td-date-strip{background:var(--card);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
 .td-date-strip .tds{font-size:14px;font-weight:600;}
@@ -461,7 +489,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-day-pills{display:flex;gap:6px;padding:12px 18px;background:var(--card);}
 .td-day-pills .pill{flex:1;text-align:center;padding:8px 0;border-radius:12px;background:var(--primary-lighter);color:var(--text-sec);font-size:12px;cursor:pointer;border:1px solid transparent;transition:all .15s;}
 .td-day-pills .pill .pill-d{font-size:10px;display:block;margin-top:2px;color:var(--text-light);}
-.td-day-pills .pill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.td-day-pills .pill.active{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
 .td-day-pills .pill.active .pill-d{color:rgba(255,255,255,.8);}
 
 .td-weather{padding:10px 18px;background:var(--card);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
@@ -484,13 +512,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .timeline::before{content:"";position:absolute;left:54px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--primary-light) 0%,var(--primary-lighter) 100%);border-radius:2px;}
 .tl-item{position:relative;padding:10px 0;}
 /* v79: swipe-to-delete on timeline cards */
-.tl-item .tl-swipe-del{position:absolute;right:0;top:10px;bottom:10px;width:64px;background:#F87171;color:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .15s;z-index:0;}
+.tl-item .tl-swipe-del{position:absolute;right:0;top:10px;bottom:10px;width:64px;background:var(--danger-solid);color:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .15s;z-index:0;}
 .tl-item.swiped .tl-swipe-del{opacity:1;pointer-events:auto;}
 .tl-item .tl-card{transition:transform .2s ease;position:relative;z-index:1;}
 .tl-item.swiped .tl-card{transform:translateX(-64px);}
 .tl-time{position:absolute;left:-60px;top:10px;width:48px;text-align:right;font-size:11px;color:var(--text-sec);}
 .tl-time b{display:block;font-size:13px;color:var(--text);font-weight:700;}
-.tl-dot{position:absolute;left:-12px;top:14px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);}
+.tl-dot{position:absolute;left:-12px;top:14px;width:18px;height:18px;border-radius:50%;background:var(--card);border:3px solid var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);}
 .tl-dot.food{border-color:var(--accent-fg);}
 .tl-dot.transport{border-color:var(--accent2);}
 .tl-card{background:var(--card);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:var(--shadow);}
@@ -500,7 +528,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .td-map{margin:14px 18px;border-radius:var(--radius);overflow:hidden;background:linear-gradient(135deg,#F5F3FF,#F2E9D9);height:200px;position:relative;}
 .td-map .map-svg{position:absolute;inset:0;width:100%;height:100%;}
-.td-map .map-label{position:absolute;top:10px;left:14px;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;color:var(--primary-dark);}
+.td-map .map-label{position:absolute;top:10px;left:14px;background:var(--card);box-shadow:var(--shadow);padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;color:var(--primary-dark);}
 
 .td-tabs{display:flex;background:var(--card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
 .td-tabs div{flex:1;text-align:center;padding:12px 0;font-size:13px;color:var(--text-sec);cursor:pointer;border-bottom:2px solid transparent;}
@@ -623,8 +651,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .form-row{margin-bottom:14px;}
 .form-label{display:block;font-size:12px;color:var(--text-sec);margin-bottom:6px;font-weight:600;}
-.form-input,.form-textarea,.form-select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:var(--card);color:var(--text);outline:none;transition:border-color .15s,background .15s;font-family:inherit;caret-color:var(--text);-webkit-text-fill-color:var(--text);}
-.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);}
+/* v96: border was var(--border), a hairline divider at ~1.3:1 — the outline is
+   the ONLY thing marking a field as an input, so WCAG 1.4.11 requires 3:1.
+   --border-strong is #9B6BE8 (3.71 on white / 3.38 on page) / #7A6AA8 dark. */
+.form-input,.form-textarea,.form-select{width:100%;padding:11px 14px;border:1px solid var(--border-strong);border-radius:12px;font-size:14px;background:var(--card);color:var(--text);outline:none;transition:border-color .15s,background .15s;font-family:inherit;caret-color:var(--text);-webkit-text-fill-color:var(--text);}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);border-width:2px;padding:10px 13px;}
 .form-input::placeholder,.form-textarea::placeholder{color:var(--text-light);opacity:1;}
 .form-input:disabled,.form-textarea:disabled,.form-select:disabled{opacity:.6;background:var(--muted-bg);}
 .form-textarea{min-height:80px;resize:vertical;}
@@ -638,14 +669,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 .day-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
 .day-tabs .dt{flex:0 0 36px;text-align:center;padding:6px 0;border-radius:10px;background:var(--primary-lighter);color:var(--text-sec);font-size:12px;cursor:pointer;font-weight:600;}
-.day-tabs .dt.active{background:var(--primary);color:#fff;}
+.day-tabs .dt.active{background:var(--primary-solid);color:#fff;}
 
 .loc-list{display:flex;flex-direction:column;gap:8px;}
 .loc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-radius:12px;}
 .loc-row .lr-time{font-size:11px;color:var(--text-sec);width:60px;flex-shrink:0;}
 .loc-row .lr-type{font-size:18px;width:24px;flex-shrink:0;text-align:center;}
 .loc-row .lr-name{flex:1;font-size:14px;font-weight:500;}
-.loc-row .lr-del{width:28px;height:28px;border-radius:8px;background:#FBEBEB;color:var(--danger);border:none;cursor:pointer;font-size:14px;}
+/* v96: was background:#FBEBEB — a light pink chip that made dark-mode --danger
+   (#F87171) sit at 2.4:1. Uses the semantic danger surface instead. */
+.loc-row .lr-del{width:28px;height:28px;border-radius:8px;background:var(--danger-bg);color:var(--danger-fg);border:none;cursor:pointer;font-size:14px;}
 
 .photo-upload-area{border:2px dashed var(--border);border-radius:14px;padding:18px;text-align:center;color:var(--text-light);cursor:pointer;background:var(--surface);}
 .photo-upload-area:hover{border-color:var(--primary);}
@@ -655,13 +688,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cover-tpl{flex:1;text-align:center;cursor:pointer;color:var(--text-sec);}
 .cover-tpl .ct-preview{aspect-ratio:3/2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:4px;border:2px solid transparent;transition:border-color .2s;}
 .cover-tpl:hover .ct-preview,.cover-tpl.sel .ct-preview{border-color:var(--primary);}
+/* v96: the 极简黑卡 preview is intentionally near-black, so the glyph inside it
+   can not inherit --text-sec (#5B5070 = 1.90:1). The other three use emoji,
+   which bring their own colour and ignore this. */
+.cover-tpl[data-tpl="minimal"] .ct-preview{color:#EDE9F8;}
 
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
 .photo-grid .pg-item{aspect-ratio:1;border-radius:10px;background:#000;overflow:hidden;position:relative;}
 .photo-grid .pg-item img{width:100%;height:100%;object-fit:cover;}
 .photo-grid .pg-item .pg-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
 /* v74: photo skeleton shimmer */
-.photo-skeleton{position:relative;overflow:hidden;background:#EDE9FE;}
+.photo-skeleton{position:relative;overflow:hidden;background:var(--muted-bg);}
 .photo-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shimmer 1.3s infinite;}
 @keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
 img.photo-fade{opacity:0;transition:opacity .35s ease;}
@@ -686,15 +723,15 @@ img.photo-fade.loaded{opacity:1;}
 .photo-viewer .pv-next{right:14px;}
 .photo-viewer .pv-counter{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:10px;}
 /* v73: photo album page */
-.album-hero{padding:18px 18px 8px;background:linear-gradient(180deg,#F5F3FF,#EDE9FE);border-radius:0 0 var(--radius) var(--radius);}
+.album-hero{padding:18px 18px 8px;background:var(--album-hero-grad);border-radius:0 0 var(--radius) var(--radius);}
 .album-hero h1{font-size:20px;font-weight:700;color:var(--primary-dark);margin-bottom:4px;}
 .album-hero p{font-size:12px;color:var(--text-sec);margin-bottom:10px;}
 .album-tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 18px 12px;background:transparent;scrollbar-width:none;}
 .album-tabs::-webkit-scrollbar{display:none;}
-.album-tab{flex:0 0 auto;padding:6px 14px;border-radius:18px;background:var(--card);color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;border:1px solid #EDE9FE;transition:all .2s;}
-.album-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.album-tab{flex:0 0 auto;padding:6px 14px;border-radius:18px;background:var(--card);color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all .2s;}
+.album-tab.active{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
 .album-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 12px 14px;}
-.album-cell{aspect-ratio:1;background:linear-gradient(135deg,#C4B5FD,#A78BFA);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
+.album-cell{aspect-ratio:1;background:var(--album-cell-grad);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
 .album-cell img{width:100%;height:100%;object-fit:cover;}
 .album-cell .album-emo{font-size:32px;opacity:.5;}
 .album-cell .album-info{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));color:#fff;font-size:10px;font-weight:500;}
@@ -1130,7 +1167,7 @@ img.photo-fade.loaded{opacity:1;}
     <div class="album-hero">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
         <h1 style="margin:0;">📷 行程相册</h1>
-        <button class="btn-icon" onclick="showPage('home')" style="background:rgba(255,255,255,.7);">‹</button>
+        <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);">‹</button>
       </div>
       <p id="album-summary">所有行程的照片，按时间倒序</p>
     </div>
@@ -1549,7 +1586,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v95';
+var APP_VERSION='v96';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4011,7 +4048,7 @@ function startNavSort(el){
   // add a done chip
   var done=document.createElement('div');
   done.id='nav-done';
-  done.style.cssText='position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:150;background:var(--primary);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);cursor:pointer;';
+  done.style.cssText='position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:150;background:var(--primary-solid);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);cursor:pointer;';
   done.textContent='✓ 完成排序';
   done.onclick=function(){endNavSort(true);};
   document.body.appendChild(done);
@@ -4097,7 +4134,11 @@ function tripSticker(t){
 }
 // v75: location-type color helper (UI consistency across pages)
 function locTypeColor(type){
-  return {food:'#FF8C42',attraction:'#7C3AED',transport:'#0EA5E9',stay:'#5BC0DE',departure:'#F59E0B',checkin:'#10B981',return:'#6B7280',other:'#9A8FB5'}[type]||'#9A8FB5';
+  // v96: these are opaque fills behind 9px WHITE text, so every one of them has
+  // to clear 4.5:1 against white. The old pastel set sat at 2.1-3.0 (stay was 2.09).
+  // Ratios now: food 5.18 | attraction 5.70 | transport 5.93 | stay 5.36 |
+  // departure 4.92 | checkin 5.48 | return 4.83 | other 7.43.
+  return {food:'#C2410C',attraction:'#7C3AED',transport:'#0369A1',stay:'#0E7490',departure:'#A16207',checkin:'#047857',return:'#6B7280',other:'#5B5070'}[type]||'#5B5070';
 }
 function locTypeIcon(type){
   return {food:'🍜',attraction:'🏞',transport:'🚇',stay:'🏨',departure:'✈️',checkin:'📷',return:'🏠',other:'✨'}[type]||'✨';
