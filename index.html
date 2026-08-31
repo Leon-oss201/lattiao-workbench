@@ -34,7 +34,21 @@
   --shadow-md:0 6px 24px rgba(124,58,237,.12);
   --shadow-lg:0 10px 36px rgba(124,58,237,.16);
   --radius:18px;--radius-sm:12px;--radius-xs:8px;
-  --warn:#F4A940;--danger:#E25C5C;--success:#52B788;
+  --warn:#F4A940;--danger:#C53636;--success:#52B788;--danger-solid:#CE3B3B;
+  /* v94: semantic status surfaces — used for alerts/chips/countdowns so they
+     flip to translucent tints in dark mode instead of staying blindingly light. */
+  --info-bg:#ECFEFF;--info-fg:#0E7490;
+  --success-bg:#F0FDF4;--success-fg:#166534;
+  --warn-bg:#FFEDD9;--warn-fg:#9A4A0F;
+  --danger-bg:#FEE2E2;--danger-fg:#B91C1C;
+  --neutral-bg:#F1F5F9;--neutral-fg:#64748B;
+  --surface:var(--primary-lighter);
+  /* v94: glass pill (hero sync indicator / corner button) + weather card gradient.
+     Light mode keeps white glass over the pastel hero; dark mode flips to deep
+     purple glass + a dark mint/amber card so light text stays readable. */
+  --pill-glass:rgba(255,255,255,.7);
+  --glass-hover:rgba(255,255,255,.55);--glass-hover-strong:rgba(255,255,255,.85);
+  --weather-grad:linear-gradient(135deg,#E8F5E9,#FFF6E5);
   --font-size-base:14px;--font-scale:1;
   /* v85: hero gradient + calendar trip-day tints that flip in dark mode.
      Used to be hardcoded #EDE9FE→#DDD6FE which became invisible at night. */
@@ -47,13 +61,21 @@
   --nav-bg:rgba(255,255,255,.95);
   --nav-icon:#867CA0;
   --sync-synced-color:#5B21B6;
+  /* v94: home hero preset gradients. We switch them via CSS vars in dark mode
+     so a user-chosen "travel journal" yellow doesn't blind them at night. */
+  --bg-mint-grad:linear-gradient(180deg,#E8F2E4 0%,#D5E6CC 100%);
+  --bg-ocean-grad:linear-gradient(180deg,#BAE6FD 0%,#7DD3FC 60%,#38BDF8 100%);
+  --bg-minimal-grad:linear-gradient(180deg,#FAFAF0 0%,#F5F3FF 100%);
+  --bg-journal-grad:linear-gradient(180deg,#FEF3C7 0%,#FDE68A 100%);
+  --bg-night-grad:linear-gradient(180deg,#1F182E 0%,#4C1D95 100%);
+  --bg-cherry-grad:linear-gradient(180deg,#FDF2F8 0%,#FBCFE8 100%);
 }
 /* v73: dark mode — overrides all the design tokens above for night viewing */
 :root.dark,html.dark{
   --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
   --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
   --bg:#1A1530;--card:#262040;
-  --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#867CA0;
+  --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#A69CBF;
   --border:#3D2B5F;
   --shadow:0 4px 16px rgba(0,0,0,.4);
   --shadow-md:0 6px 24px rgba(0,0,0,.5);
@@ -67,8 +89,27 @@
   --muted-fg:#EDE9F8;
   /* v87 dark nav bar + sync pill color */
   --nav-bg:rgba(38,32,64,.95);
-  --nav-icon:#B6AECB;
+  --nav-icon:#C4B5FD;
   --sync-synced-color:#C4B5FD;
+  /* v94: status surfaces for dark mode — translucent tints, not light paper */
+  --info-bg:rgba(91,192,222,.15);--info-fg:#5BC0DE;
+  --success-bg:rgba(82,183,120,.15);--success-fg:#52B788;
+  --warn-bg:rgba(255,140,66,.15);--warn-fg:#FFA76B;
+  --danger-bg:rgba(226,92,92,.15);--danger-fg:#F87171;
+  --neutral-bg:rgba(134,124,160,.15);--neutral-fg:#B6AECB;
+  --surface:#262040;
+  /* v94: red used as *text* must be brighter on dark cards; red used as a
+     *button fill* must stay deep enough to carry white label text (4.5:1). */
+  --danger:#F87171;--danger-solid:#CE3B3B;
+  --pill-glass:rgba(38,32,64,.85);
+  --glass-hover:rgba(255,255,255,.12);--glass-hover-strong:rgba(255,255,255,.18);
+  --weather-grad:linear-gradient(135deg,#223A2C,#3A3224);
+  /* v94 dark hero preset gradients */
+  --bg-mint-grad:linear-gradient(180deg,#1F2D23 0%,#2A3D30 100%);
+  --bg-ocean-grad:linear-gradient(180deg,#0C4A6E 0%,#075985 60%,#0369A1 100%);
+  --bg-minimal-grad:linear-gradient(180deg,#2A2A24 0%,#262040 100%);
+  --bg-journal-grad:linear-gradient(180deg,#5B3D2C 0%,#4A3224 100%);
+  --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
 }
 /* v85: iOS 26 / Safari 17 — when the user picks "auto" (or hasn't picked at all
    and the system goes dark at night), honor prefers-color-scheme immediately
@@ -78,7 +119,7 @@
     --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
     --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
     --bg:#1A1530;--card:#262040;
-    --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#867CA0;
+    --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#A69CBF;
     --border:#3D2B5F;
     --shadow:0 4px 16px rgba(0,0,0,.4);
     --shadow-md:0 6px 24px rgba(0,0,0,.5);
@@ -86,11 +127,26 @@
     --hero-grad:linear-gradient(135deg,#1F182E,#3D2B5F);
     --trip-mid-bg:linear-gradient(135deg,#3D2B5F,#4C3878);
     --nav-bg:rgba(38,32,64,.95);
-    --nav-icon:#B6AECB;
+    --nav-icon:#C4B5FD;
     --sync-synced-color:#C4B5FD;
     --trip-mid-fg:#EDE9F8;
     --muted-bg:#3D2B5F;
     --muted-fg:#EDE9F8;
+    --info-bg:rgba(91,192,222,.15);--info-fg:#5BC0DE;
+    --success-bg:rgba(82,183,120,.15);--success-fg:#52B788;
+    --warn-bg:rgba(255,140,66,.15);--warn-fg:#FFA76B;
+    --danger-bg:rgba(226,92,92,.15);--danger-fg:#F87171;
+    --neutral-bg:rgba(134,124,160,.15);--neutral-fg:#B6AECB;
+    --surface:#262040;
+    --danger:#F87171;--danger-solid:#CE3B3B;
+    --pill-glass:rgba(38,32,64,.85);
+    --glass-hover:rgba(255,255,255,.12);--glass-hover-strong:rgba(255,255,255,.18);
+    --weather-grad:linear-gradient(135deg,#223A2C,#3A3224);
+    --bg-mint-grad:linear-gradient(180deg,#1F2D23 0%,#2A3D30 100%);
+    --bg-ocean-grad:linear-gradient(180deg,#0C4A6E 0%,#075985 60%,#0369A1 100%);
+    --bg-minimal-grad:linear-gradient(180deg,#2A2A24 0%,#262040 100%);
+    --bg-journal-grad:linear-gradient(180deg,#5B3D2C 0%,#4A3224 100%);
+    --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
   }
 }
 /* v73: font scaling (set in JS via --font-scale) */
@@ -110,10 +166,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .btn:active{transform:scale(.97);}
 .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
+:root.dark .btn-primary{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
 .btn-primary:hover{background:var(--primary-dark);}
 .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(255,140,66,.3);}
 .btn-ghost{background:var(--primary-light);color:var(--primary-dark);}
-.btn-danger{background:#fff;color:var(--danger);border:1px solid #F4D7D7;}
+.btn-danger{background:var(--danger-solid);color:#fff;border:1px solid transparent;}
+:root.light .btn-danger{background:#fff;color:var(--danger-solid);border:1px solid #F4D7D7;}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-icon{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary-light);color:var(--primary-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
 
@@ -139,12 +197,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
    and hiding the default svg. Custom image data URLs are set as background-image
    inline (data-url stored in data.settings.heroBg). */
 .home-hero.no-deco svg.hero-bg{display:none;}
-.home-hero.bg-mint{background:linear-gradient(180deg,#E8F2E4 0%,#D5E6CC 100%);}
-.home-hero.bg-ocean{background:linear-gradient(180deg,#BAE6FD 0%,#7DD3FC 60%,#38BDF8 100%);}
-.home-hero.bg-minimal{background:linear-gradient(180deg,#FAFAF0 0%,#F5F3FF 100%);}
-.home-hero.bg-journal{background:linear-gradient(180deg,#FEF3C7 0%,#FDE68A 100%);}
-.home-hero.bg-night{background:linear-gradient(180deg,#1F182E 0%,#4C1D95 100%);}
-.home-hero.bg-cherry{background:linear-gradient(180deg,#FDF2F8 0%,#FBCFE8 100%);}
+.home-hero.bg-mint{background:var(--bg-mint-grad);}
+.home-hero.bg-ocean{background:var(--bg-ocean-grad);}
+.home-hero.bg-minimal{background:var(--bg-minimal-grad);}
+.home-hero.bg-journal{background:var(--bg-journal-grad);}
+.home-hero.bg-night{background:var(--bg-night-grad);}
+.home-hero.bg-cherry{background:var(--bg-cherry-grad);}
 .home-hero.bg-night .home-hero-text h1,.home-hero.bg-night .sub-slogan{color:#EDE9F8;}
 .home-hero.bg-night .home-hero-text h1{text-shadow:0 2px 8px rgba(0,0,0,.3);}
 /* v77: hero-bg thumbnail picker */
@@ -172,13 +230,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .set-acc[open] summary::after{transform:rotate(180deg);}
 .set-acc summary:hover{color:var(--primary);}
 .home-hero svg.hero-bg{position:absolute;inset:0;width:100%;height:100%;}
-.home-hero .corner-btn{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:2;}
-.sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
+.home-hero .corner-btn{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:var(--pill-glass);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:2;color:var(--text);}
+.sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:var(--pill-glass);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
 .sync-syncing{animation:pulse 1.2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
   .sync-synced{color:var(--sync-synced-color);}
   .sync-error{color:#E25C5C;}
-  .sync-offline{color:#9A8FB5;}
+  .sync-offline{color:var(--text-sec);}
   /* v81: pending = push failed and we're waiting to retry. Make it a clear
      orange pill so Iris knows there are unsynced changes, not "silent". */
   .sync-pending{color:#fff;background:linear-gradient(135deg,#FF8C42,#FFA76B);box-shadow:0 4px 12px rgba(255,140,66,.4);animation:syncPulse 1.6s ease-in-out infinite;}
@@ -186,14 +244,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .home-hero-text{position:absolute;top:36px;left:22px;z-index:2;}
 .home-hero h1{font-size:32px;font-weight:700;color:var(--text);letter-spacing:2px;line-height:1.1;font-family:"Songti SC","STSong",serif;word-break:break-word;overflow-wrap:break-word;max-width:calc(100% - 80px);}
 .home-hero h1.editable-title{cursor:pointer;border-radius:8px;padding:2px 6px;margin:-2px -6px;transition:background .2s;}
-.home-hero h1.editable-title:hover{background:rgba(255,255,255,.55);}
-.home-hero h1.editable-title::after{content:"✎";font-size:14px;color:#7C3AED;opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
+.home-hero h1.editable-title:hover{background:var(--glass-hover);}
+.home-hero h1.editable-title::after{content:"✎";font-size:14px;color:var(--primary-dark);opacity:0;margin-left:8px;font-family:-apple-system,sans-serif;vertical-align:middle;transition:opacity .2s;}
 .home-hero h1.editable-title:hover::after{opacity:.7;}
-.home-hero .sub-slogan{font-size:13px;color:#7C3AED;margin-top:6px;cursor:pointer;border-radius:6px;padding:2px 6px;margin-left:-6px;margin-right:-6px;transition:background .2s;}
-.home-hero .sub-slogan:hover{background:rgba(255,255,255,.55);}
-.home-hero .sub-slogan:focus{outline:none;background:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
-.home-hero h1:focus{outline:none;background:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
-.home-hero h1:empty::before,.home-hero .sub-slogan:empty::before{content:attr(data-placeholder);color:#A78BFA;opacity:.6;}
+.home-hero .sub-slogan{font-size:13px;color:var(--primary-dark);margin-top:6px;cursor:pointer;border-radius:6px;padding:2px 6px;margin-left:-6px;margin-right:-6px;transition:background .2s;}
+.home-hero .sub-slogan:hover{background:var(--glass-hover);}
+.home-hero .sub-slogan:focus{outline:none;background:var(--glass-hover-strong);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
+.home-hero h1:focus{outline:none;background:var(--glass-hover-strong);box-shadow:0 0 0 2px rgba(124,58,237,.3);}
+.home-hero h1:empty::before,.home-hero .sub-slogan:empty::before{content:attr(data-placeholder);color:var(--text-light);opacity:.75;}
 .home-hero .hero-decor{position:absolute;top:30px;right:60px;font-size:24px;animation:sparkle 2.5s ease-in-out infinite;z-index:1;}
 @keyframes sparkle{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.15);}}
 
@@ -202,7 +260,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .greeting-left .greet-desc{font-size:12px;color:var(--text-sec);margin-top:4px;display:flex;align-items:center;gap:6px;}
 .greeting-left .greet-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
 .greeting-left .greet-meta b{color:var(--accent);font-weight:600;}
-.weather-pill{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;background:linear-gradient(135deg,#E8F5E9,#FFF6E5);border-radius:14px;}
+.weather-pill{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;background:var(--weather-grad);border-radius:14px;}
 .weather-pill .w-icon{font-size:18px;}
 .weather-pill .w-temp{font-size:18px;font-weight:700;}
 .weather-pill .w-lab{font-size:10px;color:var(--text-sec);}
@@ -213,6 +271,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cta-card .cta-title{font-size:18px;font-weight:700;margin-bottom:2px;}
 .cta-card .cta-desc{font-size:12px;opacity:.85;}
 .cta-card .cta-arrow{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;}
+/* v94: the pastel CTA gradient only carries white text at ~3.9:1. Deepen it in
+   dark mode so the description and the arrow clear WCAG AA. */
+:root.dark .cta-card,html.dark .cta-card{background:linear-gradient(135deg,#6D28D9,#4C1D95);}
 
 .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 18px;margin-top:18px;}
 .quick-card{background:var(--card);border-radius:var(--radius);padding:16px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;}
@@ -235,13 +296,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-row-card .trc-dates{font-size:11px;color:var(--text-light);margin-bottom:4px;}
 .trip-row-card .trc-loc{font-size:11px;color:var(--text-sec);display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
 /* v73: countdown badge (top-right) */
-.trc-countdown{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#ECFEFF;color:#0E7490;}
-.trc-countdown.done{background:#F1F5F9;color:#64748B;}
-.trc-countdown.live{background:#FEF3C7;color:#B45309;}
+.trc-countdown{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--info-bg);color:var(--info-fg);}
+.trc-countdown.done{background:var(--neutral-bg);color:var(--neutral-fg);}
+.trc-countdown.live{background:var(--warn-bg);color:var(--warn-fg);}
 /* v73: status chip + weather tag on card */
 .trc-chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(124,58,237,.08);color:var(--primary);margin-left:6px;vertical-align:1px;}
-.trc-chip.live{background:rgba(16,185,129,.12);color:#047857;}
-.trc-chip.done{background:rgba(148,163,184,.15);color:#64748B;}
+.trc-chip.live{background:var(--success-bg);color:var(--success-fg);}
+.trc-chip.done{background:var(--neutral-bg);color:var(--neutral-fg);}
 .trc-weather{font-size:11px;color:var(--text-sec);display:flex;align-items:center;gap:3px;margin-left:auto;}
 .trc-weather .tw-ico{font-size:13px;}
 /* v73: faded card for finished trips */
@@ -249,13 +310,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-row-card.trc-finished .trc-cover{filter:saturate(.55);}
 /* v73: mini stats under profile */
 .pro-highlights{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px;}
-.pro-highlight{background:#F9F8FF;border:1px solid #EDE9FE;border-radius:12px;padding:10px 12px;}
+.pro-highlight{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
 .pro-highlight .ph-v{font-size:13px;font-weight:700;color:var(--primary-dark);line-height:1.5;}
 .pro-highlight .ph-l{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 /* FAB */
 .fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#fff;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
 .fab:active{transform:scale(.92);}
+/* v94: a white "＋" on the brand orange is only ~2.3:1. Keep Iris's signature
+   orange gradient and switch the glyph to deep espresso in dark mode (7.3:1). */
+:root.dark .fab,html.dark .fab{color:#2A1A0E;}
 
 /* ==== CALENDAR ==== */
 .cal-hero{position:relative;padding:18px 18px 14px;background:var(--hero-grad);overflow:hidden;}
@@ -277,6 +341,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   .cal-day .cal-day-num{font-weight:500;}
   .cal-day.muted{color:var(--text-light);opacity:.5;}
   .cal-day.today{background:var(--primary);color:#fff;font-weight:700;}
+  :root.dark .cal-day.today{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
   .cal-day.today .cal-day-num{font-weight:700;}
   /* v80: trip-range styling — connected pill across multiple days, more eye-
      catching than the old red border. Start day gets ✈️, end day gets 🏠, the
@@ -290,7 +355,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   /* v80: cal status banner — the loudest thing on the page */
   .cal-status-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin:12px 14px 0;border-radius:14px;box-shadow:var(--shadow);cursor:pointer;}
   .cal-status-banner.live{background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;}
-  .cal-status-banner.upcoming{background:linear-gradient(135deg,#FFEDD9,#FED7AA);color:#92400E;}
+  .cal-status-banner.upcoming{background:var(--warn-bg);color:var(--warn-fg);}
   .cal-status-banner.done{background:var(--card);color:var(--text);}
   .cal-status-banner .csb-emoji{font-size:28px;line-height:1;}
   .cal-status-banner .csb-body{flex:1;min-width:0;}
@@ -359,9 +424,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trip-card .tc-title{font-size:15px;font-weight:700;}
 .trip-card .tc-meta{font-size:11px;color:var(--text-sec);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .trip-card .tc-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;}
-.trip-card .tc-status.upcoming{background:#FFEDD9;color:#B65C16;}
-.trip-card .tc-status.ongoing{background:#E8F5E9;color:var(--primary-dark);}
-.trip-card .tc-status.done{background:#EAEAEA;color:#888;}
+.trip-card .tc-status.upcoming{background:var(--warn-bg);color:var(--warn-fg);}
+.trip-card .tc-status.ongoing{background:var(--success-bg);color:var(--success-fg);}
+.trip-card .tc-status.done{background:var(--neutral-bg);color:var(--neutral-fg);}
 
 .empty{padding:60px 30px;text-align:center;color:var(--text-light);}
 .empty .e-icon{font-size:60px;opacity:.4;}
@@ -392,12 +457,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:1;}
 .td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;row-gap:4px;flex:1;min-width:0;}
 .weather-alert{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:normal;}
-.weather-alert.rain{background:#E0F2FE;color:#0369A1;}
-.weather-alert.uv{background:#FEF3C7;color:#B45309;}
-.weather-alert.hot{background:#FEE2E2;color:#B91C1C;}
-.weather-alert.cold{background:#E0E7FF;color:#4338CA;}
-.weather-alert.wind{background:#F3E8FF;color:#6B21A8;}
-.weather-alert.mood{background:linear-gradient(135deg,#FDF2F8,#FCE7F3);color:#BE185D;border:1px dashed #F9A8D4;animation:moodPulse 3s ease-in-out infinite;}
+.weather-alert.rain{background:var(--info-bg);color:var(--info-fg);}
+.weather-alert.uv{background:var(--warn-bg);color:var(--warn-fg);}
+.weather-alert.hot{background:var(--danger-bg);color:var(--danger-fg);}
+.weather-alert.cold{background:var(--info-bg);color:var(--info-fg);}
+.weather-alert.wind{background:var(--primary-light);color:var(--primary);}
+.weather-alert.mood{background:var(--primary-lighter);color:var(--primary);border:1px dashed var(--primary);animation:moodPulse 3s ease-in-out infinite;}
 @keyframes moodPulse{0%,100%{opacity:1;}50%{opacity:.75;}}
 
 .td-section{padding:14px 18px;}
@@ -493,7 +558,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-cat .bc-amt{font-size:12px;font-weight:700;margin-top:4px;}
 .budget-cat .bc-lab{font-size:10px;color:var(--text-light);margin-top:2px;}
 
-.tip-banner{margin:14px 18px;background:linear-gradient(135deg,#FFF8E5,#FFEDD9);border-radius:14px;padding:12px 14px;font-size:12px;color:#A66014;text-align:center;}
+.tip-banner{margin:14px 18px;background:var(--warn-bg);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--warn-fg);text-align:center;font-weight:600;}
 
 /* ==== PROFILE ==== */
 .profile-hero{padding:24px 18px;background:var(--hero-grad);display:flex;align-items:center;gap:14px;}
@@ -501,7 +566,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .profile-info .p-name{font-size:18px;font-weight:700;color:var(--text);}
 .profile-info .p-sub{font-size:11px;color:var(--text-sec);margin-top:2px;}
 .profile-info .p-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-.profile-info .p-tag{font-size:10px;background:rgba(255,255,255,.6);padding:3px 8px;border-radius:8px;color:var(--primary-dark);}
+.profile-info .p-tag{font-size:10px;background:var(--primary-light);padding:3px 8px;border-radius:8px;color:var(--primary-dark);font-weight:600;}
 
 .pro-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:14px 18px 0;}
 .pro-stat{text-align:center;}
@@ -511,14 +576,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .menu-card{margin:14px 18px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .menu-row{display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--border);gap:12px;cursor:pointer;}
 .menu-row:last-child{border-bottom:none;}
-.menu-row:active{background:#FAF5FF;}
+.menu-row:active{background:var(--surface);}
 .menu-row .mr-icon{width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:16px;}
 .menu-row .mr-label{flex:1;font-size:14px;}
 .menu-row .mr-arrow{color:var(--text-light);font-size:16px;}
 .meet-row{background:linear-gradient(135deg,#A78BFA 0%,#7C3AED 50%,#B07AB8 100%);}
 .meet-row .mr-icon{background:rgba(255,255,255,.25);}
 .meet-row .mr-label{color:#fff;font-weight:700;}
-.meet-row .mr-arrow{color:rgba(255,255,255,.8);}
+.meet-row .mr-arrow{color:#fff;}
+/* v94: darken the promo gradient at night so its white label / chevron pass AA
+   (the pastel version only reached 3.3:1). */
+:root.dark .meet-row,html.dark .meet-row{background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 50%,#8B5A9B 100%);}
 
 /* ==== GENERIC ==== */
 .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin:0 18px 12px;}
@@ -528,15 +596,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .editable-hint{font-size:11px;color:var(--text-light);margin-top:6px;text-align:right;}
 
 .tag{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;background:var(--primary-light);color:var(--primary-dark);}
-.tag.accent{background:var(--accent-soft);color:#B65C16;}
-.tag.warn{background:#FFEDD9;color:#B65C16;}
+.tag.accent{background:var(--accent-soft);color:var(--accent);}
+.tag.warn{background:var(--warn-bg);color:var(--warn-fg);}
 
 /* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center;}
 .modal-overlay.active{display:flex;}
 .modal{background:var(--card);width:100%;max-width:480px;border-top-left-radius:24px;border-top-right-radius:24px;padding:18px;max-height:88vh;overflow-y:auto;animation:slideUp .3s ease;}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
-.modal-handle{width:38px;height:4px;border-radius:2px;background:#DDD;margin:0 auto 14px;}
+.modal-handle{width:38px;height:4px;border-radius:2px;background:var(--text-light);opacity:.5;margin:0 auto 14px;}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:14px;text-align:center;}
 
 .form-row{margin-bottom:14px;}
@@ -559,13 +627,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .day-tabs .dt.active{background:var(--primary);color:#fff;}
 
 .loc-list{display:flex;flex-direction:column;gap:8px;}
-.loc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAF5FF;border-radius:12px;}
+.loc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-radius:12px;}
 .loc-row .lr-time{font-size:11px;color:var(--text-sec);width:60px;flex-shrink:0;}
 .loc-row .lr-type{font-size:18px;width:24px;flex-shrink:0;text-align:center;}
 .loc-row .lr-name{flex:1;font-size:14px;font-weight:500;}
 .loc-row .lr-del{width:28px;height:28px;border-radius:8px;background:#FBEBEB;color:var(--danger);border:none;cursor:pointer;font-size:14px;}
 
-.photo-upload-area{border:2px dashed var(--border);border-radius:14px;padding:18px;text-align:center;color:var(--text-light);cursor:pointer;background:#FAF5FF;}
+.photo-upload-area{border:2px dashed var(--border);border-radius:14px;padding:18px;text-align:center;color:var(--text-light);cursor:pointer;background:var(--surface);}
 .photo-upload-area:hover{border-color:var(--primary);}
 .photo-upload-area .pu-icon{font-size:28px;margin-bottom:6px;}
 .photo-upload-area input{display:none;}
@@ -585,7 +653,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 img.photo-fade{opacity:0;transition:opacity .35s ease;}
 img.photo-fade.loaded{opacity:1;}
 
-.spend-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAF5FF;border-radius:12px;margin-bottom:8px;}
+.spend-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-radius:12px;margin-bottom:8px;}
 .spend-row .sr-cat{font-size:18px;width:30px;flex-shrink:0;}
 .spend-row .sr-label{flex:1;font-size:13px;}
 .spend-row .sr-amt{font-size:14px;font-weight:700;color:var(--primary-dark);width:80px;text-align:right;border:none;background:transparent;outline:none;font-family:inherit;}
@@ -636,21 +704,21 @@ img.photo-fade.loaded{opacity:1;}
 </head>
 <body>
 <!-- v75: offline banner -->
-<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:#FEF3C7;color:#92400E;font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--warn-bg);color:var(--warn-fg);font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
 <!-- v82: prominent pending-push banner — shows when there are unsynced changes.
      Bigger and more visible than the small sync-indicator pill, with two clear
      actions: 立即重试 (resume the push) and 导出本地备份 (manual fallback for
      friends to import). Iris repeatedly missed the small orange pill. -->
-<div id="pending-banner" style="display:none;background:linear-gradient(135deg,#FEF3C7,#FED7AA);color:#92400E;padding:14px 16px;border-bottom:2px solid #FB923C;box-shadow:0 4px 12px rgba(255,140,66,.15);">
+<div id="pending-banner" style="display:none;background:var(--warn-bg);color:var(--warn-fg);padding:14px 16px;border-bottom:2px solid var(--accent);box-shadow:0 4px 12px rgba(255,140,66,.15);">
   <div style="display:flex;align-items:flex-start;gap:10px;max-width:480px;margin:0 auto;">
     <div style="font-size:24px;line-height:1;">⚠️</div>
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px;">云端同步未完成</div>
       <div style="font-size:11px;line-height:1.5;opacity:.9;" id="pending-banner-detail">部分行程/照片暂存在本机，正在自动重试…</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost" style="background:#fff;color:#92400E;padding:6px 12px;font-size:12px;font-weight:700;" onclick="syncPushNow()">🔄 立即重试</button>
-        <button class="btn btn-ghost" style="background:#fff;color:#92400E;padding:6px 12px;font-size:12px;font-weight:700;" onclick="exportFullBackup()">📤 导出本地备份</button>
-        <button class="btn btn-ghost" style="background:transparent;color:#92400E;padding:6px 8px;font-size:12px;" onclick="dismissPendingBanner()">知道了</button>
+        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="syncPushNow()">🔄 立即重试</button>
+        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="exportFullBackup()">📤 导出本地备份</button>
+        <button class="btn btn-ghost" style="background:transparent;color:var(--warn-fg);padding:6px 8px;font-size:12px;" onclick="dismissPendingBanner()">知道了</button>
       </div>
     </div>
   </div>
@@ -936,7 +1004,7 @@ img.photo-fade.loaded{opacity:1;}
     <div class="budget-summary">
       <div class="donut">
         <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="48" fill="none" stroke="#F3E8FF" stroke-width="14"/>
+          <circle cx="60" cy="60" r="48" fill="none" stroke="var(--primary-light)" stroke-width="14"/>
           <circle id="donut-transport" cx="60" cy="60" r="48" fill="none" stroke="#5BC0DE" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
           <circle id="donut-stay" cx="60" cy="60" r="48" fill="none" stroke="#A78BFA" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
           <circle id="donut-food" cx="60" cy="60" r="48" fill="none" stroke="#FF8C42" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
@@ -1368,8 +1436,8 @@ img.photo-fade.loaded{opacity:1;}
         </div>
         <div style="font-size:11px;color:var(--text-light);margin-top:0;line-height:1.5;">遇到数据异常时，把这份数据贴给我，我能立刻看到 days/locations 真实分布并精确定位 bug。</div>
         <div style="display:flex;gap:8px;margin-top:4px;">
-          <button class="btn btn-ghost" style="flex:1;background:#F0FDF4;color:#166534;font-weight:600;" onclick="exportFullBackup()">💾 导出完整备份（含照片）</button>
-          <button class="btn btn-ghost" style="flex:1;background:#EFF6FF;color:#1D4ED8;font-weight:600;" onclick="document.getElementById('import-backup-input').click()">📥 导入备份</button>
+          <button class="btn btn-ghost" style="flex:1;background:var(--success-bg);color:var(--success-fg);font-weight:600;" onclick="exportFullBackup()">💾 导出完整备份（含照片）</button>
+          <button class="btn btn-ghost" style="flex:1;background:var(--info-bg);color:var(--info-fg);font-weight:600;" onclick="document.getElementById('import-backup-input').click()">📥 导入备份</button>
         </div>
         <input type="file" id="import-backup-input" accept=".json,application/json" style="display:none;" onchange="importFullBackup(this)">
         <div style="font-size:11px;color:var(--text-light);line-height:1.5;">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
@@ -1467,7 +1535,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v93';
+var APP_VERSION='v94';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3879,28 +3947,17 @@ function renderBgPicker(){
   var html='';
   HERO_PRESETS.forEach(function(p){
     var sel=!isCustom&&current===p.k?' sel':'';
-    html+=`<div class="bg-thumb bg-default ${p.k}${sel}" data-k="${p.k}" onclick="setHeroBg('${p.k}')" style="background:var(--bg-${p.k}-grad,linear-gradient(180deg,#EDE9FE 0%,#DDD6FE 100%));">`+
+    // v94: use CSS vars so thumbnails flip in dark mode too
+    html+=`<div class="bg-thumb bg-default ${p.k}${sel}" data-k="${p.k}" onclick="setHeroBg('${p.k}')" style="background:var(--bg-${p.k}-grad);">`+
       '<div class="bg-thumb-label">'+p.label+'</div>'+
     '</div>';
   });
   if(isCustom){
     html+='<div class="bg-thumb sel" data-k="custom" style="background-image:url('+current+');background-size:cover;background-position:center;"><div class="bg-thumb-label">我的图</div></div>';
   }else{
-    html+='<div class="bg-thumb" onclick="document.getElementById(\'bg-upload-input\').click()" style="background:#F3E8FF;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;font-size:11px;color:var(--primary);font-weight:600;">📷<br>上传</div></div>';
+    html+='<div class="bg-thumb" onclick="document.getElementById(\'bg-upload-input\').click()" style="background:var(--primary-light);display:flex;align-items:center;justify-content:center;"><div style="text-align:center;font-size:11px;color:var(--primary);font-weight:600;">📷<br>上传</div></div>';
   }
   el.innerHTML=html;
-  // apply each thumb's actual gradient (CSS variables in inline style don't
-  // expand reliably inside attribute values across browsers, so we set it
-  // explicitly here).
-  el.querySelectorAll('.bg-default').forEach(function(t){
-    var k=t.dataset.k;
-    if(k==='bg-mint'){t.style.background='linear-gradient(180deg,#E8F2E4 0%,#D5E6CC 100%)';}
-    else if(k==='bg-ocean'){t.style.background='linear-gradient(180deg,#BAE6FD 0%,#38BDF8 100%)';}
-    else if(k==='bg-minimal'){t.style.background='linear-gradient(180deg,#FAFAF0 0%,#F5F3FF 100%)';}
-    else if(k==='bg-journal'){t.style.background='linear-gradient(180deg,#FEF3C7 0%,#FDE68A 100%)';}
-    else if(k==='bg-night'){t.style.background='linear-gradient(180deg,#1F182E 0%,#4C1D95 100%)';}
-    else if(k==='bg-cherry'){t.style.background='linear-gradient(180deg,#FDF2F8 0%,#FBCFE8 100%)';}
-  });
 }
 function uploadHeroBg(e){
   var f=e.target.files&&e.target.files[0];if(!f)return;
@@ -4323,7 +4380,7 @@ function renderCalLocationDetails(l){
   var html='';
   var hasAny=l.guide||l.feeling||(l.photos&&l.photos.length)||l._photoCount||(l.budget&&l.budget.items&&l.budget.items.length);
   if(!hasAny)return'';
-  html+='<div style="margin-top:8px;padding:10px;background:#FAF5FF;border-radius:10px;font-size:12px;color:var(--text-sec);line-height:1.6;">';
+  html+='<div style="margin-top:8px;padding:10px;background:var(--surface);border-radius:10px;font-size:12px;color:var(--text-sec);line-height:1.6;">';
   if(l.guide)html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📖 攻略</b> '+escapeHTML(l.guide)+'</div>';
   if(l.feeling)html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">✨ 感受</b> '+escapeHTML(l.feeling)+'</div>';
   if(l.photos&&l.photos.length){
@@ -4869,7 +4926,7 @@ function renderTimeline(){
     if(l.photos&&l.photos.length){
       photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
         l.photos.slice(0,4).map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img loading="lazy" src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
-        (l.photos.length>4?'<div style="aspect-ratio:1;border-radius:6px;background:#FAF5FF;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">+'+(l.photos.length-4)+'</div>':'')+
+        (l.photos.length>4?'<div style="aspect-ratio:1;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">+'+(l.photos.length-4)+'</div>':'')+
         '</div>';
     }else if(l._photoCount>0){
       // v66: loading placeholder — photos will swap in when prefetch finishes
@@ -5785,9 +5842,9 @@ function renderBudget(){
         var n=Math.max(1,parseInt(t.aaPeople,10)||1);
         if(n<=1)return '';
         var per=tripTotal/n;
-        return '<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:12px;">'+
+        return '<div style="background:var(--success-bg);border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:12px;">'+
           '<span>👥</span><span style="color:var(--text-sec);flex:1;">'+n+' 人分摊</span>'+
-          '<span style="color:#166534;font-weight:700;">人均 ¥'+per.toFixed(0)+'</span>'+
+          '<span style="color:var(--success-fg);font-weight:700;">人均 ¥'+per.toFixed(0)+'</span>'+
         '</div>';
       })();
     // per trip detail items
@@ -6021,9 +6078,11 @@ function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
   // Show the running app version so the user always knows which build they're on.
   var verEl=document.getElementById('app-version');
-  if(verEl)verEl.textContent='v'+APP_VERSION;
+  // v94: APP_VERSION already carries the "v" prefix — prepending another one
+  // rendered the menu row and footer as "vv93".
+  if(verEl)verEl.textContent=APP_VERSION;
   var verFoot=document.getElementById('app-version-footer');
-  if(verFoot)verFoot.textContent='v'+APP_VERSION;
+  if(verFoot)verFoot.textContent=APP_VERSION;
   var photoCount=0;
   var totalKm=0;
   data.trips.forEach(function(t){
