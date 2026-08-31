@@ -27,8 +27,15 @@
 :root{
   --primary:#7C3AED;--primary-dark:#5B21B6;--primary-light:#F3E8FF;--primary-lighter:#FAF5FF;
   --accent:#FF8C42;--accent-soft:#FFEEDD;--accent2:#5BC0DE;
+  /* v95: the brand orange / cyan stay for decorative fills (dots, borders,
+     gradients), but text and solid buttons need their own deeper variants —
+     #FF8C42 as text is only 2.3:1 on white. */
+  --accent-fg:#A34A08;--accent-solid:#B45309;--accent2-fg:#0E7490;
   --bg:#F5F3FF;--card:#FFFFFF;
-  --text:#1F182E;--text-sec:#6B5F7D;--text-light:#9A8FB5;
+  /* v95: deepened from #6B5F7D / #9A8FB5 — the old values were only 3.0:1 and
+     2.75:1 on the page background, far below WCAG AA for 10-13px labels.
+     New ladder on white: 17.1 / 7.4 / 5.4. */
+  --text:#1F182E;--text-sec:#5B5070;--text-light:#6F6489;
   --border:#E9D5FF;
   --shadow:0 4px 16px rgba(124,58,237,.08);
   --shadow-md:0 6px 24px rgba(124,58,237,.12);
@@ -74,6 +81,9 @@
 :root.dark,html.dark{
   --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
   --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
+  /* v95: on dark cards the bright orange reads fine as text (8.1:1), so -fg
+     matches --accent here; only the solid button fill stays deep. */
+  --accent-fg:#FFA76B;--accent-solid:#B45309;--accent2-fg:#5BC0DE;
   --bg:#1A1530;--card:#262040;
   --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#A69CBF;
   --border:#3D2B5F;
@@ -118,6 +128,7 @@
   :root:not(.light){
     --primary:#A78BFA;--primary-dark:#C4B5FD;--primary-light:#3D2B5F;--primary-lighter:#2A1E47;
     --accent:#FFA76B;--accent-soft:#5B3D2C;--accent2:#5BC0DE;
+    --accent-fg:#FFA76B;--accent-solid:#B45309;--accent2-fg:#5BC0DE;
     --bg:#1A1530;--card:#262040;
     --text:#EDE9F8;--text-sec:#B6AECB;--text-light:#A69CBF;
     --border:#3D2B5F;
@@ -168,7 +179,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
 :root.dark .btn-primary{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
 .btn-primary:hover{background:var(--primary-dark);}
-.btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(255,140,66,.3);}
+.btn-accent{background:var(--accent-solid);color:#fff;box-shadow:0 4px 14px rgba(255,140,66,.3);}
 .btn-ghost{background:var(--primary-light);color:var(--primary-dark);}
 .btn-danger{background:var(--danger-solid);color:#fff;border:1px solid transparent;}
 :root.light .btn-danger{background:#fff;color:var(--danger-solid);border:1px solid #F4D7D7;}
@@ -259,21 +270,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .greeting-left .hi{font-size:16px;font-weight:700;}
 .greeting-left .greet-desc{font-size:12px;color:var(--text-sec);margin-top:4px;display:flex;align-items:center;gap:6px;}
 .greeting-left .greet-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
-.greeting-left .greet-meta b{color:var(--accent);font-weight:600;}
+.greeting-left .greet-meta b{color:var(--accent-fg);font-weight:600;}
 .weather-pill{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;background:var(--weather-grad);border-radius:14px;}
 .weather-pill .w-icon{font-size:18px;}
 .weather-pill .w-temp{font-size:18px;font-weight:700;}
 .weather-pill .w-lab{font-size:10px;color:var(--text-sec);}
 
-.cta-card{margin:16px 18px;background:linear-gradient(135deg,#A78BFA,#7C3AED);border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.3);position:relative;overflow:hidden;}
+.cta-card{margin:16px 18px;background:linear-gradient(135deg,#7C3AED,#5B21B6);border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.3);position:relative;overflow:hidden;}
 .cta-card::before{content:"";position:absolute;top:-30px;right:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12);}
 .cta-card .cta-text{flex:1;}
 .cta-card .cta-title{font-size:18px;font-weight:700;margin-bottom:2px;}
 .cta-card .cta-desc{font-size:12px;opacity:.85;}
 .cta-card .cta-arrow{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;}
-/* v94: the pastel CTA gradient only carries white text at ~3.9:1. Deepen it in
-   dark mode so the description and the arrow clear WCAG AA. */
-:root.dark .cta-card,html.dark .cta-card{background:linear-gradient(135deg,#6D28D9,#4C1D95);}
+/* v94/v95: the pastel #A78BFA→#7C3AED gradient only carried white text at
+   ~3.9:1, so the card now uses the deeper purple in BOTH modes. The old
+   dark-only override is no longer needed. */
 
 .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 18px;margin-top:18px;}
 .quick-card{background:var(--card);border-radius:var(--radius);padding:16px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;}
@@ -315,11 +326,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pro-highlight .ph-l{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 /* FAB */
-.fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#fff;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#2A1A0E;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
 .fab:active{transform:scale(.92);}
-/* v94: a white "＋" on the brand orange is only ~2.3:1. Keep Iris's signature
-   orange gradient and switch the glyph to deep espresso in dark mode (7.3:1). */
-:root.dark .fab,html.dark .fab{color:#2A1A0E;}
+/* v94/v95: a white "＋" on the brand orange is only ~2.1:1. Iris's signature
+   orange gradient stays untouched — the glyph is deep espresso instead
+   (7.3:1 light end, 8.7:1 dark end), and now applies in both modes. */
 
 /* ==== CALENDAR ==== */
 .cal-hero{position:relative;padding:18px 18px 14px;background:var(--hero-grad);overflow:hidden;}
@@ -480,7 +491,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-time{position:absolute;left:-60px;top:10px;width:48px;text-align:right;font-size:11px;color:var(--text-sec);}
 .tl-time b{display:block;font-size:13px;color:var(--text);font-weight:700;}
 .tl-dot{position:absolute;left:-12px;top:14px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);}
-.tl-dot.food{border-color:var(--accent);}
+.tl-dot.food{border-color:var(--accent-fg);}
 .tl-dot.transport{border-color:var(--accent2);}
 .tl-card{background:var(--card);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:var(--shadow);}
 .tl-card .tl-name{font-size:14px;font-weight:600;margin-bottom:3px;}
@@ -524,9 +535,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-stat{background:var(--card);border-radius:var(--radius-sm);padding:12px;text-align:center;box-shadow:var(--shadow);}
 .budget-stat .bs-icon{font-size:22px;}
 .budget-stat .bs-amt{font-size:16px;font-weight:700;margin-top:4px;}
-.budget-stat .bs-amt.spent{color:var(--accent);}
+.budget-stat .bs-amt.spent{color:var(--accent-fg);}
 .budget-stat .bs-amt.left{color:var(--primary);}
-.budget-stat .bs-amt.plan{color:var(--accent2);}
+.budget-stat .bs-amt.plan{color:var(--accent2-fg);}
 .budget-stat .bs-lab{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 .budget-filter{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;}
@@ -580,12 +591,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .menu-row .mr-icon{width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:16px;}
 .menu-row .mr-label{flex:1;font-size:14px;}
 .menu-row .mr-arrow{color:var(--text-light);font-size:16px;}
-.meet-row{background:linear-gradient(135deg,#A78BFA 0%,#7C3AED 50%,#B07AB8 100%);}
+/* v95: deepened from #A78BFA→#7C3AED→#B07AB8 — white label/chevron only reached
+   2.7-3.3:1 there. This richer purple clears AA in BOTH modes, so the old
+   dark-only override is gone. */
+.meet-row{background:linear-gradient(135deg,#8B5CF6 0%,#6D28D9 50%,#8B5A9B 100%);}
 .meet-row .mr-icon{background:rgba(255,255,255,.25);}
 .meet-row .mr-label{color:#fff;font-weight:700;}
 .meet-row .mr-arrow{color:#fff;}
-/* v94: darken the promo gradient at night so its white label / chevron pass AA
-   (the pastel version only reached 3.3:1). */
+/* v95: on a dark card the mid-purple above glows a little, so dark mode uses
+   the deeper variant (both clear AA for the white label + chevron). */
 :root.dark .meet-row,html.dark .meet-row{background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 50%,#8B5A9B 100%);}
 
 /* ==== GENERIC ==== */
@@ -596,7 +610,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .editable-hint{font-size:11px;color:var(--text-light);margin-top:6px;text-align:right;}
 
 .tag{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;background:var(--primary-light);color:var(--primary-dark);}
-.tag.accent{background:var(--accent-soft);color:var(--accent);}
+.tag.accent{background:var(--accent-soft);color:var(--accent-fg);}
 .tag.warn{background:var(--warn-bg);color:var(--warn-fg);}
 
 /* Modal */
@@ -940,7 +954,7 @@ img.photo-fade.loaded{opacity:1;}
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
       <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点</span>
-      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
+      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
     </div>
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
@@ -1420,7 +1434,7 @@ img.photo-fade.loaded{opacity:1;}
     <details class="set-acc" style="margin-top:6px;">
       <summary>🛠 高级修复工具</summary>
       <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent);font-weight:600;" onclick="onlyPullPhotos()">📷 仅拉取照片（不重置行程数据）</button>
+        <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="onlyPullPhotos()">📷 仅拉取照片（不重置行程数据）</button>
         <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="reconcileManual()">🔄 补传本地照片到云端（对账）</button>
         <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="restoreFromSnapshot()">💾 从本地备份恢复（最后一条安全快照）</button>
         <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
@@ -1535,7 +1549,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v94';
+var APP_VERSION='v95';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4820,9 +4834,9 @@ function openTrip(id){
 function renderOpenTripChrome(t){
   var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button><button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
   if(t.cover){
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent);">↻</button></div><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button></div><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }
   document.getElementById('td-title').textContent=t.title;
   document.getElementById('td-sub').textContent='📍 '+(t.destination||'未设置目的地');
@@ -5252,7 +5266,7 @@ function renderTripDetailExtras(){
   var total=items.reduce(function(s,x){return s+x.item.amt;},0);
   var bEl=document.getElementById('td-budget');
   var html='';
-  html+='<div class="bs-row"><span>已支出</span><b style="color:var(--accent);">¥'+total.toFixed(2)+'</b></div>';
+  html+='<div class="bs-row"><span>已支出</span><b style="color:var(--accent-fg);">¥'+total.toFixed(2)+'</b></div>';
   if(items.length){
     html+='<div style="margin-top:12px;font-size:12px;color:var(--text-sec);margin-bottom:8px;font-weight:600;">明细</div>';
     html+='<div style="display:flex;flex-direction:column;gap:8px;">';
@@ -5616,7 +5630,7 @@ function initShareView(shareId){
     var back=document.querySelector('.td-back');
     if(back)back.textContent='×';
     var banner=document.createElement('div');
-    banner.style.cssText='background:var(--accent-soft);padding:8px 18px;text-align:center;font-size:12px;color:var(--accent);font-weight:600;';
+    banner.style.cssText='background:var(--accent-soft);padding:8px 18px;text-align:center;font-size:12px;color:var(--accent-fg);font-weight:600;';
     banner.textContent='👁 分享视图（只读）';
     var hero=document.querySelector('.td-hero');
     if(hero)hero.insertAdjacentElement('afterend',banner);
@@ -5834,7 +5848,7 @@ function renderBudget(){
       '</div>'+
       '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
         '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">可用预算</div><div style="font-size:14px;font-weight:700;color:var(--primary-dark);">¥'+tripPlan.toFixed(0)+'</div></div>'+
-        '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">已花费</div><div style="font-size:14px;font-weight:700;color:var(--accent);">¥'+tripTotal.toFixed(0)+'</div></div>'+
+        '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">已花费</div><div style="font-size:14px;font-weight:700;color:var(--accent-fg);">¥'+tripTotal.toFixed(0)+'</div></div>'+
         '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">剩余</div><div style="font-size:14px;font-weight:700;color:'+(tripLeft<0?'var(--danger)':(tripLeft<=tripPlan*0.2?'var(--accent)':'var(--primary)'))+';">¥'+tripLeft.toFixed(0)+'</div></div>'+
       '</div>'+
       // v74: AA line per trip
@@ -6314,7 +6328,7 @@ function openSettings(){
   var t=ghToken();
   var el=document.getElementById('token-status');
   if(el){
-    if(!t){el.textContent='⚠️ 未配置 Token';el.style.color='var(--accent)';}
+    if(!t){el.textContent='⚠️ 未配置 Token';el.style.color='var(--accent-fg)';}
     else if(GH.tokenInvalid){el.textContent='❌ Token 已失效（请重新填）';el.style.color='#dc2626';}
     else{el.textContent='✅ Token 已配置（未测试）';el.style.color='#16a34a';}
   }
@@ -6339,7 +6353,7 @@ function testCurrentToken(){
   // we re-tested the old token, which masks the user's real intent).
   var tok=(input&&input.value||'').trim();
   if(!tok){
-    if(el){el.textContent='⚠️ 请先粘贴 Token';el.style.color='var(--accent)';}
+    if(el){el.textContent='⚠️ 请先粘贴 Token';el.style.color='var(--accent-fg)';}
     return;
   }
   if(el){el.textContent='⏳ 测试中…';el.style.color='var(--text-light)';}
