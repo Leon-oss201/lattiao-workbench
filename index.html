@@ -1384,6 +1384,8 @@ setTimeout(function(){
       <div class="pro-highlight"><div class="ph-v" id="ph-photoday">—</div><div class="ph-l">照片最多的一天</div></div>
     </div>
     <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
+    <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
+    <div id="pro-joy-timeline" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div class="menu-card">
       <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openSearch()"><div class="mr-icon">🔍</div><div class="mr-label">全局搜索</div><div class="mr-arrow">›</div></div>
@@ -2087,7 +2089,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v102';
+var APP_VERSION='v103';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2231,8 +2233,12 @@ function mergeLocationsById(a,b){
     if(seen[key]){
       var old=seen[key];
       if((l.photos||[]).length>(old.photos||[]).length)old.photos=l.photos.slice();
-      if((l.guide||'').length>(old.guide||'').length)old.guide=l.guide;
-      if((l.feeling||'').length>(old.feeling||'').length)old.feeling=l.feeling;
+      // v103 item 8: per-field merge (falls back to "keep longer" when neither side has a timestamp)
+      ['name','guide','feeling'].forEach(function(f){
+        var lt=fieldTs(l,f),ot=fieldTs(old,f);
+        if(lt>ot)old[f]=l[f];
+        else if(lt===ot&&(l[f]||'').length>(old[f]||'').length)old[f]=l[f];
+      });
       return;
     }
     seen[key]=JSON.parse(JSON.stringify(l));
@@ -2451,6 +2457,63 @@ function ghToken(){return localStorage.getItem('lattiao_gh_token')||'';}
 function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
 
 function ghHasToken(){return !!ghToken();}
+// v103: per-device display names so collaborative UI never hardcodes a name.
+// Each device registers its own settings.name keyed by ghUserId(); the map
+// syncs via the cloud payload so collaborators see each other's real names.
+function ensurePeerName(){
+  if(!data.peerNames||typeof data.peerNames!=='object')data.peerNames={};
+  var me=data.settings&&data.settings.name?data.settings.name.trim():'';
+  if(me)data.peerNames[ghUserId()]=me;
+}
+function peerName(uid){
+  if(!uid)return '旅伴';
+  if(uid===ghUserId()){
+    return (data.settings&&data.settings.name&&data.settings.name.trim())||(data.peerNames&&data.peerNames[uid])||'我';
+  }
+  return (data.peerNames&&data.peerNames[uid]&&data.peerNames[uid].trim())||'旅伴';
+}
+function mergePeerNames(remote){
+  if(!remote||typeof remote!=='object')return false;
+  if(!data.peerNames)data.peerNames={};
+  var changed=false;
+  Object.keys(remote).forEach(function(uid){
+    var nm=remote[uid];
+    if(nm&&nm.trim&&(typeof data.peerNames[uid]==='undefined'||!data.peerNames[uid])){
+      data.peerNames[uid]=nm.trim();changed=true;
+    }
+  });
+  ensurePeerName(); // re-assert self name (authoritative, may have been edited)
+  return changed;
+}
+// v103 item 8: per-field timestamp on a location (falls back to trip updatedAt).
+function fieldTs(loc,field){
+  if(loc&&loc._fts&&typeof loc._fts[field]!=='undefined')return tsOf(loc._fts[field]);
+  return 0;
+}
+// v103 item 8: merge two copies of the same location field-by-field so two
+// collaborators editing DIFFERENT fields of one location both keep their edits
+// (previously the newer trip.updatedAt won the whole location — losing one side).
+function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
+  var out=JSON.parse(JSON.stringify(localLoc));
+  var fields=['name','guide','feeling'];
+  fields.forEach(function(f){
+    var rv=remoteLoc[f], lv=out[f];
+    var rTs=fieldTs(remoteLoc,f)||remoteTripTs;
+    var lTs=fieldTs(out,f)||localTripTs;
+    if(isGarbled(lv)&&!isGarbled(rv)){out[f]=rv;return;}
+    if(isGarbled(rv)&&!isGarbled(lv)){return;}
+    // newer field wins; on a tie, keep the longer non-empty text (old heuristic)
+    if(rTs>lTs){ if(rv!==''&&rv!==null&&typeof rv!=='undefined')out[f]=rv; }
+    else if(rTs<lTs){ /* keep local */ }
+    else { if((rv||'').length>(lv||'').length)out[f]=rv; }
+  });
+  out._fts=out._fts||{};
+  if(remoteLoc._fts)Object.keys(remoteLoc._fts).forEach(function(k){ if(tsOf(remoteLoc._fts[k])>tsOf(out._fts[k]||0))out._fts[k]=remoteLoc._fts[k]; });
+  var pset={};
+  (out.photos||[]).forEach(function(p){if(p)pset[p]=1;});
+  (remoteLoc.photos||[]).forEach(function(p){if(p&&!pset[p]){(out.photos=out.photos||[]).push(p);pset[p]=1;}});
+  return out;
+}
 // ---- Gitee API helpers (v71+) ----
 function geUrl(path){return GH.apiBase+'/contents/'+path;}
 function geHeaders(){
@@ -2619,6 +2682,21 @@ function tripsFingerprint(trips){
   // v101: 归一化，否则 ISO 串↔数字的同义改写会被当成「有变化」而多推一次
   return trips.map(function(t){return t.id+'|'+tsOf(t.updatedAt);}).sort().join(',');
 }
+// v103 item 3: a per-trip content signature used to spot which trip a collaborator
+// changed during a pull (so the toast can name the trip).
+function tripContentSig(t){
+  if(!t)return '';
+  var locs=0;(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(){locs++;});});
+  return (t.title||'')+'|'+(t.guide||'').length+'|'+(t.feeling||'').length+'|'+locs+'|'+
+    (t.days||[]).map(function(d){return d.date+':'+(d.locations||[]).length;}).join(',');
+}
+function changedTripTitle(prevSig,trips){
+  for(var i=0;i<trips.length;i++){
+    var t=trips[i];
+    if(prevSig[t.id]!==tripContentSig(t))return t.title||t.destination||'行程';
+  }
+  return '';
+}
 // v92: settings (heroBg/city/title/slogan/fontScale) must also trigger a push.
 // Otherwise changing only the home background is silently skipped because the
 // trip fingerprint hasn't changed — collaborators never see the new background.
@@ -2750,46 +2828,16 @@ function mergeTrips(localTrips,remoteTrips){
       (d.locations||[]).forEach(function(l){
         if(!l||!l.id)return;
         if(!locMap[l.id]){ locMap[l.id]=JSON.parse(JSON.stringify(l)); }
-        else if(remoteTs>localTs){
-          // Remote is newer: replace scalar fields, but merge photos from both
-          // sides so pictures added by either collaborator are all visible.
-          var mergedLoc=JSON.parse(JSON.stringify(l));
-          var oldLoc=locMap[l.id];
-          // v66: count real conflicts (both sides edited the same text field) so
-          // the UI can tell the user the merge actually happened.
-          if(oldLoc&&!GH._counting){
-            if((oldLoc.name||'')!==(mergedLoc.name||'')||(oldLoc.guide||'')!==(mergedLoc.guide||'')||(oldLoc.feeling||'')!==(mergedLoc.feeling||'')){
-              GH.mergeConflicts=(GH.mergeConflicts||0)+1;
-            }
+        else {
+          // v103 item 8: per-field merge — both collaborators keep the fields
+          // THEY edited even when they touched the same location in one window.
+          // (Previously the newer trip.updatedAt won the WHOLE location, silently
+          // dropping the other person's edit to a different field.)
+          var ol=locMap[l.id];
+          if((ol.name||'')!==(l.name||'')||(ol.guide||'')!==(l.guide||'')||(ol.feeling||'')!==(l.feeling||'')){
+            GH.mergeConflicts=(GH.mergeConflicts||0)+1;
           }
-          if(oldLoc&&oldLoc.photos&&oldLoc.photos.length){
-            if(mergedLoc.photos&&mergedLoc.photos.length){
-              var pset={};
-              (mergedLoc.photos||[]).forEach(function(p){ if(p)pset[p]=1; });
-              (oldLoc.photos||[]).forEach(function(p){ if(p&&!pset[p]){mergedLoc.photos.push(p);pset[p]=1;} });
-            }else{
-              mergedLoc.photos=oldLoc.photos.slice();
-            }
-          }
-          locMap[l.id]=mergedLoc;
-        }else{
-          // Local is newer: keep local fields, repair garbled text, and still
-          // union in any remote photos (a friend's uploads must not be lost
-          // just because the local copy was edited more recently).
-          var keepLoc=locMap[l.id];
-          if(keepLoc&&isGarbled(keepLoc.name)&&!isGarbled(l.name))keepLoc.name=l.name;
-          if(keepLoc&&isGarbled(keepLoc.guide)&&!isGarbled(l.guide))keepLoc.guide=l.guide;
-          if(keepLoc&&isGarbled(keepLoc.feeling)&&!isGarbled(l.feeling))keepLoc.feeling=l.feeling;
-          if(keepLoc&&l.photos&&l.photos.length){
-            if(keepLoc.photos&&keepLoc.photos.length){
-              var pset2={};
-              (keepLoc.photos||[]).forEach(function(p){ if(p)pset2[p]=1; });
-              (l.photos||[]).forEach(function(p){ if(p&&!pset2[p]){keepLoc.photos.push(p);pset2[p]=1;} });
-            }else{
-              keepLoc.photos=l.photos.slice();
-            }
-          }
-          locMap[l.id]=keepLoc;
+          locMap[l.id]=mergeLocationPair(ol,l,localTs,remoteTs);
         }
       });
       dayMap[d.date].locations=Object.keys(locMap).map(function(k){return locMap[k];});
@@ -2914,6 +2962,15 @@ function syncPull(force){
       if(data.locTombstones){
         applyLocTombstonesToTrips(data.trips,data.locTombstones);
       }
+      // v103 item 3: snapshot local state BEFORE merge so we can tell the user
+      // (by name) what a collaborator just changed after the pull.
+      var _prevJoy=(data.joys||[]).length;
+      var _prevLoc=0,_prevPhoto=0,_prevFp=tripsFingerprint(data.trips);
+      data.trips.forEach(function(t){(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){
+        _prevLoc++; _prevPhoto+=(l.photos||[]).length+(l._photoCount||0);
+      });});});
+      var _prevTripSig={};
+      data.trips.forEach(function(t){_prevTripSig[t.id]=tripContentSig(t);});
       var merged=mergeTrips(data.trips,remote.trips);
       data.trips=merged; // assign before repair so repair normalizes dates/days
       dedupeTrips();     // collapse dupes created by independent trip ids on different devices
@@ -2925,6 +2982,7 @@ function syncPull(force){
       if(remote.settings){mergeSettings(remote.settings);settingsChanged=true;}
       if(typeof mergeJoys==='function'&&remote.joys){if(mergeJoys(remote.joys))settingsChanged=true;}
       if(typeof mergeNotifs==='function'&&remote.notifs){if(mergeNotifs(remote.notifs))settingsChanged=true;}
+      if(typeof mergePeerNames==='function'&&remote.peerNames){if(mergePeerNames(remote.peerNames))settingsChanged=true;}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       if(changed)saveDataLocal();
@@ -2939,6 +2997,26 @@ function syncPull(force){
         showToast('检测到 '+cf+' 处双方同时修改，已自动合并');
       }
       GH.mergeConflicts=0;
+      // v103 item 3: a gentle, named toast when a COLLABORATOR (not me) pushed
+      // changes we just pulled in — makes two-way sync feel live, not passive.
+      if(remote.updatedBy&&remote.updatedBy!==ghUserId()&&changed){
+        var dJoy=(data.joys||[]).length-_prevJoy;
+        var dLoc=0,dPhoto=0;
+        data.trips.forEach(function(t){(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){
+          dLoc++; dPhoto+=(l.photos||[]).length+(l._photoCount||0);
+        });});});
+        dLoc-=_prevLoc; dPhoto-=_prevPhoto;
+        var pnm=peerName(remote.updatedBy);
+        var msg;
+        if(dJoy>0)msg=pnm+' 分享了一条小确幸 ✨';
+        else if(dLoc>0){
+          var tt=changedTripTitle(_prevTripSig,data.trips)||'行程';
+          msg=pnm+' 给「'+tt+'」加了新地点 ✨';
+        }
+        else if(dPhoto>0)msg=pnm+' 上传了新照片 📷';
+        else msg=pnm+' 更新了旅行计划 ✨';
+        showToast(msg);
+      }
       // v47+: text is in trips.json, photos in separate chunk files. Kick off a
       // background load of the current trip's photos so timelines/maps show them
       // shortly after opening, without blocking the text sync.
@@ -3110,6 +3188,7 @@ function buildPhotoChunks(t){
   return out;
 }
 function buildTextPayload(photoChunks){
+  ensurePeerName(); // v103: make sure our own name is in the synced map
   // v98: photoChunks (already computed by the caller) is used to publish
   // `l._chunkCount` — how many chunk FILES this location occupies in the cloud.
   // A reader that knows the count fires every chunk request at once (1 RTT)
@@ -3129,6 +3208,8 @@ function buildTextPayload(photoChunks){
   // v102: joys/notifications are top-level data so they sync across devices
   remoteData.joys=data.joys||[];
   remoteData.notifs=(data.notifs||[]).slice(0,80);
+  // v103: per-device display names so collaborators see each other's real names
+  remoteData.peerNames=data.peerNames||{};
   data.trips.forEach(function(t){
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
@@ -6046,6 +6127,7 @@ function saveLocation(){
       time:Date.now()
     });
   }
+  var isEdit=currentEditingLocationIdx>=0;
   var loc={
     time:document.getElementById('lm-time').value,
     type:document.getElementById('lm-type').value,
@@ -6059,7 +6141,13 @@ function saveLocation(){
     photos:lmPhotos.slice(),
     budget:{total:lmBudgetItems.reduce(function(s,it){return s+it.amt;},0), items:lmBudgetItems.slice()}
   };
-  var isEdit=currentEditingLocationIdx>=0;
+  // v103 item 8: record per-field timestamps so concurrent edits to DIFFERENT
+  // fields of one location both survive the merge (see mergeLocationPair).
+  var _prev=(isEdit&&day.locations[currentEditingLocationIdx])?day.locations[currentEditingLocationIdx]:null;
+  loc._fts=loc._fts||{};
+  ['name','guide','feeling'].forEach(function(f){
+    if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
+  });
   if(isEdit&&day.locations[currentEditingLocationIdx]){
     loc.id=day.locations[currentEditingLocationIdx].id;
     day.locations[currentEditingLocationIdx]=loc;
@@ -7062,6 +7150,57 @@ function renderProfile(){
           (sp.perPerson?'<div style="font-size:12px;line-height:1.6;">👥 人均 ¥'+sp.perPerson+'</div>':'');
       }else{
         sumCard.style.display='none';
+      }
+    }
+  }catch(e){}
+  // v103 item 2: relationship milestone — names are DYNAMIC (never hardcoded).
+  // Falls back to the user's own stats when there's no collaborator yet.
+  try{
+    var msEl=document.getElementById('pro-milestone');
+    if(msEl){
+      ensurePeerName();
+      var shared=data.trips.filter(function(t){
+        return (t.collaborators&&t.collaborators.length>1)||(t.collaborators&&t.collaborators.some(function(c){return c!==ghUserId();}));
+      });
+      var baseTrips=shared.length?shared:data.trips;
+      var X=baseTrips.length;
+      var destMap={};
+      baseTrips.forEach(function(t){if(t.destination&&t.destination.trim())destMap[t.destination.trim()]=1;});
+      var Y=Object.keys(destMap).length;
+      var earliest=null;
+      baseTrips.forEach(function(t){if(t.startDate){var d=Date.parse(t.startDate);if(isFinite(d)&&(earliest===null||d<earliest))earliest=d;}});
+      var Z=earliest?Math.max(0,Math.floor((Date.now()-earliest)/86400000)+1):0;
+      var peerId=null;
+      shared.forEach(function(t){(t.collaborators||[]).forEach(function(c){if(c!==ghUserId())peerId=c;});});
+      var selfName=(data.settings&&data.settings.name&&data.settings.name.trim())||'你';
+      var peerN=peerId?peerName(peerId):'';
+      var line=peerN
+        ? ('和 '+escapeHTML(peerN)+' 一起走过 '+Y+' 座城市，记录了 '+X+' 段旅程，已经 '+Z+' 天啦 💜')
+        : ('你已走过 '+Y+' 座城市，记录了 '+X+' 段旅程，旅行第 '+Z+' 天 ✨');
+      msEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">💞 我们的旅行里程碑</div>'+
+        '<div style="font-size:13px;line-height:1.7;color:var(--text-sec);">'+line+'</div>';
+      msEl.style.display=(X||Y)?'block':'none';
+    }
+  }catch(e){}
+  // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
+  try{
+    var jtEl=document.getElementById('pro-joy-timeline');
+    if(jtEl){
+      var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+      if(!joys.length){jtEl.style.display='none';}
+      else{
+        var titleByDate={};
+        data.trips.forEach(function(t){(t.days||[]).forEach(function(d){if(d&&d.date)titleByDate[d.date]=t.title||t.destination||'';});});
+        jtEl.style.display='block';
+        jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+
+          joys.slice(0,30).map(function(j){
+            var dt=(j.date||'').slice(5).replace('-','.');
+            var tt=titleByDate[j.date]?(' · '+escapeHTML(titleByDate[j.date])):'';
+            return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
+              '<span style="color:var(--accent2);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
+              '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
+          }).join('')+
+          (joys.length>30?'<div style="font-size:11px;color:var(--text-light);text-align:center;padding-top:6px;">还有 '+(joys.length-30)+' 条…</div>':'');
       }
     }
   }catch(e){}
@@ -9992,6 +10131,7 @@ function init(){
   applyAppearance();
   loadData();
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
+  ensurePeerName();   // v103: register this device's display name for collaborators
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
