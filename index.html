@@ -706,6 +706,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);border-width:2px;padding:10px 13px;}
 .form-input::placeholder,.form-textarea::placeholder{color:var(--text-light);opacity:1;}
 .form-input:disabled,.form-textarea:disabled,.form-select:disabled{opacity:.6;background:var(--muted-bg);}
+/* v106: when the location modal opens in viewer mode, dim everything more
+   aggressively and forbid text selection so the read-only role is unmistakable. */
+.ro-mode .form-input,.ro-mode .form-textarea,.ro-mode .form-select{opacity:.55;background:var(--muted-bg);border-style:dashed;cursor:not-allowed;-webkit-user-select:none;user-select:none;}
+.ro-mode .form-input:focus,.ro-mode .form-textarea:focus,.ro-mode .form-select:focus{border-color:var(--border-strong);border-width:1px;padding:11px 14px;}
 .form-textarea{min-height:80px;resize:vertical;}
 /* v93: iOS Safari forces its own light background on text inputs in dark mode
    unless we explicitly tell it not to. This matches the chosen theme. */
@@ -2120,7 +2124,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v106';
+var APP_VERSION='v107';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -6202,7 +6206,11 @@ function applyLocationModalReadOnly(ro){
   var titleEl=document.getElementById('location-modal-title');
   // v106: the modal is shared between edit and view, so the title must follow
   // the role or viewers think they can edit.
-  if(titleEl&&ro)titleEl.textContent='查看地点 · 只读';
+  if(titleEl)titleEl.textContent=ro?'查看地点 · 只读':'编辑地点';
+  // v106: a class on the modal lets CSS dim the inputs visually so viewers
+  // immediately see "you cannot edit this" instead of tapping a normal-looking
+  // input and being confused when nothing happens.
+  if(ro)modal.classList.add('ro-mode');else modal.classList.remove('ro-mode');
   // Disable every input/textarea/select inside the modal
   modal.querySelectorAll('input,textarea,select').forEach(function(el){
     if(ro){el.setAttribute('readonly','readonly');el.setAttribute('disabled','disabled');}
