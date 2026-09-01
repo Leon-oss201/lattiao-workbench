@@ -708,7 +708,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .form-input:disabled,.form-textarea:disabled,.form-select:disabled{opacity:.6;background:var(--muted-bg);}
 /* v106: when the location modal opens in viewer mode, dim everything more
    aggressively and forbid text selection so the read-only role is unmistakable. */
-.ro-mode .form-input,.ro-mode .form-textarea,.ro-mode .form-select{opacity:.55;background:var(--muted-bg);border-style:dashed;cursor:not-allowed;-webkit-user-select:none;user-select:none;}
+/* v106/v108: when the location modal opens in viewer mode.
+   IMPORTANT — do NOT dim the text with opacity. v107 used opacity:.55 which
+   pushed 14px text down to 3.66:1 (WCAG AA needs 4.5:1) — read-only content
+   became *harder* to read than editable. Signal "not editable" with the
+   frame + cursor instead, and keep the text at full contrast. */
+.ro-mode .form-input,.ro-mode .form-textarea,.ro-mode .form-select{background:var(--muted-bg);border-style:dashed;border-color:var(--border-strong);cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:1;}
 .ro-mode .form-input:focus,.ro-mode .form-textarea:focus,.ro-mode .form-select:focus{border-color:var(--border-strong);border-width:1px;padding:11px 14px;}
 .form-textarea{min-height:80px;resize:vertical;}
 /* v93: iOS Safari forces its own light background on text inputs in dark mode
@@ -2124,7 +2129,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v107';
+var APP_VERSION='v108';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
