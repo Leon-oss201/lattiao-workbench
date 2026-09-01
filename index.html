@@ -91,6 +91,11 @@
   --bg-journal-grad:linear-gradient(180deg,#FEF3C7 0%,#FDE68A 100%);
   --bg-night-grad:linear-gradient(180deg,#1F182E 0%,#4C1D95 100%);
   --bg-cherry-grad:linear-gradient(180deg,#FDF2F8 0%,#FBCFE8 100%);
+  --polaroid-bg:#FFFFFF;
+  --polaroid-ink:#4A4458;
+  --fp-land:#EDE9FE;
+  --fp-line:#C4B5FD;
+  --fp-dot:#B45309;
 }
 /* v73: dark mode — overrides all the design tokens above for night viewing */
 :root.dark,html.dark{
@@ -145,6 +150,11 @@
   --bg-minimal-grad:linear-gradient(180deg,#2A2A24 0%,#262040 100%);
   --bg-journal-grad:linear-gradient(180deg,#5B3D2C 0%,#4A3224 100%);
   --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
+  --polaroid-bg:#E9E5DB;
+  --polaroid-ink:#3A3448;
+  --fp-land:#3D2B5F;
+  --fp-line:#7A6AA8;
+  --fp-dot:#FFA76B;
 }
 /* v85: iOS 26 / Safari 17 — when the user picks "auto" (or hasn't picked at all
    and the system goes dark at night), honor prefers-color-scheme immediately
@@ -189,6 +199,11 @@
     --bg-minimal-grad:linear-gradient(180deg,#2A2A24 0%,#262040 100%);
     --bg-journal-grad:linear-gradient(180deg,#5B3D2C 0%,#4A3224 100%);
     --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
+  --polaroid-bg:#E9E5DB;
+  --polaroid-ink:#3A3448;
+  --fp-land:#3D2B5F;
+  --fp-line:#7A6AA8;
+  --fp-dot:#FFA76B;
   }
 }
 /* v73: font scaling (set in JS via --font-scale) */
@@ -854,6 +869,93 @@ img.photo-fade.loaded{opacity:1;}
 .map-upgrade{background:var(--pill-glass);backdrop-filter:blur(6px);border:1px solid var(--border-strong);border-radius:10px;padding:5px 9px;font-size:10.5px;font-weight:600;color:var(--primary-dark);cursor:pointer;font-family:inherit;line-height:1.4;text-align:left;}
 .td-map .route-svg{position:absolute;inset:0;width:100%;height:100%;}
 
+/* ================= v100: mood cover ================= */
+.mood-cover{margin:14px 16px 0;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--card);position:relative;}
+.mood-cover .mc-art{display:block;width:100%;height:104px;}
+.mood-cover .mc-body{padding:11px 14px 13px;}
+.mood-cover .mc-t{font-size:16px;font-weight:700;color:var(--text);line-height:1.35;}
+.mood-cover .mc-d{font-size:11.5px;color:var(--text-sec);margin-top:4px;line-height:1.55;}
+.mood-cover .mc-badge{position:absolute;right:12px;top:12px;background:var(--pill-glass);border-radius:10px;padding:4px 9px;font-size:10.5px;font-weight:600;color:var(--text);}
+/* ================= v100: countdown ================= */
+.cd-card{margin:14px 16px 0;border-radius:18px;padding:14px 16px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.cd-card .cd-num{font-size:34px;font-weight:700;line-height:1;color:var(--primary-dark);min-width:56px;text-align:center;}
+.cd-card .cd-unit{font-size:11px;color:var(--text-sec);margin-top:5px;}
+.cd-card .cd-main{flex:1;min-width:0;}
+.cd-card .cd-title{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cd-card .cd-sub{font-size:11.5px;color:var(--text-sec);margin-top:3px;line-height:1.5;}
+.cd-dots{display:flex;gap:5px;margin-top:9px;}
+.cd-dots span{height:5px;flex:1;border-radius:3px;background:var(--primary-light);}
+.cd-dots span.on{background:var(--primary);}
+/* ================= v100: joy ================= */
+.joy-card{margin:14px 16px 0;border-radius:18px;padding:13px 15px;background:var(--card);border:1px solid var(--border);}
+.joy-head{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.joy-head .jh-t{font-size:13.5px;font-weight:700;color:var(--text);flex:1;}
+.joy-head .jh-n{font-size:11px;color:var(--text-light);}
+.joy-row{display:flex;gap:8px;align-items:center;}
+.joy-input{flex:1;min-width:0;border:1px solid var(--border-strong);border-radius:12px;background:var(--muted-bg);color:var(--text);padding:9px 11px;font-size:13px;font-family:inherit;}
+.joy-input::placeholder{color:var(--text-light);}
+.joy-add{flex:0 0 auto;border:none;border-radius:12px;background:var(--primary-solid);color:#fff;font-size:12.5px;font-weight:600;padding:9px 14px;cursor:pointer;font-family:inherit;}
+.joy-list{margin-top:10px;max-height:200px;overflow-y:auto;}
+.joy-item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);}
+.joy-item:last-child{border-bottom:none;}
+.joy-item .ji-d{font-size:10.5px;color:var(--primary-dark);font-weight:700;flex:0 0 36px;padding-top:2px;}
+.joy-item .ji-x{flex:1;font-size:12.5px;color:var(--text-sec);line-height:1.55;word-break:break-word;}
+.joy-item .ji-del{flex:0 0 auto;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 4px;}
+/* ================= v100: polaroid ================= */
+.pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:290px;overflow-y:auto;}
+.pl-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--muted-bg);cursor:pointer;border:2px solid transparent;}
+.pl-cell.sel{border-color:var(--primary-solid);}
+.pl-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-cell .pl-check{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--primary-solid);color:#fff;font-size:11px;line-height:18px;text-align:center;display:none;}
+.pl-cell.sel .pl-check{display:block;}
+.pl-filters{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.pl-f{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:var(--muted-bg);color:var(--text-sec);cursor:pointer;font-family:inherit;font-weight:600;}
+.pl-f.on{background:var(--primary-light);border-color:var(--primary-light);color:var(--primary-dark);}
+.polaroid-canvas{border-radius:12px;max-width:100%;display:block;margin:10px auto 0;box-shadow:0 8px 24px rgba(0,0,0,.15);}
+/* ================= v100: doodle ================= */
+.dd-stage{position:relative;margin-top:8px;border-radius:12px;overflow:hidden;background:var(--muted-bg);}
+.dd-stage canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;}
+.dd-tools{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center;}
+.dd-tool{font-size:12px;padding:6px 11px;border-radius:12px;border:1px solid var(--border);background:var(--muted-bg);color:var(--text-sec);cursor:pointer;font-family:inherit;font-weight:600;}
+.dd-tool.on{background:var(--primary-light);border-color:var(--primary-light);color:var(--primary-dark);}
+.dd-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+.dd-sw.on{border-color:var(--primary-solid);}
+.dd-stk{font-size:19px;width:34px;height:34px;line-height:32px;text-align:center;border-radius:12px;border:1px solid var(--border);background:var(--muted-bg);cursor:pointer;}
+.dd-stk.on{background:var(--primary-light);border-color:var(--primary-solid);}
+.dd-textin{width:100%;margin-top:8px;border:1px solid var(--border-strong);border-radius:12px;background:var(--muted-bg);color:var(--text);padding:9px 11px;font-size:13px;font-family:inherit;}
+/* ================= v100: blind box ================= */
+.bb-stage{margin-top:10px;border-radius:18px;min-height:236px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;padding:16px;}
+.bb-card{border-radius:14px;background:var(--polaroid-bg);padding:8px 8px 13px;width:196px;box-shadow:0 6px 18px rgba(0,0,0,.12);}
+.bb-card img{width:100%;height:146px;object-fit:cover;display:block;border-radius:6px;background:var(--muted-bg);}
+.bb-cap{font-family:Georgia,"Songti SC",serif;font-style:italic;font-size:12px;text-align:center;margin-top:8px;color:var(--polaroid-ink);}
+.bb-note{font-size:13px;color:var(--text-sec);text-align:center;line-height:1.75;padding:0 8px;}
+.bb-meta{font-size:11px;color:var(--text-light);text-align:center;}
+.bb-btn{padding:11px 26px;border-radius:22px;border:none;background:var(--primary-solid);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+/* ================= v100: footprint map ================= */
+.fp-wrap{position:relative;margin-top:8px;border-radius:14px;overflow:hidden;background:var(--muted-bg);border:1px solid var(--border);}
+.fp-wrap svg{display:block;width:100%;height:auto;}
+.fp-stats{display:flex;gap:10px;margin-top:10px;}
+.fp-stat{flex:1;background:var(--muted-bg);border-radius:12px;padding:10px;text-align:center;}
+.fp-stat .fv{font-size:20px;font-weight:700;color:var(--primary-dark);}
+.fp-stat .fl{font-size:10.5px;color:var(--text-sec);margin-top:2px;}
+.fp-list{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
+.fp-city{font-size:11px;padding:4px 10px;border-radius:12px;background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+.fp-city.off{background:var(--muted-bg);color:var(--text-light);font-weight:400;}
+.fp-note{font-size:10.5px;color:var(--text-light);margin-top:9px;line-height:1.6;}
+/* ================= v100: personality card ================= */
+.ps-card{border-radius:18px;padding:20px 18px;text-align:center;margin-top:10px;border:1px solid var(--border);background:var(--muted-bg);}
+.ps-emo{font-size:44px;line-height:1;}
+.ps-name{font-size:22px;font-weight:700;color:var(--primary-dark);margin-top:8px;}
+.ps-desc{font-size:12.5px;color:var(--text-sec);line-height:1.75;margin-top:8px;}
+.ps-bars{margin-top:14px;}
+.ps-bar{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.ps-bar .pb-l{font-size:11px;color:var(--text-sec);flex:0 0 46px;text-align:right;}
+.ps-bar .pb-t{flex:1;height:7px;border-radius:4px;background:var(--primary-light);overflow:hidden;}
+.ps-bar .pb-f{height:100%;border-radius:4px;background:var(--primary);}
+.ps-bar .pb-v{font-size:10.5px;color:var(--text-light);flex:0 0 28px;text-align:left;}
+.ps-note{font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.6;}
+
+
 </style>
 </head>
 <body>
@@ -960,6 +1062,7 @@ setTimeout(function(){
       <div class="hero-action-row">
         <button class="corner-btn" onclick="openSearch()" title="搜索行程 / 地点 / 攻略" aria-label="搜索">🔍</button>
         <button class="corner-btn" onclick="openNotifCenter()" title="通知中心" aria-label="通知中心">🔔<span class="notif-badge" id="notif-badge">0</span></button>
+        <button class="corner-btn" onclick="openBlindBox()" title="回忆盲盒" aria-label="回忆盲盒">🎁</button>
       </div>
       <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步">📴 离线</div>
       <div class="hero-decor">✨</div>
@@ -968,6 +1071,8 @@ setTimeout(function(){
         <div class="sub-slogan" id="hero-slogan" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="让每一次出行都值得期待" title="点击编辑签名（100 字以内）">让每一次出行都值得期待</div>
       </div>
     </div>
+
+    <div id="mood-cover"></div>
 
     <div class="home-greeting">
       <div class="greeting-left">
@@ -984,6 +1089,8 @@ setTimeout(function(){
         <div class="w-city" id="home-weather-city" style="font-size:10px;color:var(--text-light);margin-left:2px;"></div>
       </div>
     </div>
+
+    <div id="cd-card-host"></div>
 
     <div class="cta-card" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)">
       <div class="cta-text">
@@ -1011,6 +1118,8 @@ setTimeout(function(){
         <div class="q-desc">喜欢的地点收藏</div>
       </div>
     </div>
+
+    <div id="joy-card-host"></div>
 
     <div class="home-section">
       <div class="section-head"><h2>即将出行</h2><span class="more" onclick="showPage('trips')">查看全部 →</span></div>
@@ -1280,6 +1389,9 @@ setTimeout(function(){
       <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openTemplateManager()"><div class="mr-icon">🧩</div><div class="mr-label">我的行程模板</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openMapSettings()"><div class="mr-icon">🗺️</div><div class="mr-label">地图设置</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openBlindBox()"><div class="mr-icon">🎁</div><div class="mr-label">回忆盲盒</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openFootprint()"><div class="mr-icon">🗺️</div><div class="mr-label">我的足迹地图</div><div class="mr-arrow">›</div></div>
+      <div class="menu-row" onclick="openPersonality()"><div class="mr-icon">🌸</div><div class="mr-label">我的旅行人格</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="openYearPoster()"><div class="mr-icon">🎴</div><div class="mr-label">年度旅行账单</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="exportData()"><div class="mr-icon">📤</div><div class="mr-label">导出数据</div><div class="mr-arrow">›</div></div>
       <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
@@ -1312,6 +1424,10 @@ setTimeout(function(){
       </div>
       <p id="album-summary">所有行程的照片，按时间倒序</p>
       <div style="margin-top:6px;"><span class="psync-badge" id="album-photo-sync" style="display:none;">📷 0/0</span></div>
+      <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;">
+        <span class="tpl-btn" onclick="openPolaroid()">🖼️ 拍立得照片墙</span>
+        <span class="tpl-btn" onclick="openDoodle()">✏️ 照片涂鸦</span>
+      </div>
     </div>
     <div class="album-tabs" id="album-tabs"></div>
     <div id="album-grid-wrap"></div>
@@ -1681,6 +1797,97 @@ setTimeout(function(){
   </div>
 </div>
 
+
+<div class="modal-overlay" id="polaroid-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🖼️ 拍立得照片墙</div>
+    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;">选几张照片，套上相框拼成长图，可以直接存下来</p>
+    <div class="pl-filters" id="pl-filters">
+      <span class="pl-f on" data-f="film" onclick="plSetFilter('film')">胶片</span>
+      <span class="pl-f" data-f="retro" onclick="plSetFilter('retro')">复古</span>
+      <span class="pl-f" data-f="macaron" onclick="plSetFilter('macaron')">马卡龙</span>
+    </div>
+    <div class="pl-grid" id="pl-grid"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-primary" style="flex:1;" onclick="generatePolaroid()">生成照片墙</button>
+      <button class="btn-ghost" onclick="closeModal('polaroid-modal')">关闭</button>
+    </div>
+    <canvas class="polaroid-canvas" id="polaroid-canvas" style="display:none;"></canvas>
+    <div id="pl-actions" style="display:none;margin-top:10px;">
+      <button class="btn-primary" style="width:100%;" onclick="downloadPolaroid()">保存到相册</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="doodle-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 照片涂鸦</div>
+    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;">选一张照片，画画、贴贴纸、写句话</p>
+    <div class="pl-grid" id="dd-grid"></div>
+    <div id="dd-editor" style="display:none;">
+      <div class="dd-stage"><canvas id="dd-canvas"></canvas></div>
+      <div class="dd-tools" id="dd-tools">
+        <span class="dd-tool on" data-t="pen" onclick="ddSetTool('pen')">🖊 画笔</span>
+        <span class="dd-tool" data-t="sticker" onclick="ddSetTool('sticker')">✨ 贴纸</span>
+        <span class="dd-tool" data-t="text" onclick="ddSetTool('text')">🔤 文字</span>
+        <span class="dd-tool" onclick="ddUndo()">↩ 撤销</span>
+        <span class="dd-tool" onclick="ddClear()">🗑 清空</span>
+      </div>
+      <div class="dd-tools" id="dd-colors"></div>
+      <div class="dd-tools" id="dd-stickers" style="display:none;"></div>
+      <input class="dd-textin" id="dd-text" placeholder="写点什么… 然后点画布上想放的位置" style="display:none;">
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-primary" style="flex:1;" onclick="ddSave()">存成新照片</button>
+        <button class="btn-ghost" onclick="ddBack()">换一张</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('doodle-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="blindbox-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎁 回忆盲盒</div>
+    <div class="bb-stage" id="bb-stage">
+      <div style="font-size:44px;">🎁</div>
+      <div class="bb-note">随机抽一张过去的照片<br>看看那天的你在哪儿</div>
+      <button class="bb-btn" onclick="drawBlindBox()">拆开看看</button>
+    </div>
+    <div id="bb-actions" style="display:none;margin-top:10px;">
+      <button class="btn-primary" style="width:100%;" onclick="drawBlindBox()">再抽一张</button>
+    </div>
+    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('blindbox-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="footprint-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗺️ 我的足迹</div>
+    <div class="fp-wrap" id="fp-wrap"></div>
+    <div class="fp-stats" id="fp-stats"></div>
+    <div class="fp-list" id="fp-list"></div>
+    <div class="fp-note">手绘示意图，只用来点亮去过的地方，不作导航或测绘用途。</div>
+    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('footprint-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="personality-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🌸 我的旅行人格</div>
+    <div class="ps-card" id="ps-card"></div>
+    <canvas class="polaroid-canvas" id="ps-canvas" style="display:none;"></canvas>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-primary" style="flex:1;" onclick="downloadPersonality()">保存卡片</button>
+      <button class="btn-ghost" onclick="closeModal('personality-modal')">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -1863,7 +2070,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v99';
+var APP_VERSION='v100';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2646,6 +2853,7 @@ function syncPull(force){
       // hero + city label + bg all update immediately.
       var settingsChanged=false;
       if(remote.settings){mergeSettings(remote.settings);settingsChanged=true;}
+      if(typeof mergeJoys==='function'&&remote.joys){if(mergeJoys(remote.joys))saveDataLocal();}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       if(changed)saveDataLocal();
@@ -4008,6 +4216,7 @@ function updateWeatherUI(w){
   if(text)text.textContent=w.text;
   // v79: show the city name next to the weather pill
   if(city)city.textContent=w.city?('📍'+w.city):'';
+  try{MOOD_STATE.w=w;renderMoodCover();}catch(e){}
 }
 function loadWeather(city){
   if(!city)return;
@@ -4570,6 +4779,8 @@ function renderHome(){
   var n=new Date();
   document.getElementById('greet-date').innerHTML=fmtDate(n)+' 周'+days[n.getDay()]+' · <b id="home-weather-line">--</b>';
   loadWeather(getActiveWeatherCity());
+  // v100: mood cover / countdown / joy all depend on trip phase + time of day
+  try{renderMoodCover();renderCountdownCard();renderJoyCard();}catch(e){console.error('v100 home',e);}
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
@@ -8655,6 +8866,833 @@ function renderRouteMap(t,day){
     }
   });
 }
+
+
+/* ================= v100: mood cover =================
+   The cover is NOT a random quote rotator. It derives from three real inputs —
+   trip phase (pre-trip / live / just-home), time of day, and live weather —
+   so the line on screen actually matches where the user is right now.
+   All artwork is drawn from CSS tokens only, so it follows light/dark. */
+var MOOD_STATE={w:null};
+
+function moodPhase(){
+  var now=new Date();now.setHours(0,0,0,0);
+  var trips=data.trips||[];
+  var live=null,next=null,last=null,nextD=999,lastE=0;
+  trips.forEach(function(t){
+    if(t.status==='archived')return;
+    var sd=parseDateStr(t.startDate);if(!sd)return;
+    var ed=parseDateStr(t.endDate)||sd;
+    if(now>=sd&&now<=ed){if(!live)live=t;return;}
+    var d=Math.round((sd-now)/86400000);
+    if(d>0&&d<=30&&d<nextD){nextD=d;next=t;}
+    var gone=Math.round((now-ed)/86400000);
+    if(gone>=0&&gone<=14&&ed.getTime()>lastE){lastE=ed.getTime();last=t;}
+  });
+  if(live)return {phase:'live',trip:live};
+  if(next)return {phase:'pretrip',trip:next,days:nextD};
+  if(last)return {phase:'homecome',trip:last};
+  return {phase:'idle',trip:null};
+}
+
+function moodArt(scene){
+  var g='<svg class="mc-art" viewBox="0 0 400 104" preserveAspectRatio="xMidYMid slice">';
+  if(scene==='night'){
+    g+='<rect width="400" height="104" fill="var(--muted-bg)"/>';
+    g+='<circle cx="326" cy="30" r="15" fill="var(--text-sec)" opacity=".55"/>';
+    g+='<circle cx="60" cy="22" r="1.6" fill="var(--text-light)"/><circle cx="118" cy="14" r="1.2" fill="var(--text-light)"/>'+
+       '<circle cx="186" cy="26" r="1.4" fill="var(--text-light)"/><circle cx="252" cy="16" r="1.1" fill="var(--text-light)"/>';
+    g+='<path d="M0 104 L86 62 L178 104 Z" fill="var(--primary)" opacity=".35"/>';
+    g+='<path d="M150 104 L262 54 L372 104 Z" fill="var(--primary)" opacity=".22"/>';
+    g+='<rect x="40" y="86" width="12" height="18" fill="var(--accent)" opacity=".7"/>';
+    g+='<rect x="36" y="84" width="20" height="4" rx="2" fill="var(--accent)" opacity=".7"/>';
+  }else if(scene==='rain'){
+    g+='<rect width="400" height="104" fill="var(--primary-light)"/>';
+    g+='<ellipse cx="120" cy="30" rx="52" ry="19" fill="var(--accent2)" opacity=".35"/>';
+    g+='<ellipse cx="270" cy="24" rx="60" ry="21" fill="var(--accent2)" opacity=".28"/>';
+    g+='<g stroke="var(--accent2)" stroke-width="1.6" stroke-linecap="round" opacity=".75">'+
+       '<path d="M84 52 L78 68"/><path d="M126 56 L120 72"/><path d="M176 50 L170 66"/>'+
+       '<path d="M228 58 L222 74"/><path d="M282 52 L276 68"/><path d="M330 56 L324 72"/></g>';
+    g+='<path d="M0 104 L96 66 L196 104 Z" fill="var(--primary)" opacity=".28"/>';
+    g+='<path d="M170 104 L286 58 L400 104 Z" fill="var(--primary)" opacity=".18"/>';
+  }else if(scene==='trip'){
+    g+='<rect width="400" height="104" fill="var(--primary-light)"/>';
+    g+='<path d="M24 78 C110 30 210 96 380 44" stroke="var(--primary)" stroke-width="2" fill="none" stroke-dasharray="6 5" opacity=".65"/>';
+    g+='<circle cx="24" cy="78" r="5" fill="var(--primary)"/>';
+    g+='<circle cx="380" cy="44" r="5" fill="var(--accent)"/>';
+    g+='<g transform="translate(300,18)"><path d="M0 9 L30 9 L22 20 L8 20 Z" fill="var(--primary)" opacity=".85"/>'+
+       '<path d="M12 9 L18 -4 L22 9 Z" fill="var(--primary)"/><rect x="4" y="20" width="22" height="4" rx="2" fill="var(--accent)"/></g>';
+    g+='<path d="M0 104 L110 72 L220 104 Z" fill="var(--primary)" opacity=".2"/>';
+    g+='<path d="M210 104 L320 66 L400 104 Z" fill="var(--primary)" opacity=".14"/>';
+  }else if(scene==='homecome'){
+    g+='<rect width="400" height="104" fill="var(--accent-soft)"/>';
+    g+='<rect x="286" y="46" width="62" height="42" rx="4" fill="var(--primary)" opacity=".2"/>';
+    g+='<rect x="294" y="54" width="18" height="16" fill="var(--accent)" opacity=".8"/>';
+    g+='<rect x="320" y="54" width="18" height="16" fill="var(--primary-light)"/>';
+    g+='<path d="M286 46 L317 30 L348 46 Z" fill="var(--primary)" opacity=".35"/>';
+    g+='<path d="M0 104 L120 74 L240 104 Z" fill="var(--primary)" opacity=".22"/>';
+    g+='<path d="M212 104 L318 70 L400 104 Z" fill="var(--primary)" opacity=".14"/>';
+    g+='<g stroke="var(--primary)" stroke-width="1.6" fill="none" opacity=".6"><path d="M96 44 q8 -10 16 0"/><path d="M112 30 q8 -10 16 0"/></g>';
+  }else{
+    g+='<rect width="400" height="104" fill="var(--primary-light)"/>';
+    g+='<circle cx="330" cy="28" r="18" fill="var(--accent)" opacity=".9"/>';
+    g+='<ellipse cx="110" cy="34" rx="40" ry="13" fill="var(--card)" opacity=".55"/>';
+    g+='<ellipse cx="140" cy="30" rx="28" ry="11" fill="var(--card)" opacity=".7"/>';
+    g+='<path d="M0 104 L100 68 L200 104 Z" fill="var(--primary)" opacity=".3"/>';
+    g+='<path d="M164 104 L280 58 L400 104 Z" fill="var(--primary)" opacity=".18"/>';
+    g+='<path d="M0 78 Q60 70 120 78 T240 78" stroke="var(--card)" stroke-width="1.4" fill="none" opacity=".5"/>';
+  }
+  return g+'</svg>';
+}
+
+function moodCopy(){
+  var ph=moodPhase();
+  var h=new Date().getHours();
+  var w=MOOD_STATE.w||{};
+  var wtxt=w.text||'';
+  var rainy=/雨|雷|暴|阴/.test(wtxt);
+  var hot=typeof w.temp==='number'&&w.temp>=32;
+  var cold=typeof w.temp==='number'&&w.temp<=5;
+  var t=ph.trip;
+  var dest=t?(t.destination||t.title||'目的地'):'';
+  var line={};
+
+  if(ph.phase==='live'){
+    var sd=parseDateStr(t.startDate);
+    var dn=Math.max(1,Math.round((new Date()-sd)/86400000)+1);
+    line.scene=rainy?'rain':'day';
+    line.badge='✈️ 旅行中';
+    line.title='第 '+dn+' 天，慢慢走';
+    line.desc='在'+dest+'的第 '+dn+' 天'+(rainy?'，下雨也有下雨的浪漫，记得带伞。':'，今天也要玩得开心呀。');
+  }else if(ph.phase==='pretrip'){
+    var d=ph.days;
+    line.scene=d<=3?'trip':(rainy?'rain':'day');
+    line.badge='🧳 '+(d===1?'明天出发':d+' 天后出发');
+    if(d===1)line.title='明天就要出发啦！';
+    else if(d<=3)line.title='还有 '+d+' 天，可以开始期待了';
+    else line.title='还有 '+d+' 天去'+dest;
+    line.desc=d===1?'行李收好了吗？别忘了充电宝和好心情。':
+      (d<=3?'趁现在想想第一天想吃什么吧。':(hot?'那边挺热的，记得带防晒和小风扇。':(cold?'那边有点冷，厚外套别落下。':'慢慢准备，好心情先攒起来。')));
+  }else if(ph.phase==='homecome'){
+    line.scene='homecome';
+    line.badge='🏠 刚回来';
+    line.title='回到日常，也别忘了那阵风';
+    line.desc='刚从'+dest+'回来，照片整理好了吗？翻一翻会有惊喜。';
+  }else{
+    if(h>=22||h<5)line.scene='night';
+    else if(rainy)line.scene='rain';
+    else line.scene='day';
+    line.badge=h<11?'🌤 早上好':(h<18?'☀️ 下午好':'🌙 晚上好');
+    if(h>=22)line.title='很晚了，早点休息';
+    else if(h<5)line.title='夜深了，别熬太晚';
+    else if(h<11)line.title='今天也要闪闪发光哦';
+    else if(h<18)line.title='下午了，喝口水歇一歇';
+    else line.title='今天辛苦啦';
+    if(hot&&h>=11&&h<18)line.desc='外面 '+Math.round(w.temp)+'°C，注意防暑，别在太阳底下待太久。';
+    else if(cold)line.desc='只有 '+Math.round(w.temp)+'°C，出门多穿一件。';
+    else if(rainy)line.desc='外面在下雨，雨天的节奏慢一点也很好。';
+    else if(typeof w.temp==='number')line.desc='现在 '+Math.round(w.temp)+'°C '+(wtxt?('· '+wtxt+' '):'')+'· 适合出门走走。';
+    else line.desc='点右上角 ＋ 开始规划下一段旅程吧。';
+  }
+  return line;
+}
+
+function renderMoodCover(){
+  var host=document.getElementById('mood-cover');
+  if(!host)return;
+  var c=moodCopy();
+  host.innerHTML='<div class="mood-cover">'+moodArt(c.scene)+
+    '<div class="mc-badge">'+escapeHTML(c.badge)+'</div>'+
+    '<div class="mc-body"><div class="mc-t">'+escapeHTML(c.title)+'</div>'+
+    '<div class="mc-d">'+escapeHTML(c.desc)+'</div></div></div>';
+}
+
+/* ================= v100: countdown card ================= */
+function renderCountdownCard(){
+  var host=document.getElementById('cd-card-host');
+  if(!host)return;
+  var ph=moodPhase(),t=ph.trip;
+  if(!t||ph.phase==='idle'){host.innerHTML='';return;}
+  var sd=parseDateStr(t.startDate);if(!sd){host.innerHTML='';return;}
+  var now=new Date();now.setHours(0,0,0,0);
+  var ed=parseDateStr(t.endDate)||sd;
+  var total=Math.max(1,Math.round((ed-sd)/86400000)+1);
+  var num,unit,sub,dots='',i;
+  if(ph.phase==='pretrip'){
+    var d=Math.round((sd-now)/86400000);
+    num=d;unit=d===1?'明天出发':'天后出发';
+    sub=escapeHTML(t.destination||t.title||'')+' · 共 '+total+' 天';
+    for(i=0;i<Math.min(total,8);i++)dots+='<span></span>';
+  }else if(ph.phase==='live'){
+    var dn=Math.max(1,Math.round((now-sd)/86400000)+1);
+    num=dn;unit='第 '+dn+' / '+total+' 天';
+    sub=escapeHTML(t.destination||t.title||'')+' · 正在路上';
+    for(i=0;i<Math.min(total,8);i++)dots+='<span class="'+(i<Math.min(dn,8)?'on':'')+'"></span>';
+  }else{
+    num='🏠';unit='已回家';
+    sub=escapeHTML(t.destination||t.title||'')+' · 共 '+total+' 天';
+    for(i=0;i<Math.min(total,8);i++)dots+='<span class="on"></span>';
+    dots='';
+  }
+  host.innerHTML='<div class="cd-card"><div><div class="cd-num">'+num+'</div>'+
+    '<div class="cd-unit">'+escapeHTML(unit)+'</div></div>'+
+    '<div class="cd-main"><div class="cd-title">'+escapeHTML(t.title||'未命名行程')+'</div>'+
+    '<div class="cd-sub">'+sub+'</div>'+(dots?'<div class="cd-dots">'+dots+'</div>':'')+'</div></div>';
+}
+
+/* ================= v100: joy (今日份小确幸) ================= */
+function joyAll(){return (data.joys&&data.joys.length)?data.joys:[];}
+function joyToday(){
+  var d=new Date().toISOString().slice(0,10);
+  var l=joyAll();
+  for(var i=0;i<l.length;i++)if(l[i].date===d)return l[i];
+  return null;
+}
+function joyAdd(){
+  var el=document.getElementById('joy-input');
+  if(!el)return;
+  var v=(el.value||'').trim();
+  if(!v){showToast('写点什么再保存吧');return;}
+  if(v.length>120)v=v.slice(0,120);
+  var d=new Date().toISOString().slice(0,10);
+  if(!data.joys)data.joys=[];
+  var cur=joyToday();
+  if(cur){cur.text=v;cur.ts=Date.now();}
+  else data.joys.push({id:uid(),date:d,text:v,ts:Date.now()});
+  saveDataLocal();
+  if(typeof queueBump==='function')queueBump();
+  if(typeof syncPush==='function')syncPush();
+  el.value='';
+  renderJoyCard();
+  showToast('记下啦 ✨');
+}
+function joyDel(id){
+  if(!data.joys)return;
+  data.joys=data.joys.filter(function(j){return j.id!==id;});
+  saveDataLocal();
+  if(typeof queueBump==='function')queueBump();
+  if(typeof syncPush==='function')syncPush();
+  renderJoyCard();
+}
+function renderJoyCard(){
+  var host=document.getElementById('joy-card-host');
+  if(!host)return;
+  var all=joyAll().slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var cur=joyToday();
+  var h='<div class="joy-card"><div class="joy-head"><div class="jh-t">🌸 今日份小确幸</div>'+
+    '<div class="jh-n">已记 '+all.length+' 条</div></div>';
+  if(cur){
+    h+='<div class="joy-row"><input class="joy-input" id="joy-input" value="'+escapeHTML(cur.text)+'" maxlength="120" placeholder="今天最开心的一件小事…">'+
+       '<button class="joy-add" onclick="joyAdd()">改一下</button></div>';
+  }else{
+    h+='<div class="joy-row"><input class="joy-input" id="joy-input" maxlength="120" placeholder="今天最开心的一件小事…" onkeydown="if(event.key===\'Enter\')joyAdd();">'+
+       '<button class="joy-add" onclick="joyAdd()">记下</button></div>';
+  }
+  if(all.length){
+    h+='<div class="joy-list">';
+    all.slice(0,30).forEach(function(j){
+      h+='<div class="joy-item"><div class="ji-d">'+escapeHTML((j.date||'').slice(5).replace('-','.'))+'</div>'+
+         '<div class="ji-x">'+escapeHTML(j.text||'')+'</div>'+
+         '<div class="ji-del" onclick="joyDel(\''+escapeHTML(j.id||'')+'\')">✕</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  host.innerHTML=h;
+}
+// Joys are a top-level key, which syncPull does not merge (it only merges
+// trips + settings). Union by id so a collaborator's entries never wipe ours.
+function mergeJoys(remoteJoys){
+  if(!remoteJoys||!remoteJoys.length)return false;
+  if(!data.joys)data.joys=[];
+  var seen={},changed=false;
+  data.joys.forEach(function(j){seen[j.id]=1;});
+  remoteJoys.forEach(function(j){
+    if(!j||!j.id||seen[j.id])return;
+    data.joys.push(j);seen[j.id]=1;changed=true;
+  });
+  return changed;
+}
+
+/* ================= v100: polaroid wall ================= */
+var PL_STATE={all:[],picks:[],filter:'film'};
+function openPolaroid(){
+  PL_STATE.all=collectAlbumPhotos('all').slice(0,60);
+  PL_STATE.picks=[];
+  if(!PL_STATE.all.length){showToast('还没有照片，先去地点里加几张吧');return;}
+  renderPlGrid();
+  document.getElementById('polaroid-canvas').style.display='none';
+  document.getElementById('pl-actions').style.display='none';
+  document.getElementById('polaroid-modal').classList.add('active');
+}
+function renderPlGrid(){
+  var g=document.getElementById('pl-grid');
+  if(!g)return;
+  g.innerHTML=PL_STATE.all.map(function(p,i){
+    var on=PL_STATE.picks.indexOf(i)>=0;
+    return '<div class="pl-cell'+(on?' sel':'')+'" onclick="plToggle('+i+')">'+
+      '<img src="'+p.src+'" loading="lazy"><div class="pl-check">✓</div></div>';
+  }).join('');
+}
+function plToggle(i){
+  var k=PL_STATE.picks.indexOf(i);
+  if(k>=0)PL_STATE.picks.splice(k,1);
+  else{
+    if(PL_STATE.picks.length>=9){showToast('最多选 9 张');return;}
+    PL_STATE.picks.push(i);
+  }
+  renderPlGrid();
+}
+function plSetFilter(f){
+  PL_STATE.filter=f;
+  var box=document.getElementById('pl-filters');
+  if(box)box.querySelectorAll('.pl-f').forEach(function(e){
+    e.classList.toggle('on',e.getAttribute('data-f')===f);
+  });
+}
+function plTint(){
+  if(PL_STATE.filter==='retro')return 'rgba(120,80,40,.22)';
+  if(PL_STATE.filter==='macaron')return 'rgba(255,190,220,.18)';
+  return 'rgba(255,180,120,.14)';
+}
+function loadImg(src){
+  return new Promise(function(res,rej){
+    var im=new Image();
+    im.onload=function(){res(im);};
+    im.onerror=function(){rej(new Error('img'));};
+    im.src=src;
+  });
+}
+function generatePolaroid(){
+  var picks=PL_STATE.picks.map(function(i){return PL_STATE.all[i];}).filter(Boolean);
+  if(!picks.length){showToast('请先选择照片');return;}
+  Promise.all(picks.map(function(p){return loadImg(p.src).catch(function(){return null;});}))
+    .then(function(imgs){
+      var cv=document.getElementById('polaroid-canvas');
+      var n=imgs.length;
+      var cols=n<=1?1:(n<=4?2:3);
+      var rows=Math.ceil(n/cols);
+      var cw=210,ch=252,pad=14,fp=9,ph=186;
+      var W=cols*cw+(cols+1)*pad;
+      var H=rows*ch+(rows+1)*pad+70;
+      cv.width=W;cv.height=H;
+      var c=cv.getContext('2d');
+      c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-bg').trim()||'#FFFFFF';
+      c.fillRect(0,0,W,H);
+      var ink=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-ink').trim()||'#4A4458';
+      for(var i=0;i<n;i++){
+        var cx0=pad+(i%cols)*(cw+pad);
+        var cy0=pad+Math.floor(i/cols)*(ch+pad);
+        c.save();
+        c.translate(cx0+cw/2,cy0+ch/2);
+        c.rotate(((i%2?1:-1)*(0.6+((i*7)%9)/12))*Math.PI/180);
+        c.translate(-cw/2,-ch/2);
+        c.fillStyle='#FFFFFF';
+        c.fillRect(0,0,cw,ch);
+        c.fillStyle='#F1EDE4';
+        c.fillRect(0,0,cw,ch);
+        var im=imgs[i];
+        var px=fp,py=fp,pw=cw-fp*2;
+        if(im){
+          var sc=Math.max(pw/im.width,ph/im.height);
+          var dw=im.width*sc,dh=im.height*sc;
+          c.save();
+          c.beginPath();c.rect(px,py,pw,ph);c.clip();
+          c.drawImage(im,px+(pw-dw)/2,py+(ph-dh)/2,dw,dh);
+          c.fillStyle=plTint();
+          c.fillRect(px,py,pw,ph);
+          c.restore();
+        }else{
+          c.fillStyle='#DDD6C8';c.fillRect(px,py,pw,ph);
+        }
+        c.fillStyle=ink;
+        c.font='italic 13px Georgia,"Songti SC",serif';
+        c.textAlign='center';
+        var label=(picks[i].d||'').slice(5).replace('-','.')+' '+(picks[i].locName||'');
+        if(label.length>16)label=label.slice(0,16)+'…';
+        c.fillText(label,cw/2,ch-16);
+        c.restore();
+      }
+      c.fillStyle=ink;
+      c.font='13px -apple-system,"PingFang SC",sans-serif';
+      c.textAlign='center';
+      c.globalAlpha=.65;
+      c.fillText('薄荷旅行手账 · '+new Date().getFullYear(),W/2,H-26);
+      c.globalAlpha=1;
+      cv.style.display='block';
+      document.getElementById('pl-actions').style.display='block';
+    });
+}
+function downloadPolaroid(){
+  var cv=document.getElementById('polaroid-canvas');
+  try{
+    var a=document.createElement('a');
+    a.href=cv.toDataURL('image/jpeg',0.9);
+    a.download='拍立得照片墙_'+new Date().toISOString().slice(0,10)+'.jpg';
+    document.body.appendChild(a);a.click();a.remove();
+    showToast('已保存 ✨');
+  }catch(e){showToast('保存失败，试试长按图片');}
+}
+
+/* ================= v100: photo doodle ================= */
+var DD={all:[],picks:null,target:null,img:null,tool:'pen',color:'#FF8C42',sticker:'★',
+        strokes:[],stickers:[],texts:[],undo:[],scale:1,cv:null,ctx:null};
+var DD_COLORS=['#FF8C42','#EC4899','#7C3AED','#22C55E','#0EA5E9','#FFFFFF','#1F182E'];
+var DD_STICKERS=['★','♥','☁','✦','☀','✿','♫','☂'];
+function openDoodle(){
+  DD.all=collectAlbumPhotos('all').slice(0,60);
+  if(!DD.all.length){showToast('还没有照片，先去地点里加几张吧');return;}
+  var g=document.getElementById('dd-grid');
+  g.innerHTML=DD.all.map(function(p,i){
+    return '<div class="pl-cell" onclick="ddPick('+i+')"><img src="'+p.src+'" loading="lazy"></div>';
+  }).join('');
+  document.getElementById('dd-editor').style.display='none';
+  document.getElementById('dd-grid').style.display='';
+  document.getElementById('doodle-modal').classList.add('active');
+}
+function ddBack(){
+  document.getElementById('dd-editor').style.display='none';
+  document.getElementById('dd-grid').style.display='';
+}
+function ddPick(i){
+  var p=DD.all[i];if(!p)return;
+  DD.target=p;
+  loadImg(p.src).then(function(im){
+    var cv=document.getElementById('dd-canvas');
+    var maxW=1000;
+    var sc=Math.min(1,maxW/im.width);
+    cv.width=Math.round(im.width*sc);
+    cv.height=Math.round(im.height*sc);
+    DD.img=im;DD.cv=cv;DD.ctx=cv.getContext('2d');
+    DD.strokes=[];DD.stickers=[];DD.texts=[];DD.undo=[];
+    document.getElementById('dd-grid').style.display='none';
+    document.getElementById('dd-editor').style.display='';
+    ddRenderColors();
+    ddRenderStickers();
+    ddSetTool('pen');
+    ddRedraw();
+  }).catch(function(){showToast('这张照片加载失败了');});
+}
+function ddRenderColors(){
+  var box=document.getElementById('dd-colors');
+  if(!box)return;
+  box.innerHTML='<span style="font-size:11px;color:var(--text-light);width:100%;">颜色</span>'+
+    DD_COLORS.map(function(cc){
+      return '<button class="dd-sw'+(cc===DD.color?' on':'')+'" style="background:'+cc+';" onclick="ddSetColor(\''+cc+'\')" aria-label="颜色"></button>';
+    }).join('');
+}
+function ddRenderStickers(){
+  var box=document.getElementById('dd-stickers');
+  if(!box)return;
+  box.innerHTML='<span style="font-size:11px;color:var(--text-light);width:100%;">贴纸（点画布放置）</span>'+
+    DD_STICKERS.map(function(st){
+      return '<button class="dd-stk'+(st===DD.sticker?' on':'')+'" onclick="ddSetSticker(\''+st+'\')">'+st+'</button>';
+    }).join('');
+}
+function ddSetColor(cc){DD.color=cc;ddRenderColors();}
+function ddSetSticker(st){DD.sticker=st;ddRenderStickers();}
+function ddSetTool(t){
+  DD.tool=t;
+  var box=document.getElementById('dd-tools');
+  if(box)box.querySelectorAll('.dd-tool[data-t]').forEach(function(e){
+    e.classList.toggle('on',e.getAttribute('data-t')===t);
+  });
+  var st=document.getElementById('dd-stickers');
+  var tx=document.getElementById('dd-text');
+  if(st)st.style.display=(t==='sticker')?'flex':'none';
+  if(tx)tx.style.display=(t==='text')?'block':'none';
+}
+function ddRedraw(){
+  var c=DD.ctx,cv=DD.cv;
+  if(!c||!DD.img)return;
+  c.clearRect(0,0,cv.width,cv.height);
+  c.drawImage(DD.img,0,0,cv.width,cv.height);
+  c.lineCap='round';c.lineJoin='round';
+  DD.strokes.forEach(function(s){
+    c.strokeStyle=s.color;
+    c.lineWidth=Math.max(2,s.w);
+    c.beginPath();
+    c.moveTo(s.pts[0].x,s.pts[0].y);
+    for(var i=1;i<s.pts.length;i++)c.lineTo(s.pts[i].x,s.pts[i].y);
+    if(s.pts.length===1)c.lineTo(s.pts[0].x+0.1,s.pts[0].y);
+    c.stroke();
+  });
+  c.textAlign='center';c.textBaseline='middle';
+  DD.stickers.forEach(function(k){
+    c.font=Math.max(24,k.size)+'px -apple-system,"PingFang SC",sans-serif';
+    c.fillStyle=k.color;
+    c.strokeStyle='rgba(255,255,255,.85)';
+    c.lineWidth=Math.max(2,k.size/14);
+    c.strokeText(k.ch,k.x,k.y);
+    c.fillText(k.ch,k.x,k.y);
+  });
+  DD.texts.forEach(function(t){
+    c.font='600 '+Math.max(16,t.size)+'px -apple-system,"PingFang SC",sans-serif';
+    c.fillStyle=t.color;
+    c.strokeStyle='rgba(255,255,255,.9)';
+    c.lineWidth=Math.max(2,t.size/14);
+    c.strokeText(t.s,t.x,t.y);
+    c.fillText(t.s,t.x,t.y);
+  });
+}
+function ddPos(e){
+  var r=DD.cv.getBoundingClientRect();
+  return {
+    x:(e.clientX-r.left)*(DD.cv.width/r.width),
+    y:(e.clientY-r.top)*(DD.cv.height/r.height)
+  };
+}
+(function(){
+  var drawing=null;
+  function bind(){
+    var cv=document.getElementById('dd-canvas');
+    if(!cv)return;
+    cv.addEventListener('pointerdown',function(e){
+      if(!DD.img)return;
+      e.preventDefault();
+      var p=ddPos(e);
+      if(DD.tool==='pen'){
+        drawing={color:DD.color,w:Math.max(3,DD.cv.width/220),pts:[p]};
+        DD.strokes.push(drawing);
+      }else if(DD.tool==='sticker'){
+        DD.stickers.push({ch:DD.sticker,x:p.x,y:p.y,size:Math.max(28,DD.cv.width/16),color:DD.color});
+      }else if(DD.tool==='text'){
+        var v=(document.getElementById('dd-text').value||'').trim();
+        if(!v){showToast('先写点什么');return;}
+        DD.texts.push({s:v,x:p.x,y:p.y,size:Math.max(18,DD.cv.width/26),color:DD.color});
+        document.getElementById('dd-text').value='';
+      }
+      ddRedraw();
+      cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);
+    });
+    cv.addEventListener('pointermove',function(e){
+      if(!drawing)return;
+      e.preventDefault();
+      drawing.pts.push(ddPos(e));
+      ddRedraw();
+    });
+    cv.addEventListener('pointerup',function(){drawing=null;});
+    cv.addEventListener('pointercancel',function(){drawing=null;});
+    cv.addEventListener('pointerleave',function(){drawing=null;});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);
+  else bind();
+})();
+function ddUndo(){
+  if(DD.stickers.length&&DD.tool==='sticker')DD.stickers.pop();
+  else if(DD.texts.length&&DD.tool==='text')DD.texts.pop();
+  else DD.strokes.pop();
+  ddRedraw();
+}
+function ddClear(){DD.strokes=[];DD.stickers=[];DD.texts=[];ddRedraw();}
+function ddFindTarget(p){
+  var t=(data.trips||[]).filter(function(x){return x.id===p.tripId;})[0];
+  if(!t)return null;
+  var ds=t.days||[];
+  for(var i=0;i<ds.length;i++){
+    var ls=ds[i].locations||[];
+    for(var j=0;j<ls.length;j++){
+      var l=ls[j];
+      if((l.photos||[]).indexOf(p.src)>=0)return {trip:t,day:ds[i],loc:l};
+    }
+  }
+  for(var a=0;a<ds.length;a++){
+    var l2=ds[a].locations||[];
+    for(var b=0;b<l2.length;b++){
+      if((l2[b].name||'')===p.locName)return {trip:t,day:ds[a],loc:l2[b]};
+    }
+  }
+  return null;
+}
+function ddSave(){
+  if(!DD.cv||!DD.target){showToast('先选一张照片');return;}
+  var tgt=ddFindTarget(DD.target);
+  if(!tgt){showToast('找不到这张照片的位置了');return;}
+  var out;
+  try{out=DD.cv.toDataURL('image/jpeg',0.86);}
+  catch(e){showToast('保存失败');return;}
+  tgt.loc.photos=tgt.loc.photos||[];
+  tgt.loc.photos.push(out);
+  tgt.loc._photoCount=tgt.loc.photos.length;
+  tgt.trip.updatedAt=new Date().toISOString();
+  try{photoCachePut(tgt.loc.id,tgt.loc.photos);}catch(e){}
+  saveDataLocal();
+  if(typeof queueBump==='function')queueBump();
+  if(typeof syncPush==='function')syncPush();
+  closeModal('doodle-modal');
+  if(typeof renderAlbum==='function')renderAlbum();
+  showToast('已存成一张新照片 ✨');
+}
+
+/* ================= v100: memory blind box ================= */
+var BB_LINES=[
+  '那天的风应该很好闻吧。',
+  '有些瞬间，照片替你记着。',
+  '那时候的你，笑得真好看。',
+  '走着走着，日子就亮起来了。',
+  '这张照片里藏着一个好天气。',
+  '想念是会发光的，你看。',
+  '慢一点也没关系，你已经走到了那里。'
+];
+function openBlindBox(){
+  var st=document.getElementById('bb-stage');
+  var ac=document.getElementById('bb-actions');
+  if(st)st.innerHTML='<div style="font-size:44px;">🎁</div>'+
+    '<div class="bb-note">随机抽一张过去的照片<br>看看那天的你在哪儿</div>'+
+    '<button class="bb-btn" onclick="drawBlindBox()">拆开看看</button>';
+  if(ac)ac.style.display='none';
+  document.getElementById('blindbox-modal').classList.add('active');
+}
+function drawBlindBox(){
+  var st=document.getElementById('bb-stage');
+  var ac=document.getElementById('bb-actions');
+  if(!st)return;
+  var photos=collectAlbumPhotos('all');
+  if(!photos.length){
+    st.innerHTML='<div style="font-size:40px;">📷</div>'+
+      '<div class="bb-note">还没有照片<br>去地点里加几张，以后就能抽到啦</div>';
+    if(ac)ac.style.display='none';
+    return;
+  }
+  var p=photos[Math.floor(Math.random()*photos.length)];
+  var feeling='';
+  var tgt=ddFindTarget(p);
+  if(tgt&&tgt.loc&&(tgt.loc.feeling||'').trim())feeling=(tgt.loc.feeling||'').trim();
+  if(!feeling)feeling=BB_LINES[Math.floor(Math.random()*BB_LINES.length)];
+  st.innerHTML='<div class="bb-card"><img src="'+p.src+'">'+
+    '<div class="bb-cap">'+escapeHTML((p.d||'').replace(/-/g,'.')+' '+(p.locName||''))+'</div></div>'+
+    '<div class="bb-note">'+escapeHTML(feeling)+'</div>'+
+    '<div class="bb-meta">'+escapeHTML(p.tripTitle||'')+'</div>';
+  if(ac)ac.style.display='block';
+}
+
+/* ================= v100: footprint map =================
+   Hand-drawn decorative silhouette. It is a stylised illustration for lighting
+   up places the user has been — NOT a survey-grade map and never used for
+   navigation or routing. Taiwan Island and Hainan Island are drawn as parts of
+   China. Coordinates are approximate city-centre points for placement only. */
+var FP_MAIN=[
+ [73,39],[76,41],[80,44],[85,47],[90,48],[96,43],[103,42],[110,44],[115,46],[119,48],
+ [124,50],[127,53],[131,48],[134,47],[133,45],[131,43],[128,42],[126,40],[122,40],[121,38],
+ [118,39],[122,37],[121,34],[122,31],[121,30],[120,27],[117,24],[114,23],[110,21],[108,21],
+ [106,22],[102,23],[99,25],[97,28],[93,29],[89,28],[85,29],[81,31],[78,34],[75,37]
+];
+var FP_HAINAN=[[108.5,19.8],[110.6,20.1],[111,19.5],[110,18.2],[108.6,18.5],[108.5,19.3]];
+var FP_TAIWAN=[[120.1,25.3],[121.9,25.1],[121.6,22.6],[120.7,21.9],[120.1,23.0]];
+var FP_CITY={
+ '北京':[116.4,39.9],'上海':[121.47,31.23],'广州':[113.26,23.13],'深圳':[114.06,22.55],
+ '杭州':[120.15,30.27],'成都':[104.07,30.57],'重庆':[106.55,29.56],'西安':[108.94,34.34],
+ '南京':[118.78,32.06],'苏州':[120.59,31.30],'厦门':[118.09,24.48],'泉州':[118.58,24.91],
+ '福州':[119.30,26.08],'青岛':[120.38,36.07],'大连':[121.62,38.92],'三亚':[109.51,18.25],
+ '海口':[110.20,20.04],'昆明':[102.83,24.88],'大理':[100.23,25.60],'丽江':[100.23,26.87],
+ '桂林':[110.29,25.27],'张家界':[110.48,29.12],'长沙':[112.94,28.23],'武汉':[114.31,30.60],
+ '郑州':[113.63,34.75],'洛阳':[112.45,34.62],'济南':[117.00,36.65],'泰安':[117.09,36.20],
+ '太原':[112.55,37.87],'石家庄':[114.51,38.04],'天津':[117.20,39.13],'哈尔滨':[126.53,45.80],
+ '长春':[125.32,43.82],'沈阳':[123.43,41.80],'呼和浩特':[111.75,40.84],'银川':[106.23,38.49],
+ '西宁':[101.78,36.62],'兰州':[103.83,36.06],'乌鲁木齐':[87.62,43.79],'拉萨':[91.11,29.65],
+ '贵阳':[106.63,26.65],'南宁':[108.37,22.82],'北海':[109.12,21.48],'南昌':[115.89,28.68],
+ '合肥':[117.28,31.86],'宁波':[121.55,29.87],'温州':[120.70,28.00],'无锡':[120.30,31.57],
+ '扬州':[119.42,32.39],'绍兴':[120.58,30.01],'嘉兴':[120.76,30.77],'湖州':[120.09,30.89],
+ '舟山':[122.11,30.02],'汕头':[116.68,23.35],'珠海':[113.55,22.27],'东莞':[113.75,23.04],
+ '佛山':[113.12,23.02],'惠州':[114.42,23.11],'湛江':[110.36,21.27],'潮州':[116.63,23.66],
+ '香港':[114.17,22.32],'澳门':[113.55,22.20],'台北':[121.56,25.03],'高雄':[120.30,22.63],
+ '台中':[120.68,24.15],'台南':[120.20,23.00],'喀什':[75.99,39.47],'敦煌':[94.66,40.14],
+ '嘉峪关':[98.28,39.79],'张掖':[100.45,38.93],'稻城':[100.30,28.43],'九寨沟':[103.92,33.26],
+ '峨眉山':[103.33,29.52],'泰山':[117.10,36.25],'黄山':[118.17,30.13],'武夷山':[118.03,27.75],
+ '平遥':[112.18,37.20],'凤凰':[109.60,27.95],'阳朔':[110.50,24.78],'腾冲':[98.49,25.03],
+ '香格里拉':[99.70,27.83],'西双版纳':[100.80,22.01],'延吉':[129.51,42.91],'丹东':[124.35,40.13],
+ '秦皇岛':[119.60,39.94],'承德':[117.94,40.98],'开封':[114.31,34.80],'曲阜':[116.99,35.60],
+ '常州':[119.95,31.79],'徐州':[117.18,34.26],'烟台':[121.39,37.54],'威海':[122.12,37.51]
+};
+function fpXY(lon,lat){
+  var W=400,H=300;
+  var x=30+(lon-73)/(135-73)*(W-60);
+  var y=22+(53-lat)/(53-18)*(H-52);
+  return [x,y];
+}
+function fpPath(pts){
+  return pts.map(function(p,i){
+    var q=fpXY(p[0],p[1]);
+    return (i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1);
+  }).join(' ')+' Z';
+}
+function fpCityList(){
+  var seen={},out=[];
+  (data.trips||[]).forEach(function(t){
+    var d=(t.destination||'').trim();
+    if(!d||seen[d])return;
+    seen[d]=1;out.push(d);
+  });
+  return out;
+}
+function openFootprint(){
+  document.getElementById('footprint-modal').classList.add('active');
+  renderFootprint();
+}
+function renderFootprint(){
+  var wrap=document.getElementById('fp-wrap');
+  var stats=document.getElementById('fp-stats');
+  var list=document.getElementById('fp-list');
+  var cities=fpCityList();
+  var lit=[],unlit=[];
+  cities.forEach(function(c){
+    var k=FP_CITY[c]?c:null;
+    if(!k){
+      for(var key in FP_CITY){
+        if(FP_CITY[key]&&c.indexOf(key)>=0){k=key;break;}
+      }
+    }
+    if(k&&FP_CITY[k])lit.push({name:c,pt:FP_CITY[k]});
+    else unlit.push(c);
+  });
+  var dots=lit.map(function(c){
+    var q=fpXY(c.pt[0],c.pt[1]);
+    return '<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="4.2" fill="var(--fp-dot)" stroke="#fff" stroke-width="1.2"/>';
+  }).join('');
+  if(wrap){
+    wrap.innerHTML='<svg viewBox="0 0 400 300" role="img" aria-label="足迹示意图">'+
+      '<path d="'+fpPath(FP_MAIN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.4"/>'+
+      '<path d="'+fpPath(FP_HAINAN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.2"/>'+
+      '<path d="'+fpPath(FP_TAIWAN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.2"/>'+
+      dots+'</svg>';
+  }
+  var provinceCount=(function(){
+    var s={};cities.forEach(function(c){s[c]=1;});return Object.keys(s).length;
+  })();
+  if(stats){
+    stats.innerHTML='<div class="fp-stat"><div class="fv">'+lit.length+'</div><div class="fl">已点亮城市</div></div>'+
+      '<div class="fp-stat"><div class="fv">'+unlit.length+'</div><div class="fl">待补充坐标</div></div>'+
+      '<div class="fp-stat"><div class="fv">'+((data.trips||[]).length)+'</div><div class="fl">段旅程</div></div>';
+  }
+  if(list){
+    var h=lit.map(function(c){return '<span class="fp-city">📍 '+escapeHTML(c.name)+'</span>';}).join('');
+    h+=unlit.map(function(c){return '<span class="fp-city off">'+escapeHTML(c)+'</span>';}).join('');
+    if(!cities.length)h='<span class="fp-city off">还没有去过的地方</span>';
+    list.innerHTML=h;
+  }
+}
+
+/* ================= v100: travel personality ================= */
+var PS_DESC={
+ food:['你是为了那一口才出发的人。','行程可以改，但那家店必须去。'],
+ checkin:['你是朋友圈里的风景播报员。','好看的地方，一定要留下到此一游。'],
+ sight:['山、海、古建、老街，你都愿意慢慢看。','风景本身，就是你出发的理由。'],
+ photo:['你用快门写日记。','别人拍照是记录，你拍照是创作。'],
+ slow:['你不赶路。','一天两三个地方刚刚好，剩下的时间用来发呆。'],
+ plan:['出发前你已经把攻略写完了。','同行的人只需要跟着你走。']
+};
+function travelPersonality(){
+  var trips=data.trips||[];
+  var locs=0,food=0,checkin=0,sight=0,photos=0,days=0,guides=0;
+  trips.forEach(function(t){
+    var ds=t.days||[];
+    days+=Math.max(1,ds.length);
+    ds.forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        locs++;
+        var ty=l.type||'other';
+        if(ty==='food')food++;
+        else if(ty==='checkin')checkin++;
+        else if(ty==='attraction')sight++;
+        photos+=(l.photos||[]).length;
+        if((l.guide||'').trim())guides++;
+      });
+    });
+  });
+  if(!locs)return null;
+  var per=function(n){return Math.round(n/locs*100);};
+  var scores=[
+    {k:'food',n:'美食系',emo:'🍜',v:per(food)},
+    {k:'checkin',n:'打卡系',emo:'📸',v:per(checkin)},
+    {k:'sight',n:'风景系',emo:'🏞',v:per(sight)},
+    {k:'photo',n:'摄影系',emo:'🎞',v:Math.min(100,Math.round(photos/Math.max(1,locs)*28))},
+    {k:'slow',n:'慢游系',emo:'🍃',v:Math.max(0,100-Math.round(locs/Math.max(1,days)*34))},
+    {k:'plan',n:'计划系',emo:'🗒',v:per(guides)}
+  ];
+  scores.sort(function(a,b){return b.v-a.v;});
+  var top=scores[0];
+  if(top.v<=0){top=scores[0]={k:'sight',n:'风景系',emo:'🏞',v:1};}
+  var d=PS_DESC[top.k]||PS_DESC.sight;
+  return {top:top,scores:scores,desc:d,locs:locs,days:days,photos:photos};
+}
+function openPersonality(){
+  document.getElementById('personality-modal').classList.add('active');
+  renderPersonality();
+}
+function renderPersonality(){
+  var box=document.getElementById('ps-card');
+  if(!box)return;
+  var r=travelPersonality();
+  document.getElementById('ps-canvas').style.display='none';
+  if(!r){
+    box.innerHTML='<div class="ps-emo">🌱</div><div class="ps-name">还没出发</div>'+
+      '<div class="ps-desc">多记几个地点，就能算出你的旅行人格啦。</div>';
+    return;
+  }
+  var bars=r.scores.slice(0,5).map(function(s){
+    return '<div class="ps-bar"><div class="pb-l">'+s.n+'</div>'+
+      '<div class="pb-t"><div class="pb-f" style="width:'+Math.max(3,Math.min(100,s.v))+'%;"></div></div>'+
+      '<div class="pb-v">'+s.v+'</div></div>';
+  }).join('');
+  box.innerHTML='<div class="ps-emo">'+r.top.emo+'</div>'+
+    '<div class="ps-name">'+r.top.n+'</div>'+
+    '<div class="ps-desc">'+r.desc[0]+'<br>'+r.desc[1]+'</div>'+
+    '<div class="ps-bars">'+bars+'</div>'+
+    '<div class="ps-note">基于 '+r.locs+' 个地点 · '+r.days+' 天行程 · '+r.photos+' 张照片算出</div>';
+}
+function downloadPersonality(){
+  var r=travelPersonality();
+  if(!r){showToast('数据还不够');return;}
+  var cv=document.getElementById('ps-canvas');
+  var W=640,H=900;
+  cv.width=W;cv.height=H;
+  var c=cv.getContext('2d');
+  var g=c.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#F5F3FF');g.addColorStop(0.5,'#FCE7F3');g.addColorStop(1,'#EDE9FE');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.textAlign='center';
+  c.fillStyle='#5B21B6';
+  c.font='600 20px -apple-system,"PingFang SC",sans-serif';
+  c.fillText('我的旅行人格',W/2,86);
+  c.font='86px -apple-system,"PingFang SC",sans-serif';
+  c.fillText(r.top.emo,W/2,224);
+  c.fillStyle='#5B21B6';
+  c.font='700 46px -apple-system,"PingFang SC",sans-serif';
+  c.fillText(r.top.n,W/2,308);
+  c.fillStyle='#5B5070';
+  c.font='19px -apple-system,"PingFang SC",sans-serif';
+  c.fillText(r.desc[0],W/2,362);
+  c.fillText(r.desc[1],W/2,394);
+  var y=470;
+  r.scores.slice(0,5).forEach(function(s){
+    c.textAlign='left';
+    c.fillStyle='#5B5070';
+    c.font='17px -apple-system,"PingFang SC",sans-serif';
+    c.fillText(s.n,150,y);
+    c.textAlign='right';
+    c.fillText(s.v+'',W-150,y);
+    c.fillStyle='#EDE9FE';
+    c.fillRect(150,y+12,W-300,10);
+    c.fillStyle='#7C3AED';
+    c.fillRect(150,y+12,(W-300)*Math.max(3,Math.min(100,s.v))/100,10);
+    y+=62;
+  });
+  c.textAlign='center';
+  c.fillStyle='#6F6489';
+  c.font='15px -apple-system,"PingFang SC",sans-serif';
+  c.fillText('基于 '+r.locs+' 个地点 · '+r.days+' 天行程 · '+r.photos+' 张照片',W/2,H-92);
+  c.font='14px -apple-system,"PingFang SC",sans-serif';
+  c.fillText('薄荷旅行手账 · '+new Date().getFullYear(),W/2,H-60);
+  cv.style.display='block';
+  try{
+    var a=document.createElement('a');
+    a.href=cv.toDataURL('image/jpeg',0.9);
+    a.download='我的旅行人格_'+r.top.n+'.jpg';
+    document.body.appendChild(a);a.click();a.remove();
+    showToast('已保存 ✨');
+  }catch(e){showToast('保存失败，试试长按图片');}
+}
+
 
 function init(){
   // v76: render FIRST, then hydrate photos — waiting for the full IndexedDB
