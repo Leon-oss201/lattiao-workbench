@@ -655,6 +655,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pro-stat .ps-v{font-size:18px;font-weight:700;color:var(--primary-dark);}
 .pro-stat .ps-l{font-size:11px;color:var(--text-light);margin-top:2px;}
 
+/* v109: guest mode — make room for the pinned read-only banner */
+body.guest-mode{padding-top:34px;}
 .menu-card{margin:14px 18px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .menu-group{margin:14px 18px 0;}
 .menu-group .mg-title{font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.5px;padding:0 4px 6px;text-transform:uppercase;}
@@ -982,6 +984,8 @@ img.photo-fade.loaded{opacity:1;}
 </style>
 </head>
 <body>
+<!-- v109: guest read-only banner (fixed + body padding, never covers content) -->
+<div id="guest-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:9px 16px;font-size:12px;font-weight:600;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18);">👁 只读访客模式 · 你可以看全部内容，但不能修改哦</div>
 <!-- v75: offline banner -->
 <div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--warn-bg);color:var(--warn-fg);font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
 <!-- v82: prominent pending-push banner — shows when there are unsynced changes.
@@ -2129,12 +2133,22 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v108';
+var APP_VERSION='v109';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
 var calFilterType='all';
 var currentTripId=null;
+// v109: GUEST read-only mode, entered via ?readonly=<token>. A guest is
+// read-only on EVERY trip, which lets us reuse the whole v106 viewer UI-hiding
+// path (isReadOnly(trip)) instead of writing a second set of rules.
+var GUEST_MODE=false;
+function isGuest(){return GUEST_MODE;}
+function guestBlocked(op){
+  if(!GUEST_MODE)return false;
+  showToast('👁 只读访客模式 · '+(op||'该操作')+'不可用');
+  return true;
+}
 var currentEditingTripId=null;
 var currentTripDay=0;
 var currentEditingLocationIdx=-1; // -1 = adding new location, >=0 = editing existing location
@@ -2427,6 +2441,9 @@ function repairTrips(){
   });
 }
 function saveDataLocal(){
+  // v109: TOTAL WRITE GATE. saveData() is exactly saveDataLocal() + syncPush(),
+  // so blocking here means no mutation can ever be persisted by a guest.
+  if(GUEST_MODE)return;
   try{
     var now=new Date().toISOString();
     data.updatedAt=now;
@@ -2533,6 +2550,8 @@ function myRole(trip){
   return null;
 }
 function isReadOnly(trip){
+  // v109: guest mode = read-only everywhere; reuses all v106 viewer UI hiding.
+  if(GUEST_MODE)return true;
   if(!trip)return false;
   var r=myRole(trip);
   return r==='viewer';
@@ -3154,6 +3173,8 @@ function syncPull(force){
 }
 
 function syncPush(){
+  // v109: a guest must never push to the cloud (belt-and-braces with gate #1).
+  if(GUEST_MODE)return;
   if(!ghHasToken())return;
   if(GH.writeTimer)clearTimeout(GH.writeTimer);
   // v99: 本地改动进入待同步队列（离线队列可视化）
@@ -6204,6 +6225,27 @@ function editLocation(idx){
   // in read-only mode — inputs become disabled, save button is hidden.
   applyLocationModalReadOnly(isReadOnly(t));
 }
+// v109: guest chrome — hide creation FABs, the settings gear and the private
+// 小确幸 surfaces, then pin a read-only banner to the top of every page.
+function applyGuestUI(){
+  if(!GUEST_MODE)return;
+  try{
+    // Hide every "create" FAB (行程 / 攻略 / 收藏)
+    document.querySelectorAll('.fab').forEach(function(b){b.style.display='none';});
+    // Hide the settings gear — a guest has no business changing our settings.
+    var gear=document.querySelector('.corner-btn[onclick="openSettings()"]');
+    if(gear)gear.style.display='none';
+    // Private: 小确幸 (home card + profile timeline) stay ours.
+    var joyHost=document.getElementById('joy-card-host');
+    if(joyHost)joyHost.style.display='none';
+    var jt=document.getElementById('pro-joy-timeline');
+    if(jt)jt.style.display='none';
+    var banner=document.getElementById('guest-banner');
+    if(banner)banner.style.display='block';
+    document.body.classList.add('guest-mode');
+  }catch(e){}
+}
+
 function applyLocationModalReadOnly(ro){
   var modal=document.getElementById('location-modal');if(!modal)return;
   var saveBtn=document.getElementById('lm-save-btn');
@@ -7319,6 +7361,8 @@ function renderProMenu(){
   var html='';
   FEATURE_GROUPS.forEach(function(g){
     var items=byGroup[g[0]];if(!items||!items.length)return;
+    // v109: no import/export for guests — the data stays on our side.
+    if(isGuest()&&g[0]==='导入导出')return;
     html+='<div class="menu-group">'+
       '<div class="mg-title">'+g[1]+'</div>'+
       '<div class="menu-card">';
@@ -9678,6 +9722,13 @@ function renderMoodCover(){
   var host=document.getElementById('mood-cover');
   if(!host)return;
   var c=moodCopy();
+  // v109: the mood lines are private notes Iris writes to herself — guests get
+  // a neutral greeting instead, but keep the artwork (it's the pretty part).
+  if(isGuest()){
+    c.title='欢迎来看我们的旅行 ✨';
+    c.desc='这里记录了我们走过的城市、看过的风景。随便逛逛吧 👀';
+    c.badge='👁 只读访客';
+  }
   host.innerHTML='<div class="mood-cover">'+moodArt(c.scene)+
     '<div class="mc-badge">'+escapeHTML(c.badge)+'</div>'+
     '<div class="mc-body"><div class="mc-t">'+escapeHTML(c.title)+'</div>'+
@@ -10566,6 +10617,21 @@ function init(){
   setTimeout(function(){maybeEnableDepartureReminders();},4000);
   setInterval(function(){checkDepartureReminders(true);},6*3600000);
   var params=new URLSearchParams(location.search);
+  // v109: guest read-only entry. Token rides in the URL we hand out and is
+  // never written into the public Pages source. A localStorage flag persists
+  // the mode so stripping the query string cannot unlock editing.
+  var roTok=params.get('readonly');
+  if(roTok){
+    GUEST_MODE=true;
+    ghSetToken(roTok);
+    try{localStorage.setItem('lattiao_guest','1');}catch(e){}
+  }else if(localStorage.getItem('lattiao_guest')==='1'){
+    GUEST_MODE=true;
+  }
+  // v109: applyGuestUI() MUST run after GUEST_MODE is decided above — calling it
+  // earlier (it was next to maybeCloudBackup(), ~43 lines above) meant it ran
+  // while GUEST_MODE was still false and silently did nothing.
+  if(GUEST_MODE)applyGuestUI();
   var shareId=params.get('share');
   var joinId=params.get('join');
   var sc=params.get('shortcut');
