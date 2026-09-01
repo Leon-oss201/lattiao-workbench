@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v111';
+var APP_VERSION='v114';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3009,6 +3009,13 @@ function mergeTrips(localTrips,remoteTrips){
   });
   var out=Object.keys(byId).map(function(k){ return byId[k].trip; });
   out.forEach(migrateCollab); // v106: keep role-bearing collaborators consistent post-merge
+  // v112 BUG FIX: mergeTrips only knows about trips, not loc tombstones. If a
+  // collaborator deleted a location and that delete is sitting in data.locTombstones,
+  // the merge would still happily add the location back from remote (callers do
+  // apply tombstones before mergeTrips, but the merge ADDS remote locations that
+  // weren't in the tombstoned local). Filter the final result so resurrection
+  // can't slip through. Cheap because locTombstones is tiny.
+  if(data.locTombstones){ applyLocTombstonesToTrips(out, data.locTombstones); }
   return out;
 }
 
@@ -3826,7 +3833,17 @@ function syncStateFingerprint(remoteData){
   var notifs=(remoteData&&remoteData.notifs)||data.notifs||[];
   var joyFp=joys.map(function(j){return (j&&j.id)?j.id+'@'+(j.ts||0):'';}).join('|');
   var notifFp=notifs.map(function(n){return (n&&n.id)?n.id+'@'+(n.read?1:0)+'@'+(n.ts||0):'';}).join('|');
-  return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp;
+  // v113 BUG FIX: include tombstones in the fingerprint. If we don't, a
+  // tombstone-only change (e.g. B deletes a location it never pulled, so
+  // tripsFingerprint is unchanged) is silently skipped by syncPushNow's
+  // incremental optimisation — and the tombstone never reaches the cloud.
+  // The cost is one short recompute per push; the benefit is that deletes
+  // can never "vanish into the void" on a device that didn't have the loc.
+  var tombstones=(remoteData&&remoteData.tombstones)||data.tombstones||{};
+  var locTombstones=(remoteData&&remoteData.locTombstones)||data.locTombstones||{};
+  var tombFp=Object.keys(tombstones).map(function(k){return 't:'+k+'@'+tombstones[k];}).join('|')+'##'+
+              Object.keys(locTombstones).map(function(k){return 'lt:'+k+'@'+locTombstones[k];}).join('|');
+  return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp;
 }
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
@@ -6366,8 +6383,15 @@ function saveLocation(){
   };
   // v103 item 8: record per-field timestamps so concurrent edits to DIFFERENT
   // fields of one location both survive the merge (see mergeLocationPair).
+  // v111 BUG FIX: `loc` is a fresh object, so `loc._fts = loc._fts || {}` left
+  // it empty and every field the user didn't touch lost its _fts entry.
+  // mergeLocationPair then fell back to the trip timestamp for those fields —
+  // newer than the collaborator's real edit — and silently kept the stale local
+  // value while still recording the collaborator's newer _fts. Net effect: a
+  // teammate's edit to a different field VANISHED, with the timestamps
+  // falsely claiming it was merged. Always inherit _prev._fts first.
   var _prev=(isEdit&&day.locations[currentEditingLocationIdx])?day.locations[currentEditingLocationIdx]:null;
-  loc._fts=loc._fts||{};
+  loc._fts=(_prev&&_prev._fts)?JSON.parse(JSON.stringify(_prev._fts)):(loc._fts||{});
   ['name','guide','feeling'].forEach(function(f){
     if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
   });
