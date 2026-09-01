@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v110';
+var APP_VERSION='v111';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4481,6 +4481,9 @@ function showPage(name){
   if(name==='profile')renderProfile();
   if(name==='guides')renderGuides();
   if(name==='favorites')renderFavorites();
+  // v111: 底部 Tab / 任何路径调 showPage('album') 之前都不渲染（只有 openAlbum
+  // 主动调 renderAlbum），导致从底部 Tab 进入相册页完全空白。补上。
+  if(name==='album')renderAlbum();
 }
 
 document.querySelectorAll('.bn-item').forEach(function(b){
