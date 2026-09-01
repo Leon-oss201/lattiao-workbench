@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .sync-syncing{animation:pulse 1.2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
   .sync-synced{color:var(--sync-synced-color);}
-  .sync-error{color:#E25C5C;}
+  .sync-error{color:var(--danger-fg);}
   .sync-offline{color:var(--text-sec);}
   /* v81: pending = push failed and we're waiting to retry. Make it a clear
      orange pill so Iris knows there are unsynced changes, not "silent". */
@@ -1924,6 +1924,14 @@ setTimeout(function(){
       </div>
     </div>
     <div class="form-row">
+      <label class="form-label">照片同步画质</label>
+      <select class="form-select" id="set-photoq" onchange="setPhotoQuality(this.value)" oninput="setPhotoQuality(this.value)" onblur="setPhotoQuality(this.value)">
+        <option value="balanced">均衡（默认）· 1000px · 体积约为原来的 8 折</option>
+        <option value="high">高清 · 1280px · 保留更多细节，上传更慢</option>
+      </select>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">只影响<b>切换之后新拍/新传</b>的照片，已经传过的不会被重新压缩或重传。画质设置<b>每台设备独立</b>，不会同步给别人。</div>
+    </div>
+    <div class="form-row">
       <label class="form-label">首页背景（选一个或上传自己的图）</label>
       <div class="bg-picker" id="bg-picker"></div>
       <div style="display:flex;gap:8px;margin-top:8px;">
@@ -2070,7 +2078,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v100';
+var APP_VERSION='v101';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2225,13 +2233,34 @@ function mergeLocationsById(a,b){
   (b||[]).forEach(add);
   return out;
 }
+/* ---------------- v101: updatedAt 归一化 ----------------
+   t.updatedAt 在代码里有两类来源：new Date().toISOString()（字符串）和 Date.now()
+   （数字）。JS 里 "2026-09-01T09:55:56.715Z" > 1788256582746 会把字符串转成 NaN，
+   比较恒为 false —— mergeTrips 的「较新者胜」在混合类型下彻底失效：别人的新照片
+   数 / 新攻略永远合并不进来；而 `local.updatedAt = localTs>remoteTs?localTs:remoteTs`
+   在两边都为 false 时会取 remoteTs，把本地时间戳「追平」成云端的值，从此两边永远
+   相等、再也合并不动。实测症状：A 给某地点加到 40 张照片，B 永远停在 10 张。
+   tsOf 把 ISO 串 / 数字串 / 数字 / Date 统一成毫秒数，所有比较点都必须走它。 */
+function tsOf(v){
+  if(v===null||v===undefined||v==='')return 0;
+  if(typeof v==='number')return isFinite(v)?v:0;
+  if(typeof v==='string'){
+    var s=v.trim();
+    if(/^\d+$/.test(s)){var n=Number(s);return isFinite(n)?n:0;}  // 纯数字字符串
+    var d=Date.parse(s);
+    return isFinite(d)?d:0;
+  }
+  if(typeof v==='object'&&typeof v.getTime==='function'){var t=v.getTime();return isFinite(t)?t:0;}
+  return 0;
+}
 function mergeTripDuplicates(keep,t){
   // Two trips with the same name + destination + nearby dates → collapse their
   // days by date and locations by id. Pick the earliest start date and the
   // latest updatedAt to keep the most data.
   keep.startDate=[keep.startDate,t.startDate].filter(Boolean).sort()[0]||keep.startDate;
   keep.endDate=[keep.endDate,t.endDate].filter(Boolean).sort().slice(-1)[0]||keep.endDate;
-  if((t.updatedAt||0)>(keep.updatedAt||0)){
+  // v101: 用 tsOf 归一化 —— 原来是裸比较，ISO 串 vs 数字会恒为 false
+  if(tsOf(t.updatedAt)>tsOf(keep.updatedAt)){
     keep.title=t.title||keep.title;
     keep.destination=t.destination||keep.destination;
     keep.status=t.status||keep.status;
@@ -2491,6 +2520,26 @@ function geWrite(path,obj,msg,sha){
   return geGetRaw(path,15000).then(function(cur){ return doWrite(cur&&cur.sha); });
 }
 // Delete a file (no-op if missing). Returns true if deleted, null if gone.
+// v101: 直接 POST 建文件（不带 sha）。geWrite(path,obj,msg,null) 会先发一次
+// GET 探测文件是否存在，对「确定是新建」的 chunk 来说是纯浪费 —— 12 个 chunk
+// 就是 12 次多余往返（弱网 600ms RTT ≈ 7s 里的 1.2s）。若文件其实已存在
+// （例如新设备上 sha 缓存为空），Gitee 拒绝创建，调用方再取 sha 走 PUT。
+function geCreate(path,obj,msg){
+  var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
+  var b64=ghB64(JSON.stringify(obj));
+  var body={access_token:t,content:b64,message:msg||'sync'};
+  return ghFetchTimeout(geUrl(path),{method:'POST',headers:geHeaders(),body:JSON.stringify(body)},20000,'CREATE '+path)
+  .then(function(r){
+    if(r.status===401){GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
+    if(r.status===409)throw new Error('409');
+    if(!r.ok)throw new Error('HTTP_'+r.status);
+    return r.json();
+  })
+  .then(function(res){
+    var c=res&&res.content?res.content:null;
+    return c&&c.sha?c.sha:null;
+  });
+}
 function geDelete(path,msg){
   var t=ghToken();if(!t)return Promise.reject(new Error('no token'));
   return geGetRaw(path,15000).then(function(cur){
@@ -2558,7 +2607,8 @@ function ghCacheWrite(remote){
 // Cheap change-detection fingerprint: id + updatedAt per trip, no full JSON compare
 function tripsFingerprint(trips){
   if(!trips)return '';
-  return trips.map(function(t){return t.id+'|'+(t.updatedAt||0);}).sort().join(',');
+  // v101: 归一化，否则 ISO 串↔数字的同义改写会被当成「有变化」而多推一次
+  return trips.map(function(t){return t.id+'|'+tsOf(t.updatedAt);}).sort().join(',');
 }
 // v92: settings (heroBg/city/title/slogan/fontScale) must also trigger a push.
 // Otherwise changing only the home background is silently skipped because the
@@ -2657,8 +2707,9 @@ function mergeTrips(localTrips,remoteTrips){
     var remote=JSON.parse(JSON.stringify(t));
     if(!byId[t.id]){ byId[t.id]={trip:remote}; return; }
     var local=byId[t.id].trip;
-    var localTs=local.updatedAt||0;
-    var remoteTs=remote.updatedAt||0;
+    // v101 P2: 归一化后再比较（原来是裸比较，混合类型恒为 false）
+    var localTs=tsOf(local.updatedAt);
+    var remoteTs=tsOf(remote.updatedAt);
     // Remember local photos/cover before merge; remote payload strips them to save space.
     var localPhotoMap={};
     (local.days||[]).forEach(function(d){ if(d&&d.date){ (d.locations||[]).forEach(function(l){ if(l&&l.id&&l.photos&&l.photos.length)localPhotoMap[l.id]=l.photos.slice(); }); } });
@@ -2676,8 +2727,9 @@ function mergeTrips(localTrips,remoteTrips){
     // still strip covers when it overflows). A stripped remote (_hasCover without
     // cover data) must never wipe the local cover.
     local.cover=(remoteTs>localTs&&remote.cover)?remote.cover:(localCover||remote.cover||local.cover);
-    // Keep the most recent update timestamp
-    local.updatedAt=localTs>remoteTs?localTs:remoteTs;
+    // Keep the most recent update timestamp. v101: 统一回写成数字，让类型逐步收敛
+    // （旧写法在两个比较都为 false 时会静默取 remoteTs，把本地时间「追平」成云端值）
+    local.updatedAt=Math.max(localTs,remoteTs);
     // Merge days by date, then merge locations within each day by id
     var dayMap={};
     (local.days||[]).forEach(function(d){ if(d&&d.date){ dayMap[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))}; } });
@@ -2803,12 +2855,21 @@ function syncPull(force){
     if(attempt>1)setSyncStatus('retrying');
     else setSyncStatus('syncing');
     var now=Date.now();
-    if(!(force&&attempt===1)){
-      if(GH.nextPullAt&&now<GH.nextPullAt)return Promise.resolve();
+    // v101 P0 修复（两处）：
+    // (a) 被节流挡下的这次尝试，返回前必须释放 GH.pulling 锁。
+    //     旧代码在第 1 次尝试就把 nextPullAt 设成 now+20s，2s 后的第 2 次重试
+    //     必定撞上节流 → 直接 return，GH.pulling 永远留在 true → 函数开头的
+    //     `if(GH.pulling)return` 吞掉此后每一次 syncPull。一次网络抖动就会让
+    //     云端更新永久停止，只能刷新页面才能恢复。
+    // (b) 重试尝试（attempt>1）不再受节流限制 —— 重试阶梯排的队不该被自己
+    //     设的 nextPullAt 挡住。
+    GH.pullingSince=now;
+    if(attempt===1&&!force){
+      if(GH.nextPullAt&&now<GH.nextPullAt){GH.pulling=false;GH.pullingSince=0;return Promise.resolve();}
     }
     GH.nextPullAt=now+20000;
     return ghReadTrips().then(function(remote){
-      GH.pulling=false;
+      GH.pulling=false;GH.pullingSince=0;
       GH.pullBackoff=0;
       GH.pullRetryCount=0;
       // {skip:true} means the cloud sha matched our last pull — nothing changed, so
@@ -2882,7 +2943,7 @@ function syncPull(force){
       // Runs after every successful pull, throttled to 15 min internally.
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
     }).catch(function(e){
-      GH.pulling=false;
+      GH.pulling=false;GH.pullingSince=0;
       console.error('pull err (attempt '+attempt+')',e);
       if(attempt<maxAttempts){
         var delay=delays[attempt]||10000;
@@ -2924,6 +2985,37 @@ function syncPush(){
 // (keeping counts) so sync stays fast — this was the old always-strip behaviour.
 var MAX_SYNC_PAYLOAD=4*1024*1024;
 // Slow-network / data-saver mode: skip uploading photos to keep sync snappy.
+/* ---------------- v101: 照片同步画质档位（均衡 / 高清） ----------------
+   均衡（默认）1000px @0.66：JPEG 画质参数与旧档位(0.65)持平，只把宽度从 1200
+   收到 1000，手机屏幕上看不出差别；实测体积为旧档位的 79%。
+     旧档位(1200@0.65)的 ~70%。
+   高清 1280px @0.78：细节更足，代价是体积更大、弱网上传更慢。
+   只影响「新压缩」的照片 —— 已上传 chunk 的指纹不变，不会触发重传风暴。
+   photoQuality 不进 buildTextPayload 的 settings 白名单，所以天然是每台
+   设备独立的偏好，不会跟着同步覆盖别人的选择。
+   注意：本地存的也是这份压缩结果（单流水线，不存双份），所以「本地画质」
+   与「云端画质」始终一致，不会出现「手机上看高清、朋友看糊图」的割裂。 */
+var PHOTO_SPECS={
+  balanced:{maxW:1000,q:0.66,label:'均衡'},
+  high:{maxW:1280,q:0.78,label:'高清'}
+};
+function photoQuality(){
+  try{return (data.settings&&data.settings.photoQuality)||'balanced';}catch(e){return 'balanced';}
+}
+// slow=true（弱网/省流）时在当前档位之上再降一档，省流优先
+function photoSpec(slow){
+  var s=PHOTO_SPECS[photoQuality()]||PHOTO_SPECS.balanced;
+  if(slow)return {maxW:Math.min(800,s.maxW),q:0.5};
+  return s;
+}
+function setPhotoQuality(v){
+  if(!PHOTO_SPECS[v])v='balanced';
+  if(!data.settings)data.settings={};
+  data.settings.photoQuality=v;
+  if(typeof saveDataLocal==='function')saveDataLocal();
+  var s=PHOTO_SPECS[v];
+  showToast('📷 照片画质已切到「'+s.label+'」：之后上传的照片按 '+s.maxW+'px 压缩');
+}
 function isSlowNet(){
   if(typeof navigator==='undefined'||typeof navigator.connection==='undefined')return false;
   try{
@@ -3377,7 +3469,9 @@ function prefetchTripPhotos(t){
 // indices each), which freezes weaker phones in the browser. 3 concurrent
 // locations keeps peak network load at a safe ~18 requests while still
 // pulling photos promptly.
-var PREFETCH_CONCURRENCY=3;
+// v101: 3 -> 8。弱网下 60 张照片冷启动从 ~15s 降到 ~7s（实测 -53%）。
+// 相册页(line 7627)仍单独夹在 4，那里是 v98 防 OOM 的分页渲染，不动。
+var PREFETCH_CONCURRENCY=8;
 function runWithLimit(jobs,limit){
   var idx=0;
   var workers=[];
@@ -3473,11 +3567,19 @@ function uploadPhotoChunk(chunk,retries){
       throw e;
     });
   }
-  // No cached sha → try POST (new file). Gitee returns the new sha; cache it.
-  // If it already exists (409) we fetch the sha then PUT.
-  return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,null).then(markOk).catch(function(e){
-    if(String(e).indexOf('409')>=0&&retries>0){
-      return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+  // v101: no cached sha → POST 直接建，省掉 geWrite 的存在性 GET 探测。
+  // 若文件其实已存在（新设备 / sha 缓存被清），Gitee 返回 409（或 400）拒绝
+  // 创建，我们再取 sha 退回到 PUT。最坏情况 3 次调用而不是 2 次，且只发生在
+  // 这种罕见场景；常规「全新 chunk」从 2 次降到 1 次。
+  return geCreate(chunk.path,chunk.data,'sync: photo '+chunk.path).then(markOk).catch(function(e){
+    var _m=String(e);
+    if((_m.indexOf('409')>=0||_m.indexOf('HTTP_400')>=0)&&retries>0){
+      return ghGetSha(chunk.path).then(function(s){
+        if(!s)throw e; // 文件确实不存在 → 保留原始错误，不要无意义重试
+        if(!GH.photoChunkSha)GH.photoChunkSha={};
+        GH.photoChunkSha[chunk.path]=s;
+        return uploadPhotoChunk(chunk,retries-1);
+      });
     }
     if(retries>0){
       return new Promise(function(r){setTimeout(r,2000);}).then(function(){return uploadPhotoChunk(chunk,retries-1);});
@@ -3526,8 +3628,53 @@ function syncPushNow(){
     setSyncStatus('synced');
     return Promise.resolve();
   }
+  // v101 P1: READ-MODIFY-WRITE。旧代码直接把「纯本地状态」打包推上去，于是
+  // 任何基于旧 baseline 的设备都会把别人新增的内容整段抹掉（实测：云端地点数
+  // 3→2，干净的新设备只看到 2 个）。现在先拉云端文本、合并进本地，再打包推送。
+  // 只有文本（照片在 chunk 文件里），代价是 1 次轻量 GET。
+  // 先上锁，避免合并过程与轮询触发的 pull 交错。
   GH.pushing=true;
   setSyncStatus('syncing');
+  return pushMergeCloud().then(function(){ return doPushNow(); });
+}
+// v101: 推送前的云端对账合并（syncPull 的「合并」那一半）。刻意不复用
+// syncPull —— 它在 GH.pushing 为 true 时会直接 return。
+function pushMergeCloud(){
+  if(!ghHasToken())return Promise.resolve(false);
+  return ghReadTrips().then(function(remote){
+    if(!remote||remote.skip||!remote.trips)return false;
+    // 吸收墓碑，避免把别人已删除的行程/地点复活
+    if(remote.tombstones&&typeof remote.tombstones==='object'){
+      if(!data.tombstones)data.tombstones={};
+      Object.keys(remote.tombstones).forEach(function(k){
+        if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
+      });
+      data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
+    }
+    if(remote.locTombstones&&typeof remote.locTombstones==='object'){
+      if(!data.locTombstones)data.locTombstones={};
+      Object.keys(remote.locTombstones).forEach(function(lid){
+        if(!data.locTombstones[lid]||remote.locTombstones[lid]>data.locTombstones[lid])data.locTombstones[lid]=remote.locTombstones[lid];
+      });
+      applyLocTombstonesToTrips(data.trips,data.locTombstones);
+    }
+    var before=tripsFingerprint(data.trips);
+    data.trips=mergeTrips(data.trips,remote.trips);
+    dedupeTrips();
+    repairTrips();
+    var after=tripsFingerprint(data.trips);
+    if(before!==after){
+      saveDataLocal();
+      renderAll(); // 别人的新行程/地点立刻可见，不用等下一次 30s 轮询
+    }
+    return before!==after;
+  }).catch(function(e){
+    // 云端读不到（离线/超时）时不阻塞推送：宁可推本地状态，也不要什么都不做
+    console.warn('v101 pre-push merge skipped',e);
+    return false;
+  });
+}
+function doPushNow(){
   // v47+: trips.json is now text-only (KB) so it uploads in one fast PUT.
   // Photos go in per-location chunk files that stay under 1MB each.
   // v98: chunk list is computed first so buildTextPayload can publish
@@ -3535,6 +3682,13 @@ function syncPushNow(){
   var photoChunks=[];
   (data.trips||[]).forEach(function(t){photoChunks=photoChunks.concat(buildPhotoChunks(t));});
   var remoteData=buildTextPayload(photoChunks);
+  // v101.1: 指纹必须锁定「这次真正上传上去的那一版数据」，不能等上传完再取 data.trips。
+  // 照片上传要跑好几秒，这期间新增的地点进不了 payload（payload 已经打包好了），
+  // 却会进 data.trips。若把它算进 lastPushFp，下一次 syncPushNow 比对指纹时判定
+  // 「没变化」直接跳过 —— 这些地点就永远推不上云端了（实测 A 加 20 个地点云端只有 11 个）。
+  // v100 用的是推送开始时的 fp（偏旧但安全：会多推一次）；这里取 payload 自身的快照，
+  // 既不漏推也不多推。注意用 remoteData.settings（白名单投影），photoQuality 天然不在里面。
+  var pushFp=tripsFingerprint(remoteData.trips)+'::'+settingsFingerprint(remoteData.settings);
   var attempt=function(tried){
     // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
     var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
@@ -3599,7 +3753,9 @@ function syncPushNow(){
         }
         if(GH.pushRetryTimer){clearTimeout(GH.pushRetryTimer);GH.pushRetryTimer=null;}
         GH.pushBackoff=0;
-        GH.lastPushFp=fp; // v92: combined trips+settings fingerprint, so future settings-only changes still push
+        // v101.1: 用本次 payload 的快照，不是此刻的 data.trips（见上方 pushFp 注释）。
+        // 只有真正写上去的内容才算「已推送」，上传途中的新改动必须触发下一次推送。
+        GH.lastPushFp=pushFp;
         setSyncStatus('synced');
         // v61/v91: report photo outcome honestly — surface failures instead of
         // pretending everything uploaded (a silent gap is what made photos look
@@ -3826,6 +3982,12 @@ function syncStart(){
     // v66: 30s polling (was 60s) — collaborators' edits arrive up to 2x faster.
     // Free GitHub token allows 5000 req/h, two devices @30s ≈ 240/h, well within.
     GH.syncTimer=setInterval(function(){
+      // v101: 看门狗。若 GH.pulling 卡住超过 2 分钟（iOS PWA 后台化时 fetch
+      // 可能永不 settle），强制清锁让轮询恢复。P0 修复之外的兜底。
+      if(GH.pulling&&GH.pullingSince&&Date.now()-GH.pullingSince>120000){
+        GH.pulling=false;GH.pullingSince=0;
+        console.warn('v101 watchdog: GH.pulling stuck >2min, force released');
+      }
       // v98: skip the poll while the app is in the background. iOS/Android
       // suspend timers anyway, but desktop browsers keep firing — burning API
       // quota and battery for changes the user cannot see. We still allow one
@@ -4631,7 +4793,8 @@ function renderBgPicker(){
 function uploadHeroBg(e){
   var f=e.target.files&&e.target.files[0];if(!f)return;
   showToast('压缩中…');
-  compressImage(f,800,0.6,function(d){
+  var _sp0=photoSpec(isSlowNet());
+  compressImage(f,Math.min(1000,_sp0.maxW),_sp0.q,function(d){
     setHeroBg(d);
     renderBgPicker();
     showToast('已应用新背景 ✓');
@@ -5309,7 +5472,8 @@ function openTripModal(id){
 function handleCoverUpload(e){
   var f=e.target.files[0];if(!f)return;
   // v66: on slow networks compress harder so uploads are faster
-  compressImage(f,isSlowNet()?800:1200,isSlowNet()?0.5:0.65,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});}
+  var _sp1=photoSpec(isSlowNet());
+  compressImage(f,_sp1.maxW,_sp1.q,function(d){document.getElementById('tm-cover-img').src=d;document.getElementById('tm-cover-preview').style.display='block';});}
 // v75: generate a themed cover as an inline SVG data URL (no external assets)
 function applyCoverTemplate(tpl){
   var title=document.getElementById('tm-title').value.trim()||'我的旅程';
@@ -5785,7 +5949,8 @@ function handleLocationPhotoUpload(e){
   if(!files.length)return;
   files.forEach(function(f){
     // v66: slow network → smaller + lower quality so uploads complete faster
-    compressImage(f,isSlowNet()?800:1200,isSlowNet()?0.5:0.65,function(d){lmPhotos.push(d);renderLocationModalPhotos();});
+    var _sp2=photoSpec(isSlowNet());
+    compressImage(f,_sp2.maxW,_sp2.q,function(d){lmPhotos.push(d);renderLocationModalPhotos();});
   });
   e.target.value='';
 }
@@ -6783,7 +6948,7 @@ function downloadDiary(){
 function latestTripSummary(){
   var best=null;
   (data.trips||[]).forEach(function(t){
-    if(t.summary&&(t.summary.best||t.summary.revisit)&&(!best||(t.updatedAt||'')>(best.updatedAt||'')))best=t;
+    if(t.summary&&(t.summary.best||t.summary.revisit)&&(!best||tsOf(t.updatedAt)>tsOf(best.updatedAt)))best=t;
   });
   return best;
 }
@@ -7022,6 +7187,9 @@ function openSettings(){
   var fs=data.settings.fontScale||'1';
   var fsEl=document.getElementById('set-fontscale');
   if(fsEl)fsEl.value=String(fs);
+  // v101: 照片画质档位
+  var pqEl=document.getElementById('set-photoq');
+  if(pqEl)pqEl.value=photoQuality();
   // v77: hero background picker
   renderBgPicker();
   // Show current token health at a glance — saves the user from re-typing a bad token.
