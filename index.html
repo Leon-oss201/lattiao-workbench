@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v114';
+var APP_VERSION='v115';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4030,10 +4030,18 @@ function doPushNow(){
         }
       });
     }).catch(function(e){
-      // Stale sha → refetch once and retry
+      // v115 BUG FIX: 409 retry must NOT reuse the stale remoteData built at
+      // the top of doPushNow — that overwrites whatever the other device
+      // pushed in the meantime. The right move is to drop the lock, re-merge
+      // with the latest cloud (which now includes the peer's writes), and push
+      // that fresh payload. Re-running pushMergeCloud + doPushNow is
+      // equivalent to triggering syncPushNow, but inline so the error path
+      // stays clear and we don't rely on setTimeout ordering.
       if(String(e).indexOf('409')>=0&&!tried){
         GH.shaCache=null;
-        return attempt(true);
+        GH.pushing=false;
+        GH_NOTIF_SNAP=null; // force pushMergeCloud to recompute the notification baseline
+        return pushMergeCloud().then(doPushNow);
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
