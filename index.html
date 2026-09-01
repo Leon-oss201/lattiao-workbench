@@ -2089,7 +2089,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v103';
+var APP_VERSION='v104';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -7189,13 +7189,12 @@ function renderProfile(){
       var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
       if(!joys.length){jtEl.style.display='none';}
       else{
-        var titleByDate={};
-        data.trips.forEach(function(t){(t.days||[]).forEach(function(d){if(d&&d.date)titleByDate[d.date]=t.title||t.destination||'';});});
         jtEl.style.display='block';
         jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+
           joys.slice(0,30).map(function(j){
             var dt=(j.date||'').slice(5).replace('-','.');
-            var tt=titleByDate[j.date]?(' · '+escapeHTML(titleByDate[j.date])):'';
+            var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
+            var tt=_tn?(' · '+escapeHTML(_tn)):'';
             return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
               '<span style="color:var(--accent2);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
               '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
@@ -9431,6 +9430,32 @@ function joyToday(){
   for(var i=0;i<l.length;i++)if(l[i].date===d)return l[i];
   return null;
 }
+// v104: resolve which trip a "joy" belongs to. Joys created before v104 carry no
+// tripId, so fall back to a startDate..endDate range match, then to an exact
+// day-date match. Without this, a joy recorded on a date that is missing from a
+// trip's days[] silently loses its trip label in the timeline.
+function joyTripIdFor(j){
+  var ts=data.trips||[];
+  if(j&&j.tripId){
+    for(var i=0;i<ts.length;i++)if(ts[i].id===j.tripId)return j.tripId;
+  }
+  var d=j&&j.date;if(!d)return '';
+  for(var a=0;a<ts.length;a++){
+    var t=ts[a];
+    if(t.startDate&&t.endDate&&d>=t.startDate&&d<=t.endDate)return t.id;
+  }
+  for(var b=0;b<ts.length;b++){
+    var t2=ts[b];
+    if((t2.days||[]).some(function(dd){return dd&&dd.date===d;}))return t2.id;
+  }
+  return '';
+}
+function joyTripTitle(j){
+  var id=joyTripIdFor(j);if(!id)return '';
+  var ts=data.trips||[];
+  for(var i=0;i<ts.length;i++)if(ts[i].id===id)return ts[i].title||ts[i].destination||'';
+  return '';
+}
 function joyAdd(){
   var el=document.getElementById('joy-input');
   if(!el)return;
@@ -9440,8 +9465,10 @@ function joyAdd(){
   var d=new Date().toISOString().slice(0,10);
   if(!data.joys)data.joys=[];
   var cur=joyToday();
-  if(cur){cur.text=v;cur.ts=Date.now();}
-  else data.joys.push({id:uid(),date:d,text:v,ts:Date.now()});
+  // v104: stamp the trip so the timeline can label it even if days[] is sparse.
+  var _tid=(typeof currentTripId!=='undefined'&&currentTripId)?currentTripId:(joyTripIdFor({date:d})||'');
+  if(cur){cur.text=v;cur.ts=Date.now();if(!cur.tripId&&_tid)cur.tripId=_tid;}
+  else data.joys.push({id:uid(),date:d,text:v,ts:Date.now(),tripId:_tid||''});
   saveDataLocal();
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
