@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v109';
+var APP_VERSION='v110';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -7522,9 +7522,16 @@ function renderProfile(){
     }
   }catch(e){}
   // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
+  // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
   try{
     var jtEl=document.getElementById('pro-joy-timeline');
     if(jtEl){
+      // v110: GUEST 模式下小确幸时间线永不显示 —— 这是 Iris 明确划入
+      // "私人内容" 的部分。v109 漏修这块：renderProfile() 里 v103 那段会在
+      // joys.length>0 时强制 display='block'，把 applyGuestUI 设的 none 覆盖，
+      // 导致访客切到「我的」页时私密小确幸泄露。
+      if(isGuest()){jtEl.style.display='none';jtEl.innerHTML='';}
+      else{
       var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
       if(!joys.length){jtEl.style.display='none';}
       else{
@@ -7539,6 +7546,7 @@ function renderProfile(){
               '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
           }).join('')+
           (joys.length>30?'<div style="font-size:11px;color:var(--text-light);text-align:center;padding-top:6px;">还有 '+(joys.length-30)+' 条…</div>':'');
+      }
       }
     }
   }catch(e){}
