@@ -535,9 +535,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-day-pills .pill.active{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
 .td-day-pills .pill.active .pill-d{color:rgba(255,255,255,.8);}
 
-.td-weather{padding:10px 18px;background:var(--card);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
-.td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:1;}
-.td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;row-gap:4px;flex:1;min-width:0;}
+.td-weather{padding:10px 18px;background:var(--card);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;border-bottom:1px solid var(--border);}
+.td-weather .left{font-size:13px;display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:1;width:100%;}
+.td-weather .right{font-size:11px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-start;row-gap:6px;width:100%;}
 .weather-alert{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:normal;}
 .weather-alert.rain{background:var(--info-bg);color:var(--info-fg);}
 .weather-alert.uv{background:var(--warn-bg);color:var(--warn-fg);}
@@ -656,12 +656,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pro-stat .ps-l{font-size:11px;color:var(--text-light);margin-top:2px;}
 
 .menu-card{margin:14px 18px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.menu-group{margin:14px 18px 0;}
+.menu-group .mg-title{font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.5px;padding:0 4px 6px;text-transform:uppercase;}
+.menu-group .menu-card{margin:0;}
 .menu-row{display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--border);gap:12px;cursor:pointer;}
 .menu-row:last-child{border-bottom:none;}
 .menu-row:active{background:var(--surface);}
 .menu-row .mr-icon{width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:16px;}
 .menu-row .mr-label{flex:1;font-size:14px;}
 .menu-row .mr-arrow{color:var(--text-light);font-size:16px;}
+.mr-help{width:22px;height:22px;border-radius:50%;background:transparent;color:var(--text-light);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:1px solid var(--border);transition:all .15s;flex-shrink:0;}
+.mr-help:active{background:var(--primary-light);color:var(--primary);border-color:var(--primary);}
 /* v95: deepened from #A78BFA→#7C3AED→#B07AB8 — white label/chevron only reached
    2.7-3.3:1 there. This richer purple clears AA in BOTH modes, so the old
    dark-only override is gone. */
@@ -872,10 +877,10 @@ img.photo-fade.loaded{opacity:1;}
 /* ================= v100: mood cover ================= */
 .mood-cover{margin:14px 16px 0;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--card);position:relative;}
 .mood-cover .mc-art{display:block;width:100%;height:104px;}
-.mood-cover .mc-body{padding:11px 14px 13px;}
-.mood-cover .mc-t{font-size:16px;font-weight:700;color:var(--text);line-height:1.35;}
+.mood-cover .mc-body{padding:12px 14px 14px;background:linear-gradient(180deg,transparent,var(--card) 18%);margin-top:-22px;position:relative;z-index:1;}
+.mood-cover .mc-t{font-size:15px;font-weight:700;color:var(--text);line-height:1.4;}
 .mood-cover .mc-d{font-size:11.5px;color:var(--text-sec);margin-top:4px;line-height:1.55;}
-.mood-cover .mc-badge{position:absolute;right:12px;top:12px;background:var(--pill-glass);border-radius:10px;padding:4px 9px;font-size:10.5px;font-weight:600;color:var(--text);}
+.mood-cover .mc-badge{position:absolute;right:12px;top:12px;background:var(--pill-glass);border-radius:10px;padding:4px 9px;font-size:10.5px;font-weight:600;color:var(--text);z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.15);}
 /* ================= v100: countdown ================= */
 .cd-card{margin:14px 16px 0;border-radius:18px;padding:14px 16px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;gap:14px;}
 .cd-card .cd-num{font-size:34px;font-weight:700;line-height:1;color:var(--primary-dark);min-width:56px;text-align:center;}
@@ -902,7 +907,14 @@ img.photo-fade.loaded{opacity:1;}
 .joy-item .ji-x{flex:1;font-size:12.5px;color:var(--text-sec);line-height:1.55;word-break:break-word;}
 .joy-item .ji-del{flex:0 0 auto;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 4px;}
 /* ================= v100: polaroid ================= */
-.pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:290px;overflow-y:auto;}
+.pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;max-height:340px;overflow-y:auto;padding:4px;}
+.pl-cell{position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s, transform .12s;background:var(--muted-bg);}
+.pl-cell:active{transform:scale(.97);}
+.pl-cell.sel{border-color:var(--primary);}
+.pl-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-eye{position:absolute;top:5px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;backdrop-filter:blur(4px);}
+.pl-pick{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;line-height:1;backdrop-filter:blur(4px);}
+.pl-cell.sel .pl-pick{background:var(--primary);}
 .pl-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--muted-bg);cursor:pointer;border:2px solid transparent;}
 .pl-cell.sel{border-color:var(--primary-solid);}
 .pl-cell img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -1386,25 +1398,8 @@ setTimeout(function(){
     <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
     <div id="pro-joy-timeline" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
-    <div class="menu-card">
-      <div class="menu-row" onclick="openSettings()"><div class="mr-icon">⚙️</div><div class="mr-label">偏好设置</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openSearch()"><div class="mr-icon">🔍</div><div class="mr-label">全局搜索</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openNotifCenter()"><div class="mr-icon">🔔</div><div class="mr-label">通知中心<span class="queue-chip" id="queue-chip-pro" style="margin-left:6px;">0</span></div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openAlbum()"><div class="mr-icon">📷</div><div class="mr-label">行程相册</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openTemplateManager()"><div class="mr-icon">🧩</div><div class="mr-label">我的行程模板</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openMapSettings()"><div class="mr-icon">🗺️</div><div class="mr-label">地图设置</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openBlindBox()"><div class="mr-icon">🎁</div><div class="mr-label">回忆盲盒</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openFootprint()"><div class="mr-icon">🗺️</div><div class="mr-label">我的足迹地图</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openPersonality()"><div class="mr-icon">🌸</div><div class="mr-label">我的旅行人格</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="openYearPoster()"><div class="mr-icon">🎴</div><div class="mr-label">年度旅行账单</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="exportData()"><div class="mr-icon">📤</div><div class="mr-label">导出数据</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="document.getElementById('import-input').click()"><div class="mr-icon">📥</div><div class="mr-label">导入数据</div><div class="mr-arrow">›</div></div>
-      <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
-      <div class="menu-row" onclick="manualDedupeTrips()"><div class="mr-icon">🧹</div><div class="mr-label">合并重复行程</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" onclick="showAbout()"><div class="mr-icon">ℹ️</div><div class="mr-label">关于</div><div class="mr-arrow">›</div></div>
-      <div class="menu-row" style="cursor:default;"><div class="mr-icon">🔖</div><div class="mr-label">当前版本</div><div class="mr-arrow" id="app-version">—</div></div>
-      <div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>
-    </div>
+    <div id="pro-menu"></div>
+    <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
     <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;">薄荷旅行手账 <span id="app-version-footer">v4.0</span> · 记录每一段旅程 ✨</div>
   </section>
 
@@ -1831,6 +1826,41 @@ setTimeout(function(){
   </div>
 </div>
 
+
+<div class="modal-overlay" id="feature-info-modal" onclick="if(event.target===this)closeFeatureInfo()">
+  <div class="modal" style="max-width:420px;padding:16px 16px 18px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div id="fi-icon" class="mr-icon" style="width:38px;height:38px;font-size:20px;">⚙️</div>
+      <div id="fi-title" style="font-size:16px;font-weight:700;color:var(--text);">—</div>
+    </div>
+    <div id="fi-group" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:10px;">—</div>
+    <div id="fi-desc" style="font-size:13px;line-height:1.7;color:var(--text-sec);">—</div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn-primary" style="flex:1;" id="fi-go-btn" onclick="closeFeatureInfo()">知道啦</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="pl-preview-modal" onclick="if(event.target===this)closePlPreview()">
+  <div class="modal" style="max-width:480px;padding:14px 14px 16px;">
+    <div class="modal-handle"></div>
+    <div id="pl-preview-trip" style="font-size:12px;color:var(--text-sec);margin-bottom:6px;">—</div>
+    <div id="pl-preview-img-wrap" style="width:100%;background:var(--muted-bg);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;max-height:62vh;">
+      <img id="pl-preview-img" style="max-width:100%;max-height:62vh;object-fit:contain;display:block;" alt="预览">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-ghost" style="flex:1;" onclick="plPreviewPrev()">‹ 上一张</button>
+      <button class="btn-ghost" id="pl-preview-pick-btn" style="flex:1;" onclick="plPreviewTogglePick()">✓ 选入</button>
+      <button class="btn-ghost" style="flex:1;" onclick="plPreviewNext()">下一张 ›</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn-ghost" style="flex:1;" onclick="closePlPreview()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="doodle-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -2089,7 +2119,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v104';
+var APP_VERSION='v105';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -7074,8 +7104,108 @@ function latestTripSummary(){
   return best;
 }
 
+// v105: feature catalog + group rendering. The "My" page used to list 13
+// functions in one flat list (image#1) — now we group them so users can scan
+// faster, and each row gets a ⓘ button that opens a modal explaining what the
+// feature does and how to use it. 0-cost, all generated client-side.
+var FEATURES={
+  settings:{icon:'⚙️',label:'偏好设置',group:'个性化',act:'openSettings()',
+    desc:'配置主题（深/浅/自动）、默认城市、照片画质档、背景图、首页问候等个人偏好。<br><br>💡<b>照片画质</b>：均衡档（约 1000px / 体积 −40%）和高清档（1280px / 体积 −25%），只影响本机上传，不污染云端。'},
+  search:{icon:'🔍',label:'全局搜索',group:'个性化',act:'openSearch()',
+    desc:'一个搜索框覆盖全部：行程名、地点名、攻略/感受文本、心情文案、小确幸。输入关键字立即跳到对应模块。<br><br>💡支持模糊匹配（输入"泉"会命中"泉州"）。'},
+  notif:{icon:'🔔',label:'通知中心',group:'个性化',act:'openNotifCenter()',
+    desc:'集中展示协作通知（朋友加了地点/改了预算/上传了照片/分享了小确幸）+ 天气预警 + 离线队列提醒。<br><br>💡最多保留 80 条，已读的会自动归档。'},
+  album:{icon:'📷',label:'行程相册',group:'数据浏览',act:'openAlbum()',
+    desc:'按月份分组浏览所有旅行照片。<br><br>📌<b>拍立得照片墙</b>：选最多 9 张拼成长图保存到相册。<br>📌<b>照片涂鸦</b>：给照片加手绘涂鸦和贴纸。<br>📌<b>v105 新增</b>：点单张图可展开看大图。'},
+  template:{icon:'🧩',label:'我的行程模板',group:'数据浏览',act:'openTemplateManager()',
+    desc:'把常用行程模板化（玩法、节奏、预算、住宿），下次创建行程可一键复用。<br><br>💡特别适合「每年都去的家庭旅行」「固定节奏的周末游」。'},
+  map:{icon:'🗺️',label:'地图设置',group:'数据浏览',act:'openMapSettings()',
+    desc:'配置地图服务商（默认零成本 SVG 路线）和腾讯地图 Key（仅在≥2 个真实坐标时懒加载）。<br><br>💡Key 只存本机，不写云；未填也能用。'},
+  dedupe:{icon:'🧹',label:'合并重复行程',group:'数据浏览',act:'manualDedupeTrips()',
+    desc:'如果误重复创建了同一个行程（标题/日期/目的地都相同），点这个一键合并。<br><br>⚠️合并会保留每个字段最新的修改和所有照片，建议先用「导出数据」备份。'},
+  blindbox:{icon:'🎁',label:'回忆盲盒',group:'回忆探索',act:'openBlindBox()',
+    desc:'随机抽一张老照片 + 当时的心情文案 + 旅行小贴士，唤起回忆。<br><br>💡抽过的会变灰，不会重复抽到。'},
+  footprint:{icon:'🗺️',label:'我的足迹地图',group:'回忆探索',act:'openFootprint()',
+    desc:'把所有去过的城市点亮在 SVG 中国/世界地图上，看自己的旅行疆域。<br><br>💡地图全部自绘 SVG，完全合规。'},
+  personality:{icon:'🌸',label:'我的旅行人格',group:'回忆探索',act:'openPersonality()',
+    desc:'根据你的旅行偏好（慢游/打卡/美食/风景/夜猫子…）生成一张可分享的人格卡，可保存到相册。<br><br>💡记的地点越多，分析越准。'},
+  yearPoster:{icon:'🎴',label:'年度旅行账单',group:'回忆探索',act:'openYearPoster()',
+    desc:'把这一年的旅行数据（次数、照片、城市、心情关键词）拼成一张长图海报，可保存到相册分享。<br><br>💡年底/生日给朋友看，超有仪式感。'},
+  export:{icon:'📤',label:'导出数据',group:'导入导出',act:'exportData()',
+    desc:'把整个工作台（行程、照片、心情、模板、预算…）打包成一个 JSON 文件下载到本机。<br><br>💡换手机、清理数据前先导一份；也可发给朋友导入做模板。'},
+  import:{icon:'📥',label:'导入数据',group:'导入导出',act:"document.getElementById('import-input').click()",
+    desc:'从之前导出的 JSON 文件恢复数据。<br><br>⚠️导入会与现有数据合并，重复 ID 不会覆盖；建议先「导出数据」备份再导入。'}
+};
+var FEATURE_GROUPS=[
+  ['个性化','🎨 个性化'],
+  ['数据浏览','📂 数据浏览'],
+  ['回忆探索','🌟 回忆探索'],
+  ['导入导出','🔄 导入导出']
+];
+function renderProMenu(){
+  var host=document.getElementById('pro-menu');
+  if(!host)return;
+  var byGroup={};
+  Object.keys(FEATURES).forEach(function(k){
+    var f=FEATURES[k];
+    if(!byGroup[f.group])byGroup[f.group]=[];
+    byGroup[f.group].push({key:k,info:f});
+  });
+  var html='';
+  FEATURE_GROUPS.forEach(function(g){
+    var items=byGroup[g[0]];if(!items||!items.length)return;
+    html+='<div class="menu-group">'+
+      '<div class="mg-title">'+g[1]+'</div>'+
+      '<div class="menu-card">';
+    items.forEach(function(it){
+      var f=it.info;
+      var safeLabel=escapeHTML(f.label);
+      html+='<div class="menu-row" onclick="'+f.act+'">'+
+        '<div class="mr-icon">'+f.icon+'</div>'+
+        '<div class="mr-label">'+safeLabel+'</div>'+
+        '<div class="mr-help" onclick="event.stopPropagation();openFeatureInfo(\''+it.key+'\')" title="这是什么？">ⓘ</div>'+
+        '<div class="mr-arrow">›</div>'+
+      '</div>';
+    });
+    html+='</div></div>';
+  });
+  // Meta rows: about / version / love
+  html+='<div class="menu-group"><div class="menu-card">'+
+    '<div class="menu-row" onclick="showAbout()"><div class="mr-icon">ℹ️</div><div class="mr-label">关于</div><div class="mr-help" onclick="event.stopPropagation();openFeatureInfo(\'about\')" title="这是什么？">ⓘ</div><div class="mr-arrow">›</div></div>'+
+    '<div class="menu-row" style="cursor:default;"><div class="mr-icon">🔖</div><div class="mr-label">当前版本</div><div class="mr-arrow" id="app-version">—</div></div>'+
+    '<div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>'+
+  '</div></div>';
+  host.innerHTML=html;
+}
+function openFeatureInfo(key){
+  var f=FEATURES[key];
+  var icon=document.getElementById('fi-icon');
+  var title=document.getElementById('fi-title');
+  var group=document.getElementById('fi-group');
+  var desc=document.getElementById('fi-desc');
+  if(key==='about'){
+    if(icon)icon.textContent='ℹ️';
+    if(title)title.textContent='关于薄荷旅行手账';
+    if(group)group.textContent='版本 / 作者';
+    if(desc)desc.innerHTML='「薄荷旅行手账」是一个单页 PWA 旅行日志，所有数据本地 + Gitee 同步，<b>完全免费</b>、无广告、无追踪。<br><br>作者 Leon 写给 Iris 💜<br><br>如果你也想用：<br>① 打开 https://leon-oss201.github.io/lattiao-workbench/<br>② 「添加到主屏幕」即可像 App 一样使用';
+  }else if(f){
+    if(icon)icon.textContent=f.icon;
+    if(title)title.textContent=f.label;
+    if(group)group.textContent=f.group+' · 点击行进入';
+    if(desc)desc.innerHTML=f.desc;
+  }else return;
+  var m=document.getElementById('feature-info-modal');
+  if(m)m.classList.add('active');
+}
+function closeFeatureInfo(){
+  var m=document.getElementById('feature-info-modal');
+  if(m)m.classList.remove('active');
+}
+
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'Iris';
+  // v105: refresh grouped menu so the badges (e.g. notification count) stay in sync.
+  renderProMenu();
   // Show the running app version so the user always knows which build they're on.
   var verEl=document.getElementById('app-version');
   // v94: APP_VERSION already carries the "v" prefix — prepending another one
@@ -9544,8 +9674,11 @@ function renderPlGrid(){
   if(!g)return;
   g.innerHTML=PL_STATE.all.map(function(p,i){
     var on=PL_STATE.picks.indexOf(i)>=0;
-    return '<div class="pl-cell'+(on?' sel':'')+'" onclick="plToggle('+i+')">'+
-      '<img src="'+p.src+'" loading="lazy"><div class="pl-check">✓</div></div>';
+    return '<div class="pl-cell'+(on?' sel':'')+'">'+
+      '<img src="'+p.src+'" loading="lazy" onclick="openPlPreview('+i+')">'+
+      '<div class="pl-eye" onclick="event.stopPropagation();openPlPreview('+i+')" title="查看大图">👁</div>'+
+      '<div class="pl-pick" onclick="event.stopPropagation();plToggle('+i+')" title="'+(on?'取消选择':'选入拍立得')+'">'+(on?'✓':'＋')+'</div>'+
+    '</div>';
   }).join('');
 }
 function plToggle(i){
@@ -9556,6 +9689,61 @@ function plToggle(i){
     PL_STATE.picks.push(i);
   }
   renderPlGrid();
+}
+// v105: per-photo preview. Lets users actually see each photo before
+// building the polaroid wall, and keeps the existing select action
+// (tap on ＋/✓ badge) independent.
+var PL_PREVIEW={idx:-1};
+function openPlPreview(i){
+  if(!PL_STATE.all.length||!PL_STATE.all[i])return;
+  PL_PREVIEW.idx=i;
+  var p=PL_STATE.all[i];
+  var im=document.getElementById('pl-preview-img');
+  var tr=document.getElementById('pl-preview-trip');
+  if(im)im.src=p.src;
+  if(tr){
+    var bits=[];
+    if(p.tripTitle)bits.push('📍 '+p.tripTitle);
+    if(p.locName)bits.push('· '+p.locName);
+    if(p.d)bits.push('· '+p.d);
+    tr.textContent=bits.join(' ')||'照片预览';
+  }
+  var m=document.getElementById('pl-preview-modal');
+  if(m)m.classList.add('active');
+  plPreviewRefreshBtn();
+}
+function closePlPreview(){
+  var m=document.getElementById('pl-preview-modal');
+  if(m)m.classList.remove('active');
+}
+function plPreviewPrev(){
+  if(!PL_STATE.all.length)return;
+  PL_PREVIEW.idx=(PL_PREVIEW.idx-1+PL_STATE.all.length)%PL_STATE.all.length;
+  openPlPreview(PL_PREVIEW.idx);
+}
+function plPreviewNext(){
+  if(!PL_STATE.all.length)return;
+  PL_PREVIEW.idx=(PL_PREVIEW.idx+1)%PL_STATE.all.length;
+  openPlPreview(PL_PREVIEW.idx);
+}
+function plPreviewTogglePick(){
+  if(PL_PREVIEW.idx<0)return;
+  if(PL_STATE.picks.indexOf(PL_PREVIEW.idx)>=0){
+    PL_STATE.picks.splice(PL_STATE.picks.indexOf(PL_PREVIEW.idx),1);
+    showToast('已移出拍立得');
+  }else{
+    if(PL_STATE.picks.length>=9){showToast('最多选 9 张');return;}
+    PL_STATE.picks.push(PL_PREVIEW.idx);
+    showToast('已选入拍立得 ✨');
+  }
+  renderPlGrid();
+  plPreviewRefreshBtn();
+}
+function plPreviewRefreshBtn(){
+  var b=document.getElementById('pl-preview-pick-btn');
+  if(!b)return;
+  var on=PL_PREVIEW.idx>=0&&PL_STATE.picks.indexOf(PL_PREVIEW.idx)>=0;
+  b.textContent=on?'× 取消':'✓ 选入';
 }
 function plSetFilter(f){
   PL_STATE.filter=f;
@@ -9583,17 +9771,21 @@ function generatePolaroid(){
   Promise.all(picks.map(function(p){return loadImg(p.src).catch(function(){return null;});}))
     .then(function(imgs){
       var cv=document.getElementById('polaroid-canvas');
-      var n=imgs.length;
-      var cols=n<=1?1:(n<=4?2:3);
-      var rows=Math.ceil(n/cols);
-      var cw=210,ch=252,pad=14,fp=9,ph=186;
-      var W=cols*cw+(cols+1)*pad;
-      var H=rows*ch+(rows+1)*pad+70;
-      cv.width=W;cv.height=H;
-      var c=cv.getContext('2d');
-      c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-bg').trim()||'#FFFFFF';
-      c.fillRect(0,0,W,H);
-      var ink=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-ink').trim()||'#4A4458';
+    var n=imgs.length;
+    var cols=n<=1?1:(n<=4?2:3);
+    var rows=Math.ceil(n/cols);
+    // v105: bumped cell size 210x252 -> 280x336 so the exported image is
+    // sharp enough to be a real keepsake (was getting fuzzy on big screens).
+    var cw=280,ch=336,pad=18,fp=11,ph=248;
+    var W=cols*cw+(cols+1)*pad;
+    var H=rows*ch+(rows+1)*pad+80;
+    cv.width=W;cv.height=H;
+    var c=cv.getContext('2d');
+    c.imageSmoothingEnabled=true;
+    c.imageSmoothingQuality='high';
+    c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-bg').trim()||'#FFFFFF';
+    c.fillRect(0,0,W,H);
+    var ink=getComputedStyle(document.documentElement).getPropertyValue('--polaroid-ink').trim()||'#4A4458';
       for(var i=0;i<n;i++){
         var cx0=pad+(i%cols)*(cw+pad);
         var cy0=pad+Math.floor(i/cols)*(ch+pad);
@@ -9646,7 +9838,9 @@ function previewPolaroid(){
 }
 function downloadPolaroid(){
   var cv=document.getElementById('polaroid-canvas');
-  downloadCanvas(cv,'拍立得照片墙_'+new Date().toISOString().slice(0,10)+'.jpg','image/jpeg',0.92);
+  // v105: bumped 0.92 -> 0.95 — the white frame + caption text get noticeable
+  // jpeg artefacts at 0.92, especially around the 8° rotate.
+  downloadCanvas(cv,'拍立得照片墙_'+new Date().toISOString().slice(0,10)+'.jpg','image/jpeg',0.95);
 }
 // v102: robust mobile save — Web Share API with file (iOS share sheet → Save Image),
 // fallback to object-url anchor download, final fallback to long-press hint.
