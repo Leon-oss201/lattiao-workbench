@@ -911,7 +911,9 @@ img.photo-fade.loaded{opacity:1;}
 .pl-filters{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .pl-f{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:var(--muted-bg);color:var(--text-sec);cursor:pointer;font-family:inherit;font-weight:600;}
 .pl-f.on{background:var(--primary-light);border-color:var(--primary-light);color:var(--primary-dark);}
-.polaroid-canvas{border-radius:12px;max-width:100%;display:block;margin:10px auto 0;box-shadow:0 8px 24px rgba(0,0,0,.15);}
+.polaroid-canvas{border-radius:12px;max-width:none;display:block;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15);}
+.pl-canvas-wrap{display:none;margin-top:12px;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:14px;background:var(--muted-bg);padding:10px;max-height:60vh;}
+.pl-canvas-wrap.on{display:block;}
 /* ================= v100: doodle ================= */
 .dd-stage{position:relative;margin-top:8px;border-radius:12px;overflow:hidden;background:var(--muted-bg);}
 .dd-stage canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;}
@@ -1755,7 +1757,8 @@ setTimeout(function(){
         <button class="tpl-btn" onclick="openStoryPicker()">🎞 选片影集</button>
       </div>
     </div>
-    <div id="year-poster-box" style="margin-top:10px;"></div>
+    <div id="year-poster-box" style="margin-top:10px;overflow:auto;-webkit-overflow-scrolling:touch;max-height:55vh;border-radius:14px;background:var(--muted-bg);padding:10px;"></div>
+    <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;">iOS 点保存后会打开分享 sheet，选「存储图像」即可；若失败可长按图片保存</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('year-modal')">关闭</button>
       <button class="btn btn-primary" onclick="downloadYearPoster()">保存长图</button>
@@ -1813,9 +1816,15 @@ setTimeout(function(){
       <button class="btn-primary" style="flex:1;" onclick="generatePolaroid()">生成照片墙</button>
       <button class="btn-ghost" onclick="closeModal('polaroid-modal')">关闭</button>
     </div>
-    <canvas class="polaroid-canvas" id="polaroid-canvas" style="display:none;"></canvas>
+    <div class="pl-canvas-wrap" id="pl-canvas-wrap" style="display:none;">
+      <canvas class="polaroid-canvas" id="polaroid-canvas"></canvas>
+    </div>
     <div id="pl-actions" style="display:none;margin-top:10px;">
-      <button class="btn-primary" style="width:100%;" onclick="downloadPolaroid()">保存到相册</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost" style="flex:1;" onclick="previewPolaroid()">查看大图</button>
+        <button class="btn-primary" style="flex:1;" onclick="downloadPolaroid()">保存到相册</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;">iOS 会打开分享 sheet，选「存储图像」即可；若失败可点「查看大图」长按保存</div>
     </div>
   </div>
 </div>
@@ -2078,7 +2087,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v101';
+var APP_VERSION='v102';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2914,7 +2923,8 @@ function syncPull(force){
       // hero + city label + bg all update immediately.
       var settingsChanged=false;
       if(remote.settings){mergeSettings(remote.settings);settingsChanged=true;}
-      if(typeof mergeJoys==='function'&&remote.joys){if(mergeJoys(remote.joys))saveDataLocal();}
+      if(typeof mergeJoys==='function'&&remote.joys){if(mergeJoys(remote.joys))settingsChanged=true;}
+      if(typeof mergeNotifs==='function'&&remote.notifs){if(mergeNotifs(remote.notifs))settingsChanged=true;}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       if(changed)saveDataLocal();
@@ -3116,6 +3126,9 @@ function buildTextPayload(photoChunks){
   });
   var now=new Date().toISOString();
   var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{}};
+  // v102: joys/notifications are top-level data so they sync across devices
+  remoteData.joys=data.joys||[];
+  remoteData.notifs=(data.notifs||[]).slice(0,80);
   data.trips.forEach(function(t){
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
@@ -3603,6 +3616,17 @@ function schedulePhotoRetry(failedChunks){
     }).catch(function(){});
   }, 8000);
 }
+// v102: include joys/notifications in the push fingerprint so joy-only or
+// notification-only changes (e.g. marking a notif read) still trigger a sync.
+function syncStateFingerprint(remoteData){
+  var trips=(remoteData&&remoteData.trips)||data.trips;
+  var settings=(remoteData&&remoteData.settings)||data.settings;
+  var joys=(remoteData&&remoteData.joys)||data.joys||[];
+  var notifs=(remoteData&&remoteData.notifs)||data.notifs||[];
+  var joyFp=joys.map(function(j){return (j&&j.id)?j.id+'@'+(j.ts||0):'';}).join('|');
+  var notifFp=notifs.map(function(n){return (n&&n.id)?n.id+'@'+(n.read?1:0)+'@'+(n.ts||0):'';}).join('|');
+  return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp;
+}
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
@@ -3621,7 +3645,8 @@ function syncPushNow(){
   // v92: fingerprint must include settings (heroBg/city/title/slogan/fontScale),
   // otherwise a background-only change has the same tripsFingerprint and is
   // silently skipped — collaborators never see the new background.
-  var fp=tripsFingerprint(data.trips)+'::'+settingsFingerprint(data.settings);
+  // v102: now also includes joys and notifications.
+  var fp=syncStateFingerprint();
   if(GH.lastPushFp&&GH.lastPushFp===fp){
     GH.lastSync=Date.now();
     if(typeof queueClear==='function')queueClear();
@@ -3633,9 +3658,17 @@ function syncPushNow(){
   // 3→2，干净的新设备只看到 2 个）。现在先拉云端文本、合并进本地，再打包推送。
   // 只有文本（照片在 chunk 文件里），代价是 1 次轻量 GET。
   // 先上锁，避免合并过程与轮询触发的 pull 交错。
+  // v102: generate collaboration notifications from LOCAL changes before merging
+  // remote changes, so we don't falsely label remote edits as our own updates.
+  generateCollabNotifs();
   GH.pushing=true;
   setSyncStatus('syncing');
-  return pushMergeCloud().then(function(){ return doPushNow(); });
+  return pushMergeCloud().then(function(){
+    // After merge, reset the notification baseline to the merged state so that
+    // remote changes pulled in now don't trigger a "local update" notification later.
+    GH_NOTIF_SNAP=notifSnapshot();
+    return doPushNow();
+  });
 }
 // v101: 推送前的云端对账合并（syncPull 的「合并」那一半）。刻意不复用
 // syncPull —— 它在 GH.pushing 为 true 时会直接 return。
@@ -3688,7 +3721,8 @@ function doPushNow(){
   // 「没变化」直接跳过 —— 这些地点就永远推不上云端了（实测 A 加 20 个地点云端只有 11 个）。
   // v100 用的是推送开始时的 fp（偏旧但安全：会多推一次）；这里取 payload 自身的快照，
   // 既不漏推也不多推。注意用 remoteData.settings（白名单投影），photoQuality 天然不在里面。
-  var pushFp=tripsFingerprint(remoteData.trips)+'::'+settingsFingerprint(remoteData.settings);
+  // v102: include joys/notifs in the pushed fingerprint so they trigger future syncs.
+  var pushFp=syncStateFingerprint(remoteData);
   var attempt=function(tried){
     // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
     var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
@@ -4032,7 +4066,6 @@ var _lastStatusSig='';
 function syncStatusHookV99(s){
   try{
     if(s==='synced'){
-      detectCollabChanges();
       updatePhotoSyncUI();
       collectNotifEvents();
     }
@@ -8065,14 +8098,29 @@ function updateQueueChip(){
   });
 }
 
-/* ---------------- v99-3: 通知中心 ---------------- */
+/* ---------------- v99-3/v102: 通知中心（数据进云端，跨设备同步） ---------------- */
 var NOTIF_STORE='lattiao_notifs_v1';
 var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔'};
+// v102: notifications now live in data.notifs so they sync across collaborators
 function notifLoad(){
-  try{var a=JSON.parse(localStorage.getItem(NOTIF_STORE)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}
+  if(!data.notifs)data.notifs=[];
+  return data.notifs;
 }
 function notifSave(a){
-  try{localStorage.setItem(NOTIF_STORE,JSON.stringify((a||[]).slice(0,80)));}catch(e){}
+  data.notifs=(a||[]).slice(0,80);
+  if(typeof saveDataLocal==='function')saveDataLocal();
+}
+// one-time migration from the old localStorage-only store
+function migrateNotifs(){
+  try{
+    if(!data.notifs||!data.notifs.length){
+      var old=JSON.parse(localStorage.getItem(NOTIF_STORE)||'[]');
+      if(Array.isArray(old)&&old.length){
+        data.notifs=old.slice(0,80);
+        saveDataLocal();
+      }
+    }
+  }catch(e){}
 }
 // 同一 key 12 小时内只提醒一次，避免轮询把通知刷爆
 function pushNotif(type,title,detail,key){
@@ -8167,34 +8215,69 @@ function collectNotifEvents(){
     });
   }catch(e){}
 }
-// 协作更新提醒（syncPull 检测到云端新增地点时调用）
-var _lastLocSignature='';
-function detectCollabChanges(){
-  try{
-    var sig='';
-    var counts={};
-    (data.trips||[]).forEach(function(t){
-      var n=0;
-      (t.days||[]).forEach(function(d){n+=(d.locations||[]).length;});
-      counts[t.id]=n;
-      sig+=t.id+':'+n+'|';
+// v102: merge remote notifications (union by id, cap at 80)
+function mergeNotifs(remoteNotifs){
+  if(!remoteNotifs||!remoteNotifs.length)return false;
+  var local=notifLoad();
+  var map={};
+  local.forEach(function(n){if(n&&n.id)map[n.id]=n;});
+  var changed=false;
+  remoteNotifs.forEach(function(n){
+    if(!n||!n.id)return;
+    if(!map[n.id]){local.push(n);map[n.id]=n;changed=true;}
+  });
+  if(changed)notifSave(local);
+  return changed;
+}
+// v102: snapshot-based collaboration notifications. Generates one summary
+// notification per trip per push burst, so both the local user and collaborators
+// see a concise activity log without noise.
+var GH_NOTIF_SNAP=null;
+function notifSnapshot(){
+  var snap={};
+  (data.trips||[]).forEach(function(t){
+    var locs=0,photos=0,spent=0;
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        locs++;
+        photos+=(l.photos&&l.photos.length)||0;
+        (l.budget&&l.budget.items||[]).forEach(function(it){spent+=Number(it.amt)||0;});
+      });
     });
-    if(_lastLocSignature&&_lastLocSignature!==sig){
-      var old={};
-      _lastLocSignature.split('|').forEach(function(p){
-        if(!p)return;
-        var kv=p.split(':');if(kv.length===2)old[kv[0]]=parseInt(kv[1],10)||0;
-      });
-      Object.keys(counts).forEach(function(id){
-        var was=old[id];
-        if(typeof was==='number'&&counts[id]>was){
-          var t=data.trips.find(function(x){return x.id===id;});
-          if(t)pushNotif('collab','「'+(t.title||'')+'」新增了 '+(counts[id]-was)+' 个地点','朋友刚更新了行程，去看看吧 👀','col|'+id+'|'+counts[id]);
-        }
-      });
+    snap[t.id]={title:t.title||t.destination||'',locs:locs,photos:photos,spent:Math.round(spent)};
+  });
+  snap._joyCount=(data.joys||[]).length;
+  return snap;
+}
+function generateCollabNotifs(){
+  try{
+    if(!GH_NOTIF_SNAP){GH_NOTIF_SNAP=notifSnapshot();return;}
+    var prev=GH_NOTIF_SNAP;
+    var cur=notifSnapshot();
+    GH_NOTIF_SNAP=cur;
+    Object.keys(cur).forEach(function(id){
+      if(id==='_joyCount')return;
+      var p=prev[id],c=cur[id];
+      if(!p){
+        pushNotif('collab','新增行程「'+c.title+'」','开始规划下一次出发吧 ✈️','col|'+id+'|new');
+        return;
+      }
+      if(c.locs>p.locs){
+        pushNotif('collab','「'+c.title+'」新增了 '+(c.locs-p.locs)+' 个地点','行程有更新，快去看看吧 👀','col|'+id+'|locs='+c.locs);
+      }
+      if(c.photos>p.photos){
+        pushNotif('collab','「'+c.title+'」新增了 '+(c.photos-p.photos)+' 张照片','回忆又厚了一层 📷','col|'+id+'|photos='+c.photos);
+      }
+      if(c.spent!==p.spent){
+        pushNotif('budget','「'+c.title+'」预算有更新','花费变化 ¥'+(c.spent-p.spent),'col|'+id+'|budget='+c.spent);
+      }
+    });
+    var prevJoy=prev._joyCount||0,curJoy=cur._joyCount||0;
+    if(curJoy>prevJoy){
+      var lastJoy=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);})[0];
+      pushNotif('collab','新增了一条今日份小确幸',(lastJoy&&lastJoy.text?('“'+lastJoy.text.slice(0,40)+'”'):'美好值得记录 ✨'),'col|joy|'+curJoy);
     }
-    _lastLocSignature=sig;
-  }catch(e){}
+  }catch(e){console.warn('generateCollabNotifs err',e);}
 }
 
 /* ---------------- v99-2: 全局搜索 ---------------- */
@@ -8806,14 +8889,7 @@ function renderYearPoster(){
 function downloadYearPoster(){
   var cv=document.getElementById('year-canvas');
   if(!cv){showToast('请先生成账单');return;}
-  try{
-    var url=cv.toDataURL('image/png');
-    var a=document.createElement('a');
-    a.href=url;a.download='旅行账单_'+(document.getElementById('year-select').value)+'.png';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){if(a.parentNode)a.parentNode.removeChild(a);},400);
-    showToast('长图已保存到下载 💜');
-  }catch(e){showToast('保存失败，可长按图片另存');}
+  downloadCanvas(cv,'旅行账单_'+(document.getElementById('year-select').value)+'.png','image/png',0.95);
 }
 var STORY_STATE={picks:[],all:[]};
 function openStoryPicker(){
@@ -9268,16 +9344,19 @@ function renderJoyCard(){
   h+='</div>';
   host.innerHTML=h;
 }
-// Joys are a top-level key, which syncPull does not merge (it only merges
-// trips + settings). Union by id so a collaborator's entries never wipe ours.
+// v102: joys now travel in the sync payload. Merge by id: add missing entries,
+// and update existing ones if the remote copy is newer (by ts).
 function mergeJoys(remoteJoys){
   if(!remoteJoys||!remoteJoys.length)return false;
   if(!data.joys)data.joys=[];
-  var seen={},changed=false;
-  data.joys.forEach(function(j){seen[j.id]=1;});
+  var map={};
+  data.joys.forEach(function(j){if(j&&j.id)map[j.id]=j;});
+  var changed=false;
   remoteJoys.forEach(function(j){
-    if(!j||!j.id||seen[j.id])return;
-    data.joys.push(j);seen[j.id]=1;changed=true;
+    if(!j||!j.id)return;
+    var local=map[j.id];
+    if(!local){data.joys.push(j);map[j.id]=j;changed=true;}
+    else if((j.ts||0)>(local.ts||0)){local.text=j.text||'';local.ts=j.ts||0;local.date=j.date||local.date;changed=true;}
   });
   return changed;
 }
@@ -9289,7 +9368,8 @@ function openPolaroid(){
   PL_STATE.picks=[];
   if(!PL_STATE.all.length){showToast('还没有照片，先去地点里加几张吧');return;}
   renderPlGrid();
-  document.getElementById('polaroid-canvas').style.display='none';
+  var cv=document.getElementById('polaroid-canvas');if(cv)cv.style.display='none';
+  var wrap=document.getElementById('pl-canvas-wrap');if(wrap){wrap.classList.remove('on');wrap.style.display='none';}
   document.getElementById('pl-actions').style.display='none';
   document.getElementById('polaroid-modal').classList.add('active');
 }
@@ -9388,18 +9468,61 @@ function generatePolaroid(){
       c.fillText('薄荷旅行手账 · '+new Date().getFullYear(),W/2,H-26);
       c.globalAlpha=1;
       cv.style.display='block';
+      var wrap=document.getElementById('pl-canvas-wrap');
+      if(wrap){wrap.classList.add('on');wrap.style.display='block';}
       document.getElementById('pl-actions').style.display='block';
     });
 }
+function previewPolaroid(){
+  var cv=document.getElementById('polaroid-canvas');
+  if(!cv||cv.style.display==='none'){showToast('请先生成照片墙');return;}
+  viewPhoto(cv.toDataURL('image/jpeg',0.9));
+}
 function downloadPolaroid(){
   var cv=document.getElementById('polaroid-canvas');
+  downloadCanvas(cv,'拍立得照片墙_'+new Date().toISOString().slice(0,10)+'.jpg','image/jpeg',0.92);
+}
+// v102: robust mobile save — Web Share API with file (iOS share sheet → Save Image),
+// fallback to object-url anchor download, final fallback to long-press hint.
+function downloadCanvas(canvas,filename,mime,quality){
+  if(!canvas){showToast('没有可保存的图片');return;}
+  mime=mime||'image/png';
+  quality=quality||0.92;
+  try{
+    canvas.toBlob(function(blob){
+      if(!blob){showToast('生成图片失败，请重试');return;}
+      var file=new File([blob],filename,{type:mime});
+      var canShare=typeof navigator!=='undefined'&&navigator.canShare&&navigator.canShare({files:[file]});
+      if(canShare){
+        navigator.share({files:[file],title:filename}).then(function(){showToast('已打开分享，选择「存储图像」即可保存 💜');}).catch(function(e){
+          if(e&&e.name==='AbortError'){/* user cancelled — no toast */}
+          else fallbackDownloadBlob(blob,filename,mime);
+        });
+      }else{
+        fallbackDownloadBlob(blob,filename,mime);
+      }
+    },mime,quality);
+  }catch(e){fallbackDownloadDataUrl(canvas,filename,mime,quality);}
+}
+function fallbackDownloadBlob(blob,filename,mime){
+  try{
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);if(a.parentNode)a.parentNode.removeChild(a);},600);
+    showToast('已发起下载，若没进相册可长按图片保存 💜');
+  }catch(e){showToast('保存失败，请点「查看大图」后长按图片保存');}
+}
+function fallbackDownloadDataUrl(canvas,filename,mime,quality){
   try{
     var a=document.createElement('a');
-    a.href=cv.toDataURL('image/jpeg',0.9);
-    a.download='拍立得照片墙_'+new Date().toISOString().slice(0,10)+'.jpg';
-    document.body.appendChild(a);a.click();a.remove();
-    showToast('已保存 ✨');
-  }catch(e){showToast('保存失败，试试长按图片');}
+    a.href=canvas.toDataURL(mime,quality);
+    a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){if(a.parentNode)a.parentNode.removeChild(a);},400);
+    showToast('已发起下载 💜');
+  }catch(e){showToast('保存失败，请长按图片保存');}
 }
 
 /* ================= v100: photo doodle ================= */
@@ -9868,6 +9991,7 @@ function init(){
   // Text appears instantly; photos fade in via the existing skeleton/onload.
   applyAppearance();
   loadData();
+  migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
