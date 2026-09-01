@@ -1238,8 +1238,9 @@ setTimeout(function(){
     </div>
     <div class="td-date-strip">
       <div class="tds" id="td-date-range">—</div>
-      <button class="btn btn-ghost btn-sm" onclick="addLocationToCurrentDay()">＋ 添加地点</button>
+      <button class="btn btn-ghost btn-sm" id="td-addloc-btn" onclick="addLocationToCurrentDay()">＋ 添加地点</button>
     </div>
+    <div id="td-readonly-badge" style="display:none;margin:0 18px 10px;padding:8px 12px;background:var(--info-bg);color:var(--info-fg);border:1px dashed var(--info);border-radius:10px;font-size:12px;align-items:center;gap:6px;"></div>
     <div class="td-day-pills" id="td-day-pills"></div>
     <div class="td-weather">
       <div class="left"><span id="td-weather-label">☀️ 加载中...</span></div>
@@ -1247,7 +1248,7 @@ setTimeout(function(){
     </div>
     <div class="td-toolbar" style="padding:12px 18px 0;">
       <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点 <span class="psync-badge" id="td-photo-sync" style="display:none;">📷 0/0</span></span>
-      <span style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
+      <span id="td-toolbar-actions" style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
     </div>
     <div class="timeline" id="td-timeline"></div>
     <div class="td-map" id="td-map">
@@ -2119,7 +2120,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v105';
+var APP_VERSION='v106';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2483,6 +2484,56 @@ function ghUserId(){
   if(!id){id='u_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem('lattiao_uid',id);}
   return id;
 }
+
+// v106: collaborator role helpers. Legacy `collaborators: ['uid1','uid2']` is
+// auto-migrated to `[{uid, role, addedAt, addedBy}]`. Two roles today:
+//   'editor' — full read/write on the trip (the legacy default)
+//   'viewer' — read-only on the trip; can still sync joys/notifs/peerNames
+//   'owner'  — same as editor today, but lets us promote later without code
+// Roles are stored ON the trip so every collaborator sees the same view.
+function migrateCollab(t){
+  if(!t)return;
+  if(!t.collaborators)return;
+  if(!t.collaborators.length)return;
+  // String array → object array
+  if(typeof t.collaborators[0]==='string'){
+    t.collaborators=t.collaborators.map(function(uid){
+      return {uid:uid,role:'editor',addedAt:0,addedBy:''};
+    });
+  }
+  // Backfill missing fields on object form
+  t.collaborators.forEach(function(c){
+    if(typeof c!=='object'||!c)return;
+    if(!c.uid)return;
+    if(c.role!=='editor'&&c.role!=='viewer'&&c.role!=='owner')c.role='editor';
+    if(typeof c.addedAt!=='number')c.addedAt=0;
+    if(typeof c.addedBy!=='string')c.addedBy='';
+  });
+}
+function migrateAllCollaborators(){
+  (data.trips||[]).forEach(migrateCollab);
+}
+function myRole(trip){
+  if(!trip)return null;
+  if(!trip.collaborators||!trip.collaborators.length)return null;
+  var me=ghUserId();
+  for(var i=0;i<trip.collaborators.length;i++){
+    var c=trip.collaborators[i];
+    if(c&&c.uid===me)return c.role||'editor';
+  }
+  return null;
+}
+function isReadOnly(trip){
+  if(!trip)return false;
+  var r=myRole(trip);
+  return r==='viewer';
+}
+function blockIfReadOnly(tripId,op){
+  var t=(data.trips||[]).find(function(x){return x.id===tripId;});
+  if(!t||!isReadOnly(t))return false;
+  showToast((op||'该操作')+'已被锁定：当前为「只读查看者」模式 ✨');
+  return true;
+}
 function ghToken(){return localStorage.getItem('lattiao_gh_token')||'';}
 function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
 
@@ -2822,6 +2873,9 @@ function mergeTrips(localTrips,remoteTrips){
     // Tombstoned trips must not be re-introduced by a remote pull
     if(data.tombstones&&data.tombstones[t.id])return;
     var remote=JSON.parse(JSON.stringify(t));
+    // v106: ensure role-bearing collaborators survive the round-trip even when
+    // a pre-v106 editor on the other side is still emitting string[].
+    migrateCollab(remote);
     if(!byId[t.id]){ byId[t.id]={trip:remote}; return; }
     var local=byId[t.id].trip;
     // v101 P2: 归一化后再比较（原来是裸比较，混合类型恒为 false）
@@ -2925,7 +2979,9 @@ function mergeTrips(localTrips,remoteTrips){
     local.budget.items=Object.keys(itemMap).map(function(k){ return itemMap[k]; }).sort(function(a,b){ return a.time-b.time; });
     byId[t.id].trip=local;
   });
-  return Object.keys(byId).map(function(k){ return byId[k].trip; });
+  var out=Object.keys(byId).map(function(k){ return byId[k].trip; });
+  out.forEach(migrateCollab); // v106: keep role-bearing collaborators consistent post-merge
+  return out;
 }
 
 function syncPull(force){
@@ -3241,6 +3297,10 @@ function buildTextPayload(photoChunks){
   // v103: per-device display names so collaborators see each other's real names
   remoteData.peerNames=data.peerNames||{};
   data.trips.forEach(function(t){
+    // v106: a viewer must not push trip/location/budget changes upstream —
+    // the trip is owned by someone else and the viewer's job is to RECEIVE
+    // updates. Personal data (joys/notifs/peerNames) still syncs as before.
+    if(isReadOnly(t))return;
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
     // v71: covers are stripped too (they're large base64 images) — trips.json
@@ -5646,6 +5706,9 @@ function generateCoverSvg(tpl,title,dest){
   );
 }
 function saveTrip(){
+  // v106: viewers cannot edit the trip itself (editing/creating new trips is
+  // an editor/owner action; the viewer just receives the syncing writes).
+  if(currentEditingTripId&&blockIfReadOnly(currentEditingTripId,'编辑行程'))return;
   var budgetInput=document.getElementById('tm-budget').value;
   var tripBudget=budgetInput===''?null:parseFloat(budgetInput)||0;
   var t={
@@ -5825,17 +5888,49 @@ function openTrip(id){
   }
 }
 function renderOpenTripChrome(t){
-  var actions='<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button><button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button><button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button><button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button><button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>';
+  var ro=isReadOnly(t);
+  // v106: viewers see only 👁 only-read + ↗ share + ↻ resync; editing/export
+  // controls vanish so the role is unmistakable.
+  var actions=ro
+    ? '<span class="btn-icon" style="background:var(--info-bg);color:var(--info-fg);" title="只读查看者">👁</span>'+
+      '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
+      '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>'
+    : '<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作（默认只读）">👥</button>'+
+      '<button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>'+
+      '<button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>'+
+      '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
+      '<button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>'+
+      '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>';
   if(t.cover){
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button></div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button></div><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }
   document.getElementById('td-title').textContent=t.title;
   document.getElementById('td-sub').textContent='📍 '+(t.destination||'未设置目的地');
   var rng=t.startDate?fmtDate(t.startDate):'—';
   if(t.endDate&&t.endDate!==t.startDate)rng+=' ~ '+fmtDate(t.endDate);
   document.getElementById('td-date-range').innerHTML=rng+'<small>'+(t.days&&t.days.length?' · '+t.days.length+' 天':'')+'</small>';
+  // v106: hide per-location edit affordances so the read-only role is
+  // consistent across the whole trip detail (chrome + body + cards).
+  var addBtn=document.getElementById('td-addloc-btn');
+  if(addBtn)addBtn.style.display=ro?'none':'inline-flex';
+  var tb=document.getElementById('td-toolbar-actions');
+  if(tb)tb.style.display=ro?'none':'flex';
+  renderTripReadOnlyBadge(t);
+}
+// v106: small badge under the date range so the role is also visible inline
+// (not just from the icon at the top).
+function renderTripReadOnlyBadge(t){
+  var el=document.getElementById('td-readonly-badge');
+  if(!el)return;
+  if(!isReadOnly(t)){el.style.display='none';el.innerHTML='';return;}
+  // Find the inviter = first non-self editor/owner collaborator
+  var me=ghUserId();
+  var inviter=(t.collaborators||[]).find(function(c){return c&&c.uid!==me&&(c.role==='editor'||c.role==='owner');});
+  var inviterName=inviter?(data.peerNames&&data.peerNames[inviter.uid])||'编辑者':'编辑者';
+  el.style.display='inline-flex';
+  el.innerHTML='👁 只读查看者 · 由 <b style="color:var(--text);margin:0 3px;">'+escapeHTML(inviterName)+'</b> 邀请 · 你看到的内容会随他们更新';
 }
 var viewTrip=openTrip;
 function renderDayPills(){
@@ -5914,9 +6009,14 @@ function renderTimeline(){
   // days like D3 stay visible as "📭 这一天还没有安排" instead of silently showing D1.
   var day=t.days[currentTripDay]||t.days[0]||{locations:[]};
   var locs=day.locations||[];
+  // v106: read-only mode strips per-location edit affordances entirely so the
+  // user never sees a button that would be blocked. The card click becomes a
+  // soft "view only" — opens the location in read-only mode if implemented,
+  // otherwise it's a no-op (existing readLocationModal already shows fields).
+  var ro=isReadOnly(t);
   document.getElementById('td-loc-count').textContent=locs.length;
   if(locs.length===0){
-    document.getElementById('td-timeline').innerHTML='<div style="text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;">📭 这一天还没有安排，点击 + 添加地点</div>';
+    document.getElementById('td-timeline').innerHTML='<div style="text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;">'+(ro?'这一天还没有安排':'📭 这一天还没有安排，点击 + 添加地点')+'</div>';
     return;
   }
   var html='';
@@ -5941,8 +6041,8 @@ function renderTimeline(){
         '<div style="aspect-ratio:1;border-radius:6px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-sec);font-weight:600;">📷 '+l._photoCount+'</div>'+
         '</div>';
     }
-    html+='<div class="tl-item" data-idx="'+idx+'" onclick="editLocation('+idx+')" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
-      '<div class="tl-swipe-del" onclick="event.stopPropagation();swipeDeleteLocation('+idx+')">删除</div>'+
+    html+='<div class="tl-item" data-idx="'+idx+'" onclick="'+(ro?'viewLocation('+idx+')':'editLocation('+idx+')')+'" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
+      (ro?'':'<div class="tl-swipe-del" onclick="event.stopPropagation();swipeDeleteLocation('+idx+')">删除</div>')+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
       '<div class="tl-dot '+dotClass+'"></div>'+
       '<div class="tl-card">'+
@@ -5951,10 +6051,10 @@ function renderTimeline(){
           (l.distance?('<span>📏 '+l.distance+' km</span>'):'')+
           (l.duration?('<span>⏱ '+l.duration+' 分钟</span>'):'')+
           '<span style="margin-left:auto;display:flex;gap:6px;">'+
-            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();editLocation('+idx+')">✎</span>'+
+            (ro?'':'<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();editLocation('+idx+')">✎</span>'+
             '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',-1)">↑</span>'+
             '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',1)">↓</span>'+
-            '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>'+
+            '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>')+
           '</span>'+
         '</div>'+
         photoThumbs+
@@ -5964,6 +6064,7 @@ function renderTimeline(){
   document.getElementById('td-timeline').innerHTML=html;
 }
 function sortLocations(mode){
+  if(blockIfReadOnly(currentTripId,'排序地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
@@ -5985,6 +6086,7 @@ function sortLocations(mode){
   }
 }
 function moveLocation(idx,dir){
+  if(blockIfReadOnly(currentTripId,'移动地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
@@ -6000,6 +6102,7 @@ function moveLocation(idx,dir){
   else if(typeof window.syncPush==='function')window.syncPush();
 }
 function deleteLocation(idx){
+  if(blockIfReadOnly(currentTripId,'删除地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
@@ -6050,6 +6153,7 @@ function resetLocationModal(){
   renderLocationModalBudget();
 }
 function addLocationToCurrentDay(){
+  if(blockIfReadOnly(currentTripId,'添加地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
@@ -6087,7 +6191,37 @@ function editLocation(idx){
   renderLocationModalPhotos();
   renderLocationModalBudget();
   document.getElementById('location-modal').classList.add('active');
+  // v106: when the current user is a viewer on this trip, render the modal
+  // in read-only mode — inputs become disabled, save button is hidden.
+  applyLocationModalReadOnly(isReadOnly(t));
 }
+function applyLocationModalReadOnly(ro){
+  var modal=document.getElementById('location-modal');if(!modal)return;
+  var saveBtn=document.getElementById('lm-save-btn');
+  var cancelBtn=modal.querySelector('.modal-actions .btn-ghost');
+  var titleEl=document.getElementById('location-modal-title');
+  // v106: the modal is shared between edit and view, so the title must follow
+  // the role or viewers think they can edit.
+  if(titleEl&&ro)titleEl.textContent='查看地点 · 只读';
+  // Disable every input/textarea/select inside the modal
+  modal.querySelectorAll('input,textarea,select').forEach(function(el){
+    if(ro){el.setAttribute('readonly','readonly');el.setAttribute('disabled','disabled');}
+    else{el.removeAttribute('readonly');el.removeAttribute('disabled');}
+  });
+  // Hide the photo upload + budget add buttons by their inline onclick attrs
+  modal.querySelectorAll('button').forEach(function(b){
+    var oc=b.getAttribute('onclick')||'';
+    if(ro&&/handleLocationPhotoUpload|addLocationBudgetItem|deleteLocationModalPhoto|deleteLocationModalBudgetItem|saveLocation/.test(oc)){
+      b.style.display='none';
+    }else if(!ro){
+      b.style.display='';
+    }
+  });
+  if(saveBtn)saveBtn.style.display=ro?'none':'';
+  if(cancelBtn)cancelBtn.textContent=ro?'关闭':'取消';
+}
+// v106: viewer-mode entry into the location modal — same modal, read-only.
+function viewLocation(idx){editLocation(idx);}
 function handleLocationPhotoUpload(e){
   var files=Array.from(e.target.files||[]);
   if(!files.length)return;
@@ -6140,6 +6274,7 @@ function deleteLocationModalBudgetItem(i){
   renderLocationModalBudget();
 }
 function saveLocation(){
+  if(blockIfReadOnly(currentTripId,'编辑地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   ensureTripDays(t);
@@ -6619,14 +6754,19 @@ function inviteCollaborator(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
   if(!ghHasToken()){showToast('请先在设置中配置协作 Token');openSettings();return;}
-  if(!t.collaborators)t.collaborators=[ghUserId()];
-  if(t.collaborators.indexOf(ghUserId())<0)t.collaborators.push(ghUserId());
+  if(!t.collaborators)t.collaborators=[];
+  migrateCollab(t);
+  // Make sure the inviter themselves is in collaborators[0] as owner
+  var me=ghUserId();
+  if(!t.collaborators.find(function(c){return c&&c.uid===me;}))t.collaborators.push({uid:me,role:'owner',addedAt:Date.now(),addedBy:''});
   saveData();
-  var link=location.origin+location.pathname+'?join='+t.id;
-  var msg='邀请你协作编辑旅行「'+t.title+'」\n\n打开链接即可一起编辑：\n'+link;
-  if(navigator.share){navigator.share({title:'邀请协作',text:msg,url:link}).catch(function(){});}
-  else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('邀请链接已复制，发给朋友吧');});}
-  else{prompt('复制邀请链接：',link);}
+  // v106: invite link now carries role=viewer by default so friends land as
+  // viewers. (We may add an "edit access" toggle in the future.)
+  var link=location.origin+location.pathname+'?join='+t.id+'&role=viewer';
+  var msg='邀请你一起看旅行「'+t.title+'」\n（默认「只读」模式：你能看到我所有的更新，但暂时不能编辑 ✨）\n\n打开链接加入：\n'+link;
+  if(navigator.share){navigator.share({title:'邀请查看旅行',text:msg,url:link}).catch(function(){});}
+  else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('只读邀请链接已复制，发给朋友吧');});}
+  else{prompt('复制只读邀请链接：',link);}
 }
 function initShareView(shareId){
   var overlay=document.createElement('div');
@@ -6672,13 +6812,25 @@ function joinWithToken(tripId){
   var tok=document.getElementById('join-token-input')?document.getElementById('join-token-input').value.trim():'';
   if(tok)ghSetToken(tok);
   if(!ghHasToken()){showToast('请输入 Token');return;}
+  // v106: honour the role carried in the invite link. Default to 'viewer'
+  // because the owner only ships viewer links today.
+  var qs=new URLSearchParams(location.search);
+  var role=qs.get('role');
+  if(role!=='editor'&&role!=='owner')role='viewer';
   showToast('正在同步...');
   syncPull().then(function(){
     var t=data.trips.find(function(x){return x.id===tripId;});
     if(!t){showToast('行程不存在');return;}
-    if(!t.collaborators)t.collaborators=[];
-    if(t.collaborators.indexOf(ghUserId())<0){t.collaborators.push(ghUserId());saveData();}
-    showToast('已加入协作！');
+    migrateCollab(t);
+    var me=ghUserId();
+    if(!t.collaborators.find(function(c){return c&&c.uid===me;})){
+      t.collaborators.push({uid:me,role:role,addedAt:Date.now(),addedBy:qs.get('invitedBy')||''});
+      saveData();
+      showToast('已加入「'+(role==='viewer'?'只读查看者':'编辑者')+'」模式 ✨');
+    }else{
+      showToast('你已经是协作者啦');
+    }
+    // Drop the query string so a refresh doesn't try to re-join.
     location.href=location.pathname;
   });
 }
@@ -10353,6 +10505,7 @@ function init(){
   loadData();
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   ensurePeerName();   // v103: register this device's display name for collaborators
+  migrateAllCollaborators(); // v106: string[] collaborators → object[] with role
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
