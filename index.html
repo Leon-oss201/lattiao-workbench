@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v121';
+var APP_VERSION='v122';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -7959,7 +7959,27 @@ function importData(e){
       var d=JSON.parse(ev.target.result);
       if(d.trips||d.guides||d.favorites){
         if(!confirm('导入将覆盖现有数据，确定吗？'))return;
-        data=d;
+        // v122: 逐字段兜底，绝不用 data=d 整体替换。
+        // 老备份（本入口针对的格式）通常只有 trips/guides/favorites，整体替换会让
+        // tombstones / joys / notifs / peerNames / settings 全部变 undefined，
+        // 紧接着的 saveData() 又把空值推上云端：
+        //   · tombstones 清空 → 已删行程/地点在两台设备上复活
+        //   · joys 清空      → 小确幸全丢；云端被清空后 syncPull 的 mergeJoys
+        //                      无从捞回，不可恢复
+        // 语义：文件里有的用文件的；文件里没有的**保留现有**。
+        // 「文件没有该字段」不能推断成「用户没有这些数据」—— 老格式压根没这些字段。
+        var prev=data||{};
+        data={
+          trips:d.trips||[],
+          guides:d.guides||[],
+          favorites:d.favorites||[],
+          settings:(d.settings&&Object.keys(d.settings).length)?d.settings:(prev.settings||{}),
+          tombstones:d.tombstones||prev.tombstones||{},
+          locTombstones:d.locTombstones||prev.locTombstones||{},
+          joys:d.joys||prev.joys||[],
+          notifs:d.notifs||prev.notifs||[],
+          peerNames:d.peerNames||prev.peerNames||{}
+        };
         saveData();
         showToast('已导入');
         renderHome();
