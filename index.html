@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v118';
+var APP_VERSION='v119';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3080,7 +3080,7 @@ function syncPull(force){
         if(!data.tombstones)data.tombstones={};
         Object.keys(remote.tombstones).forEach(function(k){
           // Always take the newer tombstone timestamp
-          if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
+          if(!data.tombstones[k]||tsOf(remote.tombstones[k])>tsOf(data.tombstones[k]))data.tombstones[k]=remote.tombstones[k];
         });
         // Drop tombstoned trips from local trips
         data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
@@ -3092,7 +3092,7 @@ function syncPull(force){
       if(remote.locTombstones&&typeof remote.locTombstones==='object'){
         if(!data.locTombstones)data.locTombstones={};
         Object.keys(remote.locTombstones).forEach(function(lid){
-          if(!data.locTombstones[lid]||remote.locTombstones[lid]>data.locTombstones[lid]){
+          if(!data.locTombstones[lid]||tsOf(remote.locTombstones[lid])>tsOf(data.locTombstones[lid])){
             data.locTombstones[lid]=remote.locTombstones[lid];
           }
         });
@@ -3934,14 +3934,14 @@ function pushMergeCloud(){
     if(remote.tombstones&&typeof remote.tombstones==='object'){
       if(!data.tombstones)data.tombstones={};
       Object.keys(remote.tombstones).forEach(function(k){
-        if(!data.tombstones[k]||remote.tombstones[k]>data.tombstones[k])data.tombstones[k]=remote.tombstones[k];
+        if(!data.tombstones[k]||tsOf(remote.tombstones[k])>tsOf(data.tombstones[k]))data.tombstones[k]=remote.tombstones[k];
       });
       data.trips=data.trips.filter(function(t){return !data.tombstones[t.id];});
     }
     if(remote.locTombstones&&typeof remote.locTombstones==='object'){
       if(!data.locTombstones)data.locTombstones={};
       Object.keys(remote.locTombstones).forEach(function(lid){
-        if(!data.locTombstones[lid]||remote.locTombstones[lid]>data.locTombstones[lid])data.locTombstones[lid]=remote.locTombstones[lid];
+        if(!data.locTombstones[lid]||tsOf(remote.locTombstones[lid])>tsOf(data.locTombstones[lid]))data.locTombstones[lid]=remote.locTombstones[lid];
       });
       applyLocTombstonesToTrips(data.trips,data.locTombstones);
     }
@@ -6678,7 +6678,11 @@ function deleteCurrentTrip(){
   data.trips=data.trips.filter(function(t){return t.id!==delId;});
   // Tombstone: prevent this trip from being re-pulled until the deletion is pushed
   if(!data.tombstones)data.tombstones={};
-  data.tombstones[delId]=new Date().toISOString();
+  // v119: 用数字时间戳（Date.now()），与 locTombstones（地点墓碑）的类型一致。
+  // 旧版写的是 new Date().toISOString() 字符串，而消费端 4 处都用 `>` 比较——
+  // 一旦本地与远端类型不一致，`"2026-...Z" > 1788309173985` 里 Number(ISO) 是 NaN，
+  // 比较**恒为 false**，墓碑永远不更新 → 删除不传播 / 已删行程在对端复活。
+  data.tombstones[delId]=Date.now();
   // Reset budget filter if it was pointing to the deleted trip
   if(budgetFilterTripId===delId)budgetFilterTripId='all';
   saveDataLocal();
