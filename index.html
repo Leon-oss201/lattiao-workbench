@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v119';
+var APP_VERSION='v120';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -10392,7 +10392,14 @@ function ddSave(){
   tgt.loc.photos.push(out);
   tgt.loc._photoCount=tgt.loc.photos.length;
   tgt.trip.updatedAt=new Date().toISOString();
-  try{photoCachePut(tgt.loc.id,tgt.loc.photos);}catch(e){}
+  // v120 BUG FIX: key 必须是 locPhotoKey(tripId,locId)（即 "tripId|locId"），
+  // 与唯一的读取点 ensureLocationPhotos 保持一致。旧代码用纯 loc.id 写入，
+  // 而 saveDataLocal() 在落盘前会把所有 photos 剥掉（l.photos=[]），于是涂鸦
+  // 存出来的新照片既不进 localStorage、也进不了 photoCache 的正确 key ——
+  // **刷新页面后涂鸦照片直接消失**。
+  // 另外 _photoCount 已被设成新的张数，缓存里却只有旧的几张，读取时
+  // want(=_photoCount) > have 会让 App 误以为云端还有而空拉一轮。
+  try{photoCachePut(locPhotoKey(tgt.trip.id,tgt.loc.id),tgt.loc.photos.slice());}catch(e){}
   saveDataLocal();
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
