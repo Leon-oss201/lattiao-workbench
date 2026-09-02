@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v115';
+var APP_VERSION='v117';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2491,6 +2491,7 @@ var GH={
   nextPullAt:0,      // throttle: earliest allowed next pull (ms)
   pullBackoff:0,     // exponential backoff after failures
   shaCache:null,     // cached sha of data/trips.json to avoid a round-trip on every push
+  pushBaseSha:null,  // v117: sha this push's merge was based on (single-use CAS token)
   lastSha:null,      // sha of the last successfully pulled cloud file (incremental pull)
   lastPushFp:null,   // tripsFingerprint of the last successfully pushed state (incremental push)
   photoChunkFp:null, // {path: fingerprint} of photo chunks we've already uploaded
@@ -3856,6 +3857,11 @@ function syncPushNow(){
   // "B pushed but cloud only has the template defaults" bug.
   if(GH.pushing){
     GH.pushPending=true;
+    // v117: 被锁挡下时也要标记「待上传」。之前这里直接 return，UI 不显示待同步、
+    // localStorage 也没标记，于是上一轮推送的重试链路（v117 的 CAS 让 409 重试变多，
+    // 锁占用时间随之变长）进行中时，用户的新编辑看起来像「已同步」其实还压在本地。
+    try{localStorage.setItem('lattiao_pending_push','1');}catch(e){}
+    if(typeof showPendingBanner==='function')showPendingBanner();
     return Promise.resolve();
   }
   // Incremental push: if nothing changed since the last successful upload, skip
@@ -3881,18 +3887,26 @@ function syncPushNow(){
   generateCollabNotifs();
   GH.pushing=true;
   setSyncStatus('syncing');
-  return pushMergeCloud().then(function(){
-    // After merge, reset the notification baseline to the merged state so that
-    // remote changes pulled in now don't trigger a "local update" notification later.
-    GH_NOTIF_SNAP=notifSnapshot();
-    return doPushNow();
-  });
+  // v116: doPushNow 自己负责 merge + PUT，消除「merge 完成→PUT 之间」的 TOCTOU 窗口。
+  // 旧版 syncPushNow 先 merge、再 doPushNow，期间 A 的写入会让 C 的 payload 含旧数据
+  // （C 拿到的 sha 是 A 写入后的最新值，不撞 409 → 直接覆盖 A）。把 merge 挪进
+  // doPushNow 内、紧邻 PUT 之前后，merge 完成 → 构建 payload → PUT 之间几乎没有
+  // 异步窗口，避免静默覆盖。代价：每次 push 多一次轻量 GET（仍是 2 API/保存级别）。
+  return doPushNow();
 }
 // v101: 推送前的云端对账合并（syncPull 的「合并」那一半）。刻意不复用
 // syncPull —— 它在 GH.pushing 为 true 时会直接 return。
 function pushMergeCloud(){
   if(!ghHasToken())return Promise.resolve(false);
   return ghReadTrips().then(function(remote){
+    // v117: 记下本次 merge 所基于的云端 sha，供 PUT 做 CAS（compare-and-swap）。
+    // 旧代码 attempt() 优先用 GH.shaCache（上一次 PUT 成功后的 sha）或重新 GET
+    // 最新 sha —— 两者都与「本次 merge 读到的 cloud 版本」无关。于是 merge 完成后、
+    // PUT 落盘前若被别人写入，我们拿到的 sha 依然是最新的（不撞 409），payload 却是
+    // 旧 merge 的结果 → 静默覆盖别人的编辑（v115/v116 都没堵住这个窗口）。
+    // 现在「读到什么版本、就基于什么版本提交」：期间有人写入则 sha 不匹配 → 409 →
+    // v115 重试路径重新 merge 再推，数据不再丢。
+    GH.pushBaseSha=GH.lastSha||null;
     if(!remote||remote.skip||!remote.trips)return false;
     // 吸收墓碑，避免把别人已删除的行程/地点复活
     if(remote.tombstones&&typeof remote.tombstones==='object'){
@@ -3925,7 +3939,20 @@ function pushMergeCloud(){
     return false;
   });
 }
-function doPushNow(){
+function doPushNow(triesLeft){
+  // v116: 先与最新云端 merge，再构建 payload 并 PUT。把 merge 挪到 PUT 正前方，消除
+  // TOCTOU 窗口（旧版 syncPushNow 合并完成后，到 doPushNow 真正 PUT 之间有异步窗口，
+  // 别人在这期间写入后我们仍能拿到最新 sha，撞不出 409，payload 用旧数据覆盖别人）。
+  // v117: triesLeft —— CAS（v117）让 409 从「偶发异常」变成「常态」：只要有人在我们
+  // merge 之后写入就会撞。只重试 1 次不够，这里允许 3 次；每次重试都重新 merge 最新
+  // 云端，所以是收敛的（每轮都吸收对方改动），不是盲目重试。
+  var tl=(typeof triesLeft==='number')?triesLeft:3;
+  return pushMergeCloud().then(function(){
+    GH_NOTIF_SNAP=notifSnapshot();
+    return doPushNowInner(tl);
+  });
+}
+function doPushNowInner(triesLeft){
   // v47+: trips.json is now text-only (KB) so it uploads in one fast PUT.
   // Photos go in per-location chunk files that stay under 1MB each.
   // v98: chunk list is computed first so buildTextPayload can publish
@@ -3941,9 +3968,18 @@ function doPushNow(){
   // 既不漏推也不多推。注意用 remoteData.settings（白名单投影），photoQuality 天然不在里面。
   // v102: include joys/notifs in the pushed fingerprint so they trigger future syncs.
   var pushFp=syncStateFingerprint(remoteData);
-  var attempt=function(tried){
-    // Use the cached sha to skip the GET round-trip; only refetch on a 409 conflict
-    var shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
+  var attempt=function(triesLeft){
+    // v117 CAS: prefer the sha this merge was based on (set by pushMergeCloud a few
+    // lines above) so the write is conditional on the exact version we merged.
+    // It is single-use — cleared immediately so a later push never reuses a stale one.
+    // Fallback keeps the v91 fast path (shaCache → no GET) for non-CAS callers.
+    var shaPromise;
+    if(GH.pushBaseSha){
+      shaPromise=Promise.resolve(GH.pushBaseSha);
+      GH.pushBaseSha=null;
+    }else{
+      shaPromise=GH.shaCache?Promise.resolve(GH.shaCache):ghGetSha('data/trips.json').then(function(s){GH.shaCache=s;return s;});
+    }
     return shaPromise.then(function(sha){
       return ghWriteFile('data/trips.json',remoteData,'sync: update trips',sha);
     }).then(function(res){
@@ -4037,11 +4073,15 @@ function doPushNow(){
       // that fresh payload. Re-running pushMergeCloud + doPushNow is
       // equivalent to triggering syncPushNow, but inline so the error path
       // stays clear and we don't rely on setTimeout ordering.
-      if(String(e).indexOf('409')>=0&&!tried){
+      // v117: CAS 下 409 是常态（有人在我们 merge 之后写入就会撞），允许多次重试；
+      // 每次重试都重新 merge 最新云端，因此是收敛的。v115 只允许重试 1 次，在
+      // 三设备并发下常常耗尽 → 数据卡在本地（实测弱网 T3「恢复后重推」失败）。
+      if(String(e).indexOf('409')>=0&&triesLeft>0){
         GH.shaCache=null;
         GH.pushing=false;
         GH_NOTIF_SNAP=null; // force pushMergeCloud to recompute the notification baseline
-        return pushMergeCloud().then(doPushNow);
+        // v116: doPushNow 内置 merge，无需再单独调 pushMergeCloud
+        return doPushNow(triesLeft-1);
       }
       GH.pushing=false;console.error('push err',e);setSyncStatus('error');
       if(String(e).indexOf('409')>=0)syncPull(true);
@@ -4061,7 +4101,8 @@ function doPushNow(){
       }
     });
   };
-  return attempt(false);
+  // v117: 传 triesLeft（v115 的 `tried` 布尔已被它取代），让 409 catch 能递减重试次数
+  return attempt((typeof triesLeft==='number')?triesLeft:3);
 }
 // v70: auto-retry a failed push with exponential backoff (30s → 1m → 2m → 4m → 8m cap).
 // The user never needs to manually re-upload — the app keeps trying in the
