@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v117';
+var APP_VERSION='v118';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2619,6 +2619,18 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   });
   out._fts=out._fts||{};
   if(remoteLoc._fts)Object.keys(remoteLoc._fts).forEach(function(k){ if(tsOf(remoteLoc._fts[k])>tsOf(out._fts[k]||0))out._fts[k]=remoteLoc._fts[k]; });
+  // v118: `_photoCount` is the authoritative cloud-side photo count shipped in the
+  // text payload (buildTextPayload strips the actual photos into chunk files).
+  // It is the gate for lazy photo loading — every call site checks
+  // `l._photoCount > 0` before pulling chunks. It was being DROPPED here, so a
+  // peer's location always had _photoCount 0 and never auto-loaded photos
+  // ("朋友看不到我新增的照片" — same root cause as the historical bug).
+  // Take the max: the remote count is authoritative for what the cloud holds,
+  // but never shrink below what we already have locally (photos still uploading).
+  if(remoteLoc._photoCount>0){
+    var lc=Math.max(out._photoCount||0,(out.photos||[]).length);
+    out._photoCount=Math.max(lc,remoteLoc._photoCount);
+  }
   var pset={};
   (out.photos||[]).forEach(function(p){if(p)pset[p]=1;});
   (remoteLoc.photos||[]).forEach(function(p){if(p&&!pset[p]){(out.photos=out.photos||[]).push(p);pset[p]=1;}});
@@ -2969,13 +2981,17 @@ function mergeTrips(localTrips,remoteTrips){
     (local.days||[]).forEach(function(d){
       if(!d||!d.locations)return;
       d.locations.forEach(function(l){
-        if(!l||!l.id||l._chunkCount)return;
+        if(!l||!l.id)return;
         var remoteLoc=null;
         (remote.days||[]).forEach(function(rd){
           if(remoteLoc||!rd||!rd.locations)return;
           rd.locations.forEach(function(rl){ if(rl&&rl.id===l.id&&rl._chunkCount)remoteLoc=rl; });
         });
-        if(remoteLoc)l._chunkCount=remoteLoc._chunkCount;
+        // v118: 原来 `if(l._chunkCount)return` —— local 一旦有值就永不更新，于是对端
+        // 会永久停留在旧的分片数（实测：云端 10 个分片，B 的 _chunkCount 卡在 9）。
+        // 后果是每次都要靠 safe-net 多探测一轮（多 1 个 RTT），且 readWindow 的
+        // exact 模式只读 known 片就停。改为取较大值，让它随云端增长。
+        if(remoteLoc&&(!l._chunkCount||remoteLoc._chunkCount>l._chunkCount))l._chunkCount=remoteLoc._chunkCount;
       });
     });
     // Merge top-level trip photos by URL
@@ -3618,7 +3634,13 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
       if(known>0&&all.length<want)return readWindow(known,CHUNK_READ_CONCURRENCY,false);
       return Promise.resolve();
     }).then(function(){
-      if(all.length){loc.photos=all;photoCachePut(key,all);}
+      // v118: never let a PARTIAL fetch clobber a more complete local copy.
+      // Chunk reads can come back short (timeout, 40% packet loss, a gap in the
+      // middle of the run), and `all` then holds only a fraction. Assigning it
+      // unconditionally silently shrank a location's photos (measured: 30 → 5),
+      // and the loss was then persisted to the photo cache — unrecoverable.
+      // Keep the richer side: overwrite only when we got at least as many back.
+      if(all.length&&all.length>=have){loc.photos=all;photoCachePut(key,all);}
       return all;
     });
   });
