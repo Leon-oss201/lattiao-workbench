@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v120';
+var APP_VERSION='v121';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -8003,7 +8003,12 @@ function forceResync(){
       try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
       try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
       var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
-      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
+      // v120: 同 forceRescue —— 重建 data 时保留 joys / notifs / peerNames，
+      // 否则「立即从云端拉取」会把小确幸、通知、协作者名字清空，并在下次推送时
+      // 把空数组写进云端，对端也跟着丢。
+      var _prevS=data||{};
+      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},
+            joys:_prevS.joys||[],notifs:_prevS.notifs||[],peerNames:_prevS.peerNames||{}};
       if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
       if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
       data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
@@ -8153,7 +8158,13 @@ function forceRescue(){
     GH.pullBackoff=0;GH.nextPullAt=0;GH.tokenInvalid=false;
     // 2) rebuild an empty state, keeping the user's settings
     var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{}};
+    // v120: 重建 data 时必须保留 joys / notifs / peerNames。旧代码整体重建时漏了这三个
+    // 同步字段，「清空本地缓存并从云端恢复」反而会把小确幸、通知、协作者名字一起抹掉；
+    // 而 pushMergeCloud 只合并 trips、不合并 joys，下一次推送就会把空数组写进云端
+    // —— 对端也跟着丢，且不可恢复（syncPull 的 mergeJoys 只能从云端捞，云端已被清空）。
+    var _prevR=data||{};
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},
+          joys:_prevR.joys||[],notifs:_prevR.notifs||[],peerNames:_prevR.peerNames||{}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
     if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
     // 3) adopt the healthy cloud copy directly (no merge)
