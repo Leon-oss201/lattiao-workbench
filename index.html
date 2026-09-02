@@ -2133,7 +2133,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v122';
+var APP_VERSION='v123';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2630,6 +2630,31 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   if(remoteLoc._photoCount>0){
     var lc=Math.max(out._photoCount||0,(out.photos||[]).length);
     out._photoCount=Math.max(lc,remoteLoc._photoCount);
+  }
+  // v122: 记账预算合并（union）。
+  // `out` 是从 local 深拷贝出来的，而上面只按字段合并了 name/guide/feeling ——
+  // 于是 `out.budget` 恒等于本地值，**对端的记账被整个丢弃**。实测后果：
+  //   · 单向就丢：A 记一笔 → B 拉到 0 条
+  //   · 双向不收敛：A、B 各记一笔 → 两边各留各的，永远对不上账
+  // 按 cat|note|amt|time 去重后取并集（按 time 排序），local 优先保留。
+  // 已知局限：union 语义会让「A 删掉的条目」在 B 推送后复活 —— 记账没有墓碑机制。
+  // 相比「整个丢弃对端」，union 至少保证账目不丢；删除场景留待后续加墓碑解决。
+  var lItems=((out.budget&&out.budget.items)||[]);
+  var rItems=((remoteLoc.budget&&remoteLoc.budget.items)||[]);
+  if(lItems.length||rItems.length){
+    var bseen={}, bmerged=[];
+    lItems.concat(rItems).forEach(function(it){
+      if(!it)return;
+      var bk=[it.cat||'', it.note||'', it.amt||0, it.time||0].join('|');
+      if(bseen[bk])return;
+      bseen[bk]=1;
+      bmerged.push(it);
+    });
+    bmerged.sort(function(a,b){ return (a.time||0)-(b.time||0); });
+    out.budget={
+      total:bmerged.reduce(function(s,it){ return s+(it.amt||0); },0),
+      items:bmerged
+    };
   }
   var pset={};
   (out.photos||[]).forEach(function(p){if(p)pset[p]=1;});
