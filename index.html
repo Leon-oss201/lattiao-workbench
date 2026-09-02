@@ -708,15 +708,6 @@ body.guest-mode{padding-top:34px;}
 .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);border-width:2px;padding:10px 13px;}
 .form-input::placeholder,.form-textarea::placeholder{color:var(--text-light);opacity:1;}
 .form-input:disabled,.form-textarea:disabled,.form-select:disabled{opacity:.6;background:var(--muted-bg);}
-/* v106: when the location modal opens in viewer mode, dim everything more
-   aggressively and forbid text selection so the read-only role is unmistakable. */
-/* v106/v108: when the location modal opens in viewer mode.
-   IMPORTANT — do NOT dim the text with opacity. v107 used opacity:.55 which
-   pushed 14px text down to 3.66:1 (WCAG AA needs 4.5:1) — read-only content
-   became *harder* to read than editable. Signal "not editable" with the
-   frame + cursor instead, and keep the text at full contrast. */
-.ro-mode .form-input,.ro-mode .form-textarea,.ro-mode .form-select{background:var(--muted-bg);border-style:dashed;border-color:var(--border-strong);cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:1;}
-.ro-mode .form-input:focus,.ro-mode .form-textarea:focus,.ro-mode .form-select:focus{border-color:var(--border-strong);border-width:1px;padding:11px 14px;}
 .form-textarea{min-height:80px;resize:vertical;}
 /* v93: iOS Safari forces its own light background on text inputs in dark mode
    unless we explicitly tell it not to. This matches the chosen theme. */
@@ -888,7 +879,7 @@ img.photo-fade.loaded{opacity:1;}
 /* ================= v100: mood cover ================= */
 .mood-cover{margin:14px 16px 0;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--card);position:relative;}
 .mood-cover .mc-art{display:block;width:100%;height:104px;}
-.mood-cover .mc-body{padding:12px 14px 14px;background:linear-gradient(180deg,transparent,var(--card) 18%);margin-top:-22px;position:relative;z-index:1;}
+.mood-cover .mc-body{padding:13px 14px 14px;background:linear-gradient(180deg,var(--card) 30%,var(--card) 100%);margin-top:-8px;position:relative;z-index:1;}
 .mood-cover .mc-t{font-size:15px;font-weight:700;color:var(--text);line-height:1.4;}
 .mood-cover .mc-d{font-size:11.5px;color:var(--text-sec);margin-top:4px;line-height:1.55;}
 .mood-cover .mc-badge{position:absolute;right:12px;top:12px;background:var(--pill-glass);border-radius:10px;padding:4px 9px;font-size:10.5px;font-weight:600;color:var(--text);z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.15);}
@@ -1238,7 +1229,6 @@ setTimeout(function(){
     <div class="td-hero" id="td-hero">
       <button class="td-back" onclick="showPage('trips')">‹</button>
       <div class="td-actions">
-        <button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作">👥</button>
         <button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>
         <button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>
         <button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>
@@ -1253,7 +1243,6 @@ setTimeout(function(){
       <div class="tds" id="td-date-range">—</div>
       <button class="btn btn-ghost btn-sm" id="td-addloc-btn" onclick="addLocationToCurrentDay()">＋ 添加地点</button>
     </div>
-    <div id="td-readonly-badge" style="display:none;margin:0 18px 10px;padding:8px 12px;background:var(--info-bg);color:var(--info-fg);border:1px dashed var(--info);border-radius:10px;font-size:12px;align-items:center;gap:6px;"></div>
     <div class="td-day-pills" id="td-day-pills"></div>
     <div class="td-weather">
       <div class="left"><span id="td-weather-label">☀️ 加载中...</span></div>
@@ -2133,22 +2122,17 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v123';
+var APP_VERSION='v124';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
 var calFilterType='all';
 var currentTripId=null;
-// v109: GUEST read-only mode, entered via ?readonly=<token>. A guest is
-// read-only on EVERY trip, which lets us reuse the whole v106 viewer UI-hiding
-// path (isReadOnly(trip)) instead of writing a second set of rules.
+// v109: GUEST read-only mode was removed in v124 (Leon no longer wants it).
+// The /?readonly=<token> entry point is now a silent no-op.
 var GUEST_MODE=false;
 function isGuest(){return GUEST_MODE;}
-function guestBlocked(op){
-  if(!GUEST_MODE)return false;
-  showToast('👁 只读访客模式 · '+(op||'该操作')+'不可用');
-  return true;
-}
+function guestBlocked(op){return false;}
 var currentEditingTripId=null;
 var currentTripDay=0;
 var currentEditingLocationIdx=-1; // -1 = adding new location, >=0 = editing existing location
@@ -2441,9 +2425,7 @@ function repairTrips(){
   });
 }
 function saveDataLocal(){
-  // v109: TOTAL WRITE GATE. saveData() is exactly saveDataLocal() + syncPush(),
-  // so blocking here means no mutation can ever be persisted by a guest.
-  if(GUEST_MODE)return;
+  // v124: GUEST_MODE write gate removed — viewer / guest mode no longer exists.
   try{
     var now=new Date().toISOString();
     data.updatedAt=now;
@@ -2512,17 +2494,14 @@ function ghUserId(){
   return id;
 }
 
-// v106: collaborator role helpers. Legacy `collaborators: ['uid1','uid2']` is
-// auto-migrated to `[{uid, role, addedAt, addedBy}]`. Two roles today:
-//   'editor' — full read/write on the trip (the legacy default)
-//   'viewer' — read-only on the trip; can still sync joys/notifs/peerNames
-//   'owner'  — same as editor today, but lets us promote later without code
-// Roles are stored ON the trip so every collaborator sees the same view.
+// v124: viewer role was removed. All collaborators on a trip are now equal
+// editors — `t.collaborators` keeps the legacy shape [{uid, role, addedAt,
+// addedBy}] for data compatibility but `role` is ignored everywhere.
 function migrateCollab(t){
   if(!t)return;
   if(!t.collaborators)return;
   if(!t.collaborators.length)return;
-  // String array → object array
+  // String array → object array (legacy migration)
   if(typeof t.collaborators[0]==='string'){
     t.collaborators=t.collaborators.map(function(uid){
       return {uid:uid,role:'editor',addedAt:0,addedBy:''};
@@ -2540,29 +2519,11 @@ function migrateCollab(t){
 function migrateAllCollaborators(){
   (data.trips||[]).forEach(migrateCollab);
 }
-function myRole(trip){
-  if(!trip)return null;
-  if(!trip.collaborators||!trip.collaborators.length)return null;
-  var me=ghUserId();
-  for(var i=0;i<trip.collaborators.length;i++){
-    var c=trip.collaborators[i];
-    if(c&&c.uid===me)return c.role||'editor';
-  }
-  return null;
-}
-function isReadOnly(trip){
-  // v109: guest mode = read-only everywhere; reuses all v106 viewer UI hiding.
-  if(GUEST_MODE)return true;
-  if(!trip)return false;
-  var r=myRole(trip);
-  return r==='viewer';
-}
-function blockIfReadOnly(tripId,op){
-  var t=(data.trips||[]).find(function(x){return x.id===tripId;});
-  if(!t||!isReadOnly(t))return false;
-  showToast((op||'该操作')+'已被锁定：当前为「只读查看者」模式 ✨');
-  return true;
-}
+// v124: everyone is an editor now. myRole/isReadOnly/blockIfReadOnly are kept
+// as thin shims so the build doesn't have to chase every call site.
+function myRole(trip){return trip?'editor':null;}
+function isReadOnly(trip){return false;}
+function blockIfReadOnly(tripId,op){return false;}
 function ghToken(){return localStorage.getItem('lattiao_gh_token')||'';}
 function ghSetToken(t){localStorage.setItem('lattiao_gh_token',t||'');}
 
@@ -3222,8 +3183,7 @@ function syncPull(force){
 }
 
 function syncPush(){
-  // v109: a guest must never push to the cloud (belt-and-braces with gate #1).
-  if(GUEST_MODE)return;
+  // v124: GUEST_MODE push gate removed — viewer / guest mode no longer exists.
   if(!ghHasToken())return;
   if(GH.writeTimer)clearTimeout(GH.writeTimer);
   // v99: 本地改动进入待同步队列（离线队列可视化）
@@ -3376,10 +3336,8 @@ function buildTextPayload(photoChunks){
   // v103: per-device display names so collaborators see each other's real names
   remoteData.peerNames=data.peerNames||{};
   data.trips.forEach(function(t){
-    // v106: a viewer must not push trip/location/budget changes upstream —
-    // the trip is owned by someone else and the viewer's job is to RECEIVE
-    // updates. Personal data (joys/notifs/peerNames) still syncs as before.
-    if(isReadOnly(t))return;
+    // v124: viewer role removed — every collaborator is a full editor now,
+    // so all trips ship in the payload.
     var c=JSON.parse(JSON.stringify(t));
     c._photoCount=(c.photos||[]).length;
     // v71: covers are stripped too (they're large base64 images) — trips.json
@@ -3398,27 +3356,24 @@ function buildTextPayload(photoChunks){
   // v80: sync the *visible* settings (title, slogan, city, background) so
   // collaborators see the same look. `name` stays per-device (it's identity).
   remoteData.settings={
-    heroTitle:data.settings.heroTitle||'',
-    slogan:data.settings.slogan||'',
-    city:data.settings.city||'',
-    heroBg:data.settings.heroBg||'',
-    fxRate:data.settings.fxRate||1,
-    fontScale:data.settings.fontScale||'1',
+    // v124: heroTitle/slogan/city/heroBg/fxRate/fontScale 都是「本机偏好」，
+    // 不入云（v80 旧逻辑：6 字段直接覆盖，会让协作端互相冲掉编辑——
+    // 典型场景：Leon 改了 heroTitle → Iris 端 push 时用自己的默认值覆盖云端 →
+    // Leon 30s 后 pull 看到 Iris 的默认值，「改了等会儿还是变回来」）。
     updatedAt:now
   };
   return remoteData;
 }
-// v80: merge display settings from remote — remote wins on conflict
-// (collaborator's choice wins for the shared look)
+// v80: merge display settings from remote. v124: settings no longer carries
+// heroTitle/slogan/city/heroBg/fxRate/fontScale (those are per-device), so
+// the only thing that survives the round-trip now is updatedAt. This stops
+// collaborators from overwriting each other's homepage look with their own
+// defaults.
 function mergeSettings(remoteSettings){
   if(!remoteSettings||typeof remoteSettings!=='object')return;
   data.settings=data.settings||{};
-  ['heroTitle','slogan','city','heroBg','fxRate','fontScale'].forEach(function(k){
-    if(remoteSettings[k]!==''&&remoteSettings[k]!==null&&typeof remoteSettings[k]!=='undefined'){
-      data.settings[k]=remoteSettings[k];
-    }
-  });
-  // v77: heroBg must be either a preset key or a data: URL
+  // v124: no per-field merge — those keys are excluded from push entirely.
+  // Keep heroBg sanitization in case older cloud payloads still carry it.
   if(data.settings.heroBg&&data.settings.heroBg.indexOf('data:')!==0){
     var isPreset=['bg-mint','bg-ocean','bg-minimal','bg-journal','bg-night','bg-cherry'].indexOf(data.settings.heroBg)>=0;
     if(!isPreset)delete data.settings.heroBg;
@@ -3826,6 +3781,10 @@ function uploadPhotoChunk(chunk,retries){
     if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
     // v99: 照片同步进度
     if(typeof photoSyncTick==='function')photoSyncTick(true);
+    // v124: 持久化 photoChunkFp 到 localStorage。原先只存内存，刷新后清零，
+    // photoChunkAllUploaded 总返回 false，导致「0/82 张待同步」重启后永远是 0。
+    // fp2 本身已是 JSON.stringify 指纹字符串，不会变化；只需 path→fp2 映射。
+    try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
   }
   var cached=GH.photoChunkSha?GH.photoChunkSha[chunk.path]:null;
   if(cached){
@@ -6034,19 +5993,12 @@ function openTrip(id){
   }
 }
 function renderOpenTripChrome(t){
-  var ro=isReadOnly(t);
-  // v106: viewers see only 👁 only-read + ↗ share + ↻ resync; editing/export
-  // controls vanish so the role is unmistakable.
-  var actions=ro
-    ? '<span class="btn-icon" style="background:var(--info-bg);color:var(--info-fg);" title="只读查看者">👁</span>'+
-      '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
-      '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>'
-    : '<button class="btn-icon" onclick="inviteCollaborator()" title="邀请协作（默认只读）">👥</button>'+
-      '<button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>'+
-      '<button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>'+
-      '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
-      '<button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>'+
-      '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>';
+  // v124: viewer role removed. Everyone sees the full toolbar — edit/share/export.
+  var actions='<button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>'+
+    '<button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>'+
+    '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
+    '<button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>'+
+    '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>';
   if(t.cover){
     document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
   }else{
@@ -6057,27 +6009,18 @@ function renderOpenTripChrome(t){
   var rng=t.startDate?fmtDate(t.startDate):'—';
   if(t.endDate&&t.endDate!==t.startDate)rng+=' ~ '+fmtDate(t.endDate);
   document.getElementById('td-date-range').innerHTML=rng+'<small>'+(t.days&&t.days.length?' · '+t.days.length+' 天':'')+'</small>';
-  // v106: hide per-location edit affordances so the read-only role is
-  // consistent across the whole trip detail (chrome + body + cards).
+  // v124: every collaborator is an editor now, so the add-location button is always visible.
   var addBtn=document.getElementById('td-addloc-btn');
-  if(addBtn)addBtn.style.display=ro?'none':'inline-flex';
+  if(addBtn)addBtn.style.display='inline-flex';
   var tb=document.getElementById('td-toolbar-actions');
-  if(tb)tb.style.display=ro?'none':'flex';
-  renderTripReadOnlyBadge(t);
+  if(tb)tb.style.display='flex';
+  // v124: read-only badge removed (viewer role gone).
+  var roBadge=document.getElementById('td-readonly-badge');
+  if(roBadge){roBadge.style.display='none';roBadge.innerHTML='';}
 }
-// v106: small badge under the date range so the role is also visible inline
-// (not just from the icon at the top).
-function renderTripReadOnlyBadge(t){
-  var el=document.getElementById('td-readonly-badge');
-  if(!el)return;
-  if(!isReadOnly(t)){el.style.display='none';el.innerHTML='';return;}
-  // Find the inviter = first non-self editor/owner collaborator
-  var me=ghUserId();
-  var inviter=(t.collaborators||[]).find(function(c){return c&&c.uid!==me&&(c.role==='editor'||c.role==='owner');});
-  var inviterName=inviter?(data.peerNames&&data.peerNames[inviter.uid])||'编辑者':'编辑者';
-  el.style.display='inline-flex';
-  el.innerHTML='👁 只读查看者 · 由 <b style="color:var(--text);margin:0 3px;">'+escapeHTML(inviterName)+'</b> 邀请 · 你看到的内容会随他们更新';
-}
+// v124: viewer role removed. renderTripReadOnlyBadge becomes a no-op kept
+// only so external callers (none) don't break. Safe to delete later.
+function renderTripReadOnlyBadge(t){}
 var viewTrip=openTrip;
 function renderDayPills(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -6278,6 +6221,16 @@ function deleteLocation(idx){
   }
   t.updatedAt=new Date().toISOString();
   saveDataLocal();renderTimeline();renderDayPills();
+  // v124: 通知中心记一条「谁删了什么」
+  try{
+    var actor=peerNameOf(ghUserId());
+    var dayIdx=(function(){for(var i=0;i<t.days.length;i++){if(t.days[i]&&t.days[i].date===day.date)return i+1;}return currentTripDay+1;})();
+    var hourBucket=Math.floor(Date.now()/3600000);
+    var dedupKey='loc|'+t.id+'|'+(removed&&removed.id||'')+'|del|'+hourBucket;
+    var arr=notifLoad().filter(function(n){return n.key!==dedupKey;});
+    notifSave(arr);
+    pushNotif('edit',actor+' 删除了「'+(t.title||t.destination||'未命名行程')+'」D'+dayIdx+' 的「'+(removed&&removed.name||'地点')+'」','',dedupKey,actor);
+  }catch(e){console.warn('deleteLocation notif err',e);}
   if(typeof window.syncPushNow==='function')window.syncPushNow();
   else if(typeof window.syncPush==='function')window.syncPush();
   showToast('已删除');
@@ -6341,55 +6294,23 @@ function editLocation(idx){
   // in read-only mode — inputs become disabled, save button is hidden.
   applyLocationModalReadOnly(isReadOnly(t));
 }
-// v109: guest chrome — hide creation FABs, the settings gear and the private
-// 小确幸 surfaces, then pin a read-only banner to the top of every page.
-function applyGuestUI(){
-  if(!GUEST_MODE)return;
-  try{
-    // Hide every "create" FAB (行程 / 攻略 / 收藏)
-    document.querySelectorAll('.fab').forEach(function(b){b.style.display='none';});
-    // Hide the settings gear — a guest has no business changing our settings.
-    var gear=document.querySelector('.corner-btn[onclick="openSettings()"]');
-    if(gear)gear.style.display='none';
-    // Private: 小确幸 (home card + profile timeline) stay ours.
-    var joyHost=document.getElementById('joy-card-host');
-    if(joyHost)joyHost.style.display='none';
-    var jt=document.getElementById('pro-joy-timeline');
-    if(jt)jt.style.display='none';
-    var banner=document.getElementById('guest-banner');
-    if(banner)banner.style.display='block';
-    document.body.classList.add('guest-mode');
-  }catch(e){}
-}
+// v124: applyGuestUI() removed — viewer / guest mode no longer exists.
+// Anyone landing on the app is the owner with full edit access.
 
 function applyLocationModalReadOnly(ro){
+  // v124: viewer role removed — modal is always editable. Kept as a no-op so
+  // the caller site still compiles.
   var modal=document.getElementById('location-modal');if(!modal)return;
-  var saveBtn=document.getElementById('lm-save-btn');
-  var cancelBtn=modal.querySelector('.modal-actions .btn-ghost');
   var titleEl=document.getElementById('location-modal-title');
-  // v106: the modal is shared between edit and view, so the title must follow
-  // the role or viewers think they can edit.
-  if(titleEl)titleEl.textContent=ro?'查看地点 · 只读':'编辑地点';
-  // v106: a class on the modal lets CSS dim the inputs visually so viewers
-  // immediately see "you cannot edit this" instead of tapping a normal-looking
-  // input and being confused when nothing happens.
-  if(ro)modal.classList.add('ro-mode');else modal.classList.remove('ro-mode');
-  // Disable every input/textarea/select inside the modal
+  if(titleEl)titleEl.textContent='编辑地点';
+  modal.classList.remove('ro-mode');
   modal.querySelectorAll('input,textarea,select').forEach(function(el){
-    if(ro){el.setAttribute('readonly','readonly');el.setAttribute('disabled','disabled');}
-    else{el.removeAttribute('readonly');el.removeAttribute('disabled');}
+    el.removeAttribute('readonly');el.removeAttribute('disabled');
   });
-  // Hide the photo upload + budget add buttons by their inline onclick attrs
-  modal.querySelectorAll('button').forEach(function(b){
-    var oc=b.getAttribute('onclick')||'';
-    if(ro&&/handleLocationPhotoUpload|addLocationBudgetItem|deleteLocationModalPhoto|deleteLocationModalBudgetItem|saveLocation/.test(oc)){
-      b.style.display='none';
-    }else if(!ro){
-      b.style.display='';
-    }
-  });
-  if(saveBtn)saveBtn.style.display=ro?'none':'';
-  if(cancelBtn)cancelBtn.textContent=ro?'关闭':'取消';
+  modal.querySelectorAll('button').forEach(function(b){b.style.display='';});
+  var saveBtn=document.getElementById('lm-save-btn');if(saveBtn)saveBtn.style.display='';
+  var cancelBtn=modal.querySelector('.modal-actions .btn-ghost');
+  if(cancelBtn)cancelBtn.textContent='取消';
 }
 // v106: viewer-mode entry into the location modal — same modal, read-only.
 function viewLocation(idx){editLocation(idx);}
@@ -6520,6 +6441,22 @@ function saveLocation(){
   renderCal();
   renderBudget();
   showToast(isEdit?'已保存地点':'已添加地点');
+  // v124: 通知中心记一条「谁改了什么」。actor 用 peerName（data.peerNames 注册名
+  // 或自己的 settings.name），key 含小时桶，1 小时内的重复编辑被去重避免噪音。
+  try{
+    var actor=peerNameOf(ghUserId());
+    var dayIdx=currentTripDay+1;
+    var tripTitle=t.title||t.destination||'未命名行程';
+    var hourBucket=Math.floor(Date.now()/3600000);
+    var op=isEdit?'edit':'add';
+    var dedupKey='loc|'+t.id+'|'+loc.id+'|'+op+'|'+hourBucket;
+    // 先清同 key 旧 notif，保证每次编辑都有一条新通知。
+    var arr=notifLoad().filter(function(n){return n.key!==dedupKey;});
+    notifSave(arr);
+    var title=isEdit?(actor+' 修改了「'+tripTitle+'」D'+dayIdx+' 的「'+loc.name+'」')
+      :(actor+' 新增了「'+tripTitle+'」D'+dayIdx+' 行程「'+loc.name+'」');
+    pushNotif('edit',title,'',dedupKey,actor);
+  }catch(e){console.warn('saveLocation notif err',e);}
   // CRITICAL: push immediately, do NOT debounce. If the user quits the app
   // within seconds of adding a location, the 3s debounce would silently drop
   // the change on devices that read from cloud first.
@@ -6700,6 +6637,7 @@ function deleteCurrentTrip(){
   if(!currentTripId)return;
   if(!confirm('确定删除此行程？'))return;
   var delId=currentTripId;
+  var deletedTrip=data.trips.find(function(t){return t.id===delId;});
   data.trips=data.trips.filter(function(t){return t.id!==delId;});
   // Tombstone: prevent this trip from being re-pulled until the deletion is pushed
   if(!data.tombstones)data.tombstones={};
@@ -6712,6 +6650,15 @@ function deleteCurrentTrip(){
   if(budgetFilterTripId===delId)budgetFilterTripId='all';
   saveDataLocal();
   renderBudget();
+  // v124: 通知中心记一条「谁删了哪个行程」
+  try{
+    var actor=peerNameOf(ghUserId());
+    var hourBucket=Math.floor(Date.now()/3600000);
+    var dedupKey='trip|'+delId+'|del|'+hourBucket;
+    var arr=notifLoad().filter(function(n){return n.key!==dedupKey;});
+    notifSave(arr);
+    pushNotif('edit',actor+' 删除了行程「'+(deletedTrip&&(deletedTrip.title||deletedTrip.destination)||'未命名')+'」','',dedupKey,actor);
+  }catch(e){console.warn('deleteCurrentTrip notif err',e);}
   // Force an immediate push (skip 3s debounce) so the next syncPull won't bring the trip back
   if(typeof syncPushNow==='function')syncPushNow();
   else syncPush();
@@ -6942,13 +6889,12 @@ function inviteCollaborator(){
   var me=ghUserId();
   if(!t.collaborators.find(function(c){return c&&c.uid===me;}))t.collaborators.push({uid:me,role:'owner',addedAt:Date.now(),addedBy:''});
   saveData();
-  // v106: invite link now carries role=viewer by default so friends land as
-  // viewers. (We may add an "edit access" toggle in the future.)
-  var link=location.origin+location.pathname+'?join='+t.id+'&role=viewer';
-  var msg='邀请你一起看旅行「'+t.title+'」\n（默认「只读」模式：你能看到我所有的更新，但暂时不能编辑 ✨）\n\n打开链接加入：\n'+link;
-  if(navigator.share){navigator.share({title:'邀请查看旅行',text:msg,url:link}).catch(function(){});}
-  else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('只读邀请链接已复制，发给朋友吧');});}
-  else{prompt('复制只读邀请链接：',link);}
+  // v124: viewer role removed — invite link now grants full editor access.
+  var link=location.origin+location.pathname+'?join='+t.id;
+  var msg='邀请你一起编辑旅行「'+t.title+'」\n打开链接加入：\n'+link;
+  if(navigator.share){navigator.share({title:'邀请编辑旅行',text:msg,url:link}).catch(function(){});}
+  else if(navigator.clipboard){navigator.clipboard.writeText(link).then(function(){showToast('邀请链接已复制，发给朋友吧');});}
+  else{prompt('复制邀请链接：',link);}
 }
 function initShareView(shareId){
   var overlay=document.createElement('div');
@@ -6994,11 +6940,11 @@ function joinWithToken(tripId){
   var tok=document.getElementById('join-token-input')?document.getElementById('join-token-input').value.trim():'';
   if(tok)ghSetToken(tok);
   if(!ghHasToken()){showToast('请输入 Token');return;}
-  // v106: honour the role carried in the invite link. Default to 'viewer'
-  // because the owner only ships viewer links today.
+  // v124: every joiner is an editor now. `?role=` is honoured for legacy
+  // invite links but editor/owner-only; no more viewer landing.
   var qs=new URLSearchParams(location.search);
   var role=qs.get('role');
-  if(role!=='editor'&&role!=='owner')role='viewer';
+  if(role!=='editor'&&role!=='owner')role='editor';
   showToast('正在同步...');
   syncPull().then(function(){
     var t=data.trips.find(function(x){return x.id===tripId;});
@@ -7008,7 +6954,7 @@ function joinWithToken(tripId){
     if(!t.collaborators.find(function(c){return c&&c.uid===me;})){
       t.collaborators.push({uid:me,role:role,addedAt:Date.now(),addedBy:qs.get('invitedBy')||''});
       saveData();
-      showToast('已加入「'+(role==='viewer'?'只读查看者':'编辑者')+'」模式 ✨');
+      showToast('已加入协作，可以一起编辑啦 ✨');
     }else{
       showToast('你已经是协作者啦');
     }
@@ -7488,8 +7434,7 @@ function renderProMenu(){
   var html='';
   FEATURE_GROUPS.forEach(function(g){
     var items=byGroup[g[0]];if(!items||!items.length)return;
-    // v109: no import/export for guests — the data stays on our side.
-    if(isGuest()&&g[0]==='导入导出')return;
+    // v124: viewer / guest mode removed — import/export is always available.
     html+='<div class="menu-group">'+
       '<div class="mg-title">'+g[1]+'</div>'+
       '<div class="menu-card">';
@@ -7649,16 +7594,10 @@ function renderProfile(){
     }
   }catch(e){}
   // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
-  // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
+  // v124: viewer / guest mode removed — joy timeline always renders normally.
   try{
     var jtEl=document.getElementById('pro-joy-timeline');
     if(jtEl){
-      // v110: GUEST 模式下小确幸时间线永不显示 —— 这是 Iris 明确划入
-      // "私人内容" 的部分。v109 漏修这块：renderProfile() 里 v103 那段会在
-      // joys.length>0 时强制 display='block'，把 applyGuestUI 设的 none 覆盖，
-      // 导致访客切到「我的」页时私密小确幸泄露。
-      if(isGuest()){jtEl.style.display='none';jtEl.innerHTML='';}
-      else{
       var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
       if(!joys.length){jtEl.style.display='none';}
       else{
@@ -7673,7 +7612,6 @@ function renderProfile(){
               '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
           }).join('')+
           (joys.length>30?'<div style="font-size:11px;color:var(--text-light);text-align:center;padding-top:6px;">还有 '+(joys.length-30)+' 条…</div>':'');
-      }
       }
     }
   }catch(e){}
@@ -8766,7 +8704,7 @@ function migrateNotifs(){
   }catch(e){}
 }
 // 同一 key 12 小时内只提醒一次，避免轮询把通知刷爆
-function pushNotif(type,title,detail,key){
+function pushNotif(type,title,detail,key,actor){
   try{
     var a=notifLoad();
     var k=key||(type+'|'+title);
@@ -8774,11 +8712,22 @@ function pushNotif(type,title,detail,key){
     for(var i=0;i<a.length;i++){
       if(a[i].key===k&&(now-(a[i].ts||0))<12*3600*1000)return false;
     }
-    a.unshift({id:'n'+now+Math.random().toString(36).slice(2,6),type:type,title:title,detail:detail||'',ts:now,read:false,key:k});
+    // v124: 每条 notif 记录「谁做的」（peerName），渲染时已在 title 里拼好，
+    // 这里也存一份 actor 字段方便后续按人筛选 / 显示头像。
+    a.unshift({id:'n'+now+Math.random().toString(36).slice(2,6),type:type,title:title,detail:detail||'',ts:now,read:false,key:k,actor:actor||peerNameOf(ghUserId())});
     notifSave(a);
     updateNotifBadge();
     return true;
   }catch(e){return false;}
+}
+// v124: 解析一个 uid 的显示名。优先 data.peerNames 注册的协作名，
+// 其次 data.settings.name（自己的偏好），最后兜底「我」/「伙伴」。
+function peerNameOf(uid){
+  try{
+    if(data.peerNames&&data.peerNames[uid]&&data.peerNames[uid].trim())return data.peerNames[uid];
+    if(uid===ghUserId()&&data.settings&&data.settings.name)return data.settings.name;
+  }catch(e){}
+  return uid===ghUserId()?'我':'伙伴';
 }
 function notifUnread(){
   return notifLoad().filter(function(n){return !n.read;}).length;
@@ -9888,13 +9837,7 @@ function renderMoodCover(){
   var host=document.getElementById('mood-cover');
   if(!host)return;
   var c=moodCopy();
-  // v109: the mood lines are private notes Iris writes to herself — guests get
-  // a neutral greeting instead, but keep the artwork (it's the pretty part).
-  if(isGuest()){
-    c.title='欢迎来看我们的旅行 ✨';
-    c.desc='这里记录了我们走过的城市、看过的风景。随便逛逛吧 👀';
-    c.badge='👁 只读访客';
-  }
+  // v124: viewer / guest mode removed — private mood lines are now always shown.
   host.innerHTML='<div class="mood-cover">'+moodArt(c.scene)+
     '<div class="mc-badge">'+escapeHTML(c.badge)+'</div>'+
     '<div class="mc-body"><div class="mc-t">'+escapeHTML(c.title)+'</div>'+
@@ -10743,6 +10686,8 @@ function init(){
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   ensurePeerName();   // v103: register this device's display name for collaborators
   migrateAllCollaborators(); // v106: string[] collaborators → object[] with role
+  // v124: 恢复已上传的照片分片指纹。原先只在内存，刷新后清零 → done 永远是 0
+  try{GH.photoChunkFp=JSON.parse(localStorage.getItem('lattiao_photoChunkFp')||'{}')||{};}catch(e){GH.photoChunkFp={};}
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
@@ -10790,21 +10735,8 @@ function init(){
   setTimeout(function(){maybeEnableDepartureReminders();},4000);
   setInterval(function(){checkDepartureReminders(true);},6*3600000);
   var params=new URLSearchParams(location.search);
-  // v109: guest read-only entry. Token rides in the URL we hand out and is
-  // never written into the public Pages source. A localStorage flag persists
-  // the mode so stripping the query string cannot unlock editing.
-  var roTok=params.get('readonly');
-  if(roTok){
-    GUEST_MODE=true;
-    ghSetToken(roTok);
-    try{localStorage.setItem('lattiao_guest','1');}catch(e){}
-  }else if(localStorage.getItem('lattiao_guest')==='1'){
-    GUEST_MODE=true;
-  }
-  // v109: applyGuestUI() MUST run after GUEST_MODE is decided above — calling it
-  // earlier (it was next to maybeCloudBackup(), ~43 lines above) meant it ran
-  // while GUEST_MODE was still false and silently did nothing.
-  if(GUEST_MODE)applyGuestUI();
+  // v124: ?readonly=<token> guest entry was removed. Anyone landing on the
+  // app is the owner — the readonly flow no longer exists.
   var shareId=params.get('share');
   var joinId=params.get('join');
   var sc=params.get('shortcut');
