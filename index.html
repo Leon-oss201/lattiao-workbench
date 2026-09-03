@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v126';
+var APP_VERSION='v127';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2162,6 +2162,7 @@ function loadData(){
         data.settings=snap.settings||data.settings;
         data.tombstones=snap.tombstones||data.tombstones||{};
         data.locTombstones=snap.locTombstones||data.locTombstones||{};
+        data.budgetTombstones=snap.budgetTombstones||data.budgetTombstones||{};
         data.guides=snap.guides||data.guides||[];
         data.favorites=snap.favorites||data.favorites||[];
         try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}
@@ -2172,6 +2173,7 @@ function loadData(){
     if(!data.settings) data.settings={};
     if(!data.tombstones) data.tombstones={};
     if(!data.locTombstones) data.locTombstones={};
+    if(!data.budgetTombstones) data.budgetTombstones={};
     if(typeof data.settings.heroTitle==='undefined') data.settings.heroTitle='杭州旅行计划';
     // MergeTrips keys on trip id. If two devices independently created a trip with the
     // same title+destination+startDate the ids won't match — we'd keep two trips, one
@@ -2347,11 +2349,12 @@ function mergeTripDuplicates(keep,t){
   if(!keep.budget||typeof keep.budget!=='object')keep.budget={total:0,items:[]};
   if(!Array.isArray(keep.budget.items))keep.budget.items=[];
   if(tt>kt)keep.budget.total=tt;
-  // Union budget items by time
+  // v127: 记账条目按稳定 id 并集（老数据无 id 时回退到 cat|note|amt|time）
   var imap={};
-  (keep.budget.items||[]).forEach(function(it){if(it&&it.time)imap[it.time]=it;});
-  ((t.budget&&t.budget.items)||[]).forEach(function(it){if(it&&it.time&&!imap[it.time])imap[it.time]=it;});
-  keep.budget.items=Object.keys(imap).sort(function(a,b){return a.time-b.time;}).map(function(k){return imap[k];});
+  function bkey(it){return it&&it.id?('b:'+it.id):('x:'+[it?it.cat:'',it?it.note:'',it?it.amt:0,it?it.time||0:0].join('|'));}
+  (keep.budget.items||[]).forEach(function(it){if(it)imap[bkey(it)]=it;});
+  ((t.budget&&t.budget.items)||[]).forEach(function(it){if(it&&!imap[bkey(it)])imap[bkey(it)]=it;});
+  keep.budget.items=Object.keys(imap).map(function(k){return imap[k];}).sort(function(a,b){return (a.time||0)-(b.time||0);});
   return keep;
 }
 function manualDedupeTrips(){var before=data.trips.length;dedupeTrips();var after=data.trips.length;renderAll();showToast(before>after?("已合并 "+(before-after)+" 个重复行程"):"没有发现重复");if(before!==after){saveData();}if(typeof scheduleAggressiveRetry==='function')scheduleAggressiveRetry();}
@@ -2411,6 +2414,8 @@ function repairTrips(){
     t.feeling=t.feeling||'';
     if(!t.budget||typeof t.budget!=='object')t.budget={total:0,items:[]};
     if(!Array.isArray(t.budget.items))t.budget.items=[];
+    // v127: 给记账条目补稳定 id（老数据可能没有），让按 id 合并 + 墓碑删除可用
+    (t.budget.items||[]).forEach(function(it){ if(it&&typeof it==='object'&&!it.id)it.id=uid(); });
     // Ensure days align with start/end dates
     ensureTripDays(t);
     // Place any orphaned locations into the first day so user data isn't silently dropped
@@ -2592,23 +2597,22 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
     var lc=Math.max(out._photoCount||0,(out.photos||[]).length);
     out._photoCount=Math.max(lc,remoteLoc._photoCount);
   }
-  // v122: 记账预算合并（union）。
-  // `out` 是从 local 深拷贝出来的，而上面只按字段合并了 name/guide/feeling ——
-  // 于是 `out.budget` 恒等于本地值，**对端的记账被整个丢弃**。实测后果：
-  //   · 单向就丢：A 记一笔 → B 拉到 0 条
-  //   · 双向不收敛：A、B 各记一笔 → 两边各留各的，永远对不上账
-  // 按 cat|note|amt|time 去重后取并集（按 time 排序），local 优先保留。
-  // 已知局限：union 语义会让「A 删掉的条目」在 B 推送后复活 —— 记账没有墓碑机制。
-  // 相比「整个丢弃对端」，union 至少保证账目不丢；删除场景留待后续加墓碑解决。
+  // v127: 记账预算按 id 合并 + 墓碑删除（取代旧的 cat|note|amt|time 去重 union）。
+  // 旧逻辑两个致命缺陷：①删除会复活（A 删 → B 云端仍含 → 拉回又加回）；
+  // ②改了会丢（A、B 各改同一条不同字段 → 本地优先丢弃对端改动）。
+  // 修法：给每条账目稳定 id（repairTrips 已给老数据补 id）+ 按 id union（同 id 本地优先）
+  // + 凡 id 命中 data.budgetTombstones 的条目直接丢弃。墓碑随云端传播（见 syncPull/pushMergeCloud）。
   var lItems=((out.budget&&out.budget.items)||[]);
   var rItems=((remoteLoc.budget&&remoteLoc.budget.items)||[]);
   if(lItems.length||rItems.length){
     var bseen={}, bmerged=[];
+    function bkey(it){return it&&it.id?('b:'+it.id):('x:'+[it?it.cat:'',it?it.note:'',it?it.amt:0,it?it.time||0:0].join('|'));}
     lItems.concat(rItems).forEach(function(it){
       if(!it)return;
-      var bk=[it.cat||'', it.note||'', it.amt||0, it.time||0].join('|');
-      if(bseen[bk])return;
-      bseen[bk]=1;
+      var k=bkey(it);
+      if(bseen[k])return; // 同 id：本地优先，跳过对端副本
+      if(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id])return; // 命中墓碑：丢弃
+      bseen[k]=1;
       bmerged.push(it);
     });
     bmerged.sort(function(a,b){ return (a.time||0)-(b.time||0); });
@@ -2891,6 +2895,22 @@ function applyLocTombstonesToTrips(trips,lt){
     if(removedAny)t.updatedAt=new Date().toISOString();
   });
 }
+// v127: 记账条目墓碑（budgetTombstones）—— 与 locTombstones 对称。凡 id 命中墓碑的
+// 记账条目直接丢弃，避免「A 删 → 云端仍含 → B 拉回又出现」的复活。
+function applyBudgetTombstonesToTrips(trips){
+  if(!data.budgetTombstones)return;
+  trips.forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        if(l&&l.budget&&Array.isArray(l.budget.items)&&l.budget.items.length){
+          var before=l.budget.items.length;
+          l.budget.items=l.budget.items.filter(function(it){return !(it&&it.id&&data.budgetTombstones[it.id]);});
+          if(l.budget.items.length!==before)l.budget.total=l.budget.items.reduce(function(s,x){return s+(x.amt||0);},0);
+        }
+      });
+    });
+  });
+}
 function mergeTrips(localTrips,remoteTrips){
   if(!remoteTrips)return localTrips;
   var byId={};
@@ -3083,8 +3103,20 @@ function syncPull(force){
           }
         });
       }
+      // v127: 吸收对端记账墓碑（删除跨设备传播）
+      if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object'){
+        if(!data.budgetTombstones)data.budgetTombstones={};
+        Object.keys(remote.budgetTombstones).forEach(function(bid){
+          if(!data.budgetTombstones[bid]||tsOf(remote.budgetTombstones[bid])>tsOf(data.budgetTombstones[bid])){
+            data.budgetTombstones[bid]=remote.budgetTombstones[bid];
+          }
+        });
+      }
       if(data.locTombstones){
         applyLocTombstonesToTrips(data.trips,data.locTombstones);
+      }
+      if(data.budgetTombstones){
+        applyBudgetTombstonesToTrips(data.trips);
       }
       // v103 item 3: snapshot local state BEFORE merge so we can tell the user
       // (by name) what a collaborator just changed after the pull.
@@ -3329,7 +3361,7 @@ function buildTextPayload(photoChunks){
     if(!chunkCountByLoc[locId]||idx+1>chunkCountByLoc[locId])chunkCountByLoc[locId]=idx+1;
   });
   var now=new Date().toISOString();
-  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{}};
+  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{}};
   // v102: joys/notifications are top-level data so they sync across devices
   remoteData.joys=data.joys||[];
   remoteData.notifs=(data.notifs||[]).slice(0,80);
@@ -3848,8 +3880,10 @@ function syncStateFingerprint(remoteData){
   // can never "vanish into the void" on a device that didn't have the loc.
   var tombstones=(remoteData&&remoteData.tombstones)||data.tombstones||{};
   var locTombstones=(remoteData&&remoteData.locTombstones)||data.locTombstones||{};
+  var bt=data.budgetTombstones||{};
   var tombFp=Object.keys(tombstones).map(function(k){return 't:'+k+'@'+tombstones[k];}).join('|')+'##'+
-              Object.keys(locTombstones).map(function(k){return 'lt:'+k+'@'+locTombstones[k];}).join('|');
+              Object.keys(locTombstones).map(function(k){return 'lt:'+k+'@'+locTombstones[k];}).join('|')+'##'+
+              Object.keys(bt).map(function(k){return 'bt:'+k+'@'+bt[k];}).join('|');
   return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp;
 }
 function syncPushNow(){
@@ -3928,6 +3962,14 @@ function pushMergeCloud(){
         if(!data.locTombstones[lid]||tsOf(remote.locTombstones[lid])>tsOf(data.locTombstones[lid]))data.locTombstones[lid]=remote.locTombstones[lid];
       });
       applyLocTombstonesToTrips(data.trips,data.locTombstones);
+    }
+    // v127: 吸收对端记账墓碑并就地剔除，避免删除复活
+    if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object'){
+      if(!data.budgetTombstones)data.budgetTombstones={};
+      Object.keys(remote.budgetTombstones).forEach(function(bid){
+        if(!data.budgetTombstones[bid]||tsOf(remote.budgetTombstones[bid])>tsOf(data.budgetTombstones[bid]))data.budgetTombstones[bid]=remote.budgetTombstones[bid];
+      });
+      applyBudgetTombstonesToTrips(data.trips);
     }
     var before=tripsFingerprint(data.trips);
     data.trips=mergeTrips(data.trips,remote.trips);
@@ -6341,7 +6383,7 @@ function addLocationBudgetItem(){
   var note=document.getElementById('lm-bnote').value.trim();
   var amt=parseFloat(document.getElementById('lm-bamt').value)||0;
   if(amt<=0){showToast('请输入金额'); return;}
-  lmBudgetItems.push({cat:cat, note:note, amt:amt, time:Date.now()});
+  lmBudgetItems.push({id:uid(), cat:cat, note:note, amt:amt, time:Date.now()});
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
   renderLocationModalBudget();
@@ -6378,6 +6420,7 @@ function saveLocation(){
   var pendingAmt=parseFloat(document.getElementById('lm-bamt').value)||0;
   if(pendingAmt>0){
     lmBudgetItems.push({
+      id:uid(),
       cat:document.getElementById('lm-bcat').value,
       note:document.getElementById('lm-bnote').value.trim(),
       amt:pendingAmt,
@@ -6418,6 +6461,13 @@ function saveLocation(){
   }else{
     loc.id=uid();
     day.locations.push(loc);
+  }
+  // v127: 记录本次编辑中被删除的记账条目墓碑，使删除能跨设备传播
+  if(_prev&&_prev.budget&&Array.isArray(_prev.budget.items)){
+    var _newBid={}; (loc.budget.items||[]).forEach(function(it){ if(it&&it.id)_newBid[it.id]=1; });
+    (_prev.budget.items||[]).forEach(function(it){
+      if(it&&it.id&&!_newBid[it.id]){ if(!data.budgetTombstones)data.budgetTombstones={}; data.budgetTombstones[it.id]=Date.now(); }
+    });
   }
   // v47+: keep the location's photos in IndexedDB (they're too big for
   // localStorage); trips.json stays text-only. Persist before push so a
@@ -7683,7 +7733,7 @@ function exportFullBackup(){
   var done=function(){
     try{
       var payload={type:'lattiao-full-backup',app:APP_VERSION||'v4',exportedAt:new Date().toISOString(),
-        data:{trips:data.trips,guides:data.guides||[],favorites:data.favorites||[],tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},settings:data.settings||{}}};
+        data:{trips:data.trips,guides:data.guides||[],favorites:data.favorites||[],tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{},settings:data.settings||{}}};
       var blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       var url=URL.createObjectURL(blob);
       var a=document.createElement('a');
@@ -7724,6 +7774,7 @@ function importFullBackup(input){
       data.favorites=d.favorites||[];
       data.tombstones=d.tombstones||{};
       data.locTombstones=d.locTombstones||{};
+      data.budgetTombstones=d.budgetTombstones||{};
       if(d.settings&&d.settings.city){data.settings=d.settings;}
       repairTrips();
       saveDataLocal();
@@ -7939,6 +7990,7 @@ function importData(e){
           settings:(d.settings&&Object.keys(d.settings).length)?d.settings:(prev.settings||{}),
           tombstones:d.tombstones||prev.tombstones||{},
           locTombstones:d.locTombstones||prev.locTombstones||{},
+          budgetTombstones:d.budgetTombstones||prev.budgetTombstones||{},
           joys:d.joys||prev.joys||[],
           notifs:d.notifs||prev.notifs||[],
           peerNames:d.peerNames||prev.peerNames||{}
@@ -7990,12 +8042,14 @@ function forceResync(){
       // 否则「立即从云端拉取」会把小确幸、通知、协作者名字清空，并在下次推送时
       // 把空数组写进云端，对端也跟着丢。
       var _prevS=data||{};
-      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},
+      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
             joys:_prevS.joys||[],notifs:_prevS.notifs||[],peerNames:_prevS.peerNames||{}};
       if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
       if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
+      if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object')data.budgetTombstones=remote.budgetTombstones;
       data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
       applyLocTombstonesToTrips(data.trips,data.locTombstones);
+      applyBudgetTombstonesToTrips(data.trips);
       repairTrips();
       saveDataLocal();
       ghCacheWrite(remote);
@@ -8146,13 +8200,15 @@ function forceRescue(){
     // 而 pushMergeCloud 只合并 trips、不合并 joys，下一次推送就会把空数组写进云端
     // —— 对端也跟着丢，且不可恢复（syncPull 的 mergeJoys 只能从云端捞，云端已被清空）。
     var _prevR=data||{};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},
+    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
           joys:_prevR.joys||[],notifs:_prevR.notifs||[],peerNames:_prevR.peerNames||{}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
     if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
+    if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object')data.budgetTombstones=remote.budgetTombstones;
     // 3) adopt the healthy cloud copy directly (no merge)
     data.trips=(remote.trips||[]).filter(function(t){return !data.tombstones[t.id];});
     applyLocTombstonesToTrips(data.trips,data.locTombstones);
+    applyBudgetTombstonesToTrips(data.trips);
     repairTrips();
     saveDataLocal();
     ghCacheWrite(remote);
