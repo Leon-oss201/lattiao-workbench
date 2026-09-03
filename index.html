@@ -2123,7 +2123,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v133';
+var APP_VERSION='v134';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2139,6 +2139,7 @@ var currentTripDay=0;
 var currentEditingLocationIdx=-1; // -1 = adding new location, >=0 = editing existing location
 var currentEditingGuideId=null;
 var lmPhotos=[];
+var lmPhotoInitialCount=0; // v134: 打开地点弹窗时的照片基数，用于判断「本次新增了几张」
 var lmBudgetItems=[];
 var budgetFilterTripId='all';
 
@@ -6439,6 +6440,7 @@ function addLocationToCurrentDay(){
   ensureTripDays(t);
   if(currentTripDay>=t.days.length)currentTripDay=0;
   currentEditingLocationIdx=-1;
+  lmPhotoInitialCount=0;
   document.getElementById('location-modal-title').textContent='添加地点';
   document.getElementById('lm-save-btn').textContent='添加';
   resetLocationModal();
@@ -6467,6 +6469,7 @@ function editLocation(idx){
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
   lmPhotos=(l.photos||[]).slice();
+  lmPhotoInitialCount=lmPhotos.length;
   lmBudgetItems=(l.budget&&l.budget.items||[]).slice();
   renderLocationModalPhotos();
   renderLocationModalBudget();
@@ -6632,19 +6635,29 @@ function saveLocation(){
   showToast(isEdit?'已保存地点':'已添加地点');
   // v124: 通知中心记一条「谁改了什么」。actor 用 peerName（data.peerNames 注册名
   // 或自己的 settings.name），key 含小时桶，1 小时内的重复编辑被去重避免噪音。
+  // v134: 本次若新增了照片，单独发一条「加了 N 张照片 📷」通知（独立于 edit/add 的
+  // key，不会被同小时桶的「修改地点」去重吃掉；协作者端也能明确看到是照片更新）。
   try{
     var actor=peerNameOf(ghUserId());
     var dayIdx=currentTripDay+1;
     var tripTitle=t.title||t.destination||'未命名行程';
     var hourBucket=Math.floor(Date.now()/3600000);
-    var op=isEdit?'edit':'add';
-    var dedupKey='loc|'+t.id+'|'+loc.id+'|'+op+'|'+hourBucket;
-    // 先清同 key 旧 notif，保证每次编辑都有一条新通知。
-    var arr=notifLoad().filter(function(n){return n.key!==dedupKey;});
-    notifSave(arr);
-    var title=isEdit?(actor+' 修改了「'+tripTitle+'」D'+dayIdx+' 的「'+loc.name+'」')
-      :(actor+' 新增了「'+tripTitle+'」D'+dayIdx+' 行程「'+loc.name+'」');
-    pushNotif('edit',title,'',dedupKey,actor);
+    var photoAdded=(loc.photos&&loc.photos.length||0)-lmPhotoInitialCount;
+    if(isEdit&&photoAdded>0){
+      var photoKey='loc|'+t.id+'|'+loc.id+'|photo|'+hourBucket;
+      var arrP=notifLoad().filter(function(n){return n.key!==photoKey;});
+      notifSave(arrP);
+      pushNotif('photo',actor+' 给「'+tripTitle+'」D'+dayIdx+' 的「'+loc.name+'」加了 '+photoAdded+' 张照片 📷','',photoKey,actor);
+    }else{
+      var op=isEdit?'edit':'add';
+      var dedupKey='loc|'+t.id+'|'+loc.id+'|'+op+'|'+hourBucket;
+      // 先清同 key 旧 notif，保证每次编辑都有一条新通知。
+      var arr=notifLoad().filter(function(n){return n.key!==dedupKey;});
+      notifSave(arr);
+      var title=isEdit?(actor+' 修改了「'+tripTitle+'」D'+dayIdx+' 的「'+loc.name+'」')
+        :(actor+' 新增了「'+tripTitle+'」D'+dayIdx+' 行程「'+loc.name+'」');
+      pushNotif('edit',title,'',dedupKey,actor);
+    }
   }catch(e){console.warn('saveLocation notif err',e);}
   // CRITICAL: push immediately, do NOT debounce. If the user quits the app
   // within seconds of adding a location, the 3s debounce would silently drop
@@ -8885,7 +8898,7 @@ function updateQueueChip(){
 
 /* ---------------- v99-3/v102: 通知中心（数据进云端，跨设备同步） ---------------- */
 var NOTIF_STORE='lattiao_notifs_v1';
-var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔'};
+var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔',photo:'📷',edit:'✏️'};
 // v102: notifications now live in data.notifs so they sync across collaborators
 function notifLoad(){
   if(!data.notifs)data.notifs=[];
@@ -8984,8 +8997,14 @@ function markAllNotifRead(){
   showToast('已全部标为已读');
 }
 function clearAllNotif(){
-  notifSave([]);updateNotifBadge();renderNotifList();
+  notifSave([]);
+  // v134: 记本地清空时间戳，mergeNotifs 据此过滤掉云端残留的旧通知，避免「清空后又冒出来」
+  try{localStorage.setItem('lattiao_notif_cleared_at',String(Date.now()));}catch(e){}
+  updateNotifBadge();renderNotifList();
   showToast('通知已清空');
+  // 把清空后的空列表推上云，避免新设备/其它端把旧通知重新拉回来
+  if(typeof window.syncPushNow==='function')window.syncPushNow();
+  else if(typeof window.syncPush==='function')window.syncPush();
 }
 // 启动时 / 每次同步后收集需要提醒的事件
 function collectNotifEvents(){
@@ -9012,14 +9031,23 @@ function collectNotifEvents(){
   }catch(e){}
 }
 // v102: merge remote notifications (union by id, cap at 80)
+// v134: 清空通知需在「我这一端」持久生效——云端仍可能残留旧通知，每次 pull 会
+// 把它们 union 回来导致「清空后又冒出来」。用本地 localStorage 的清空时间戳过滤掉
+// 早于清空时刻的旧通知（新通知 ts 更大，照常出现）。这是每台设备独立的清空状态，
+// 不跨设备传播（我清空我的，不影响朋友的通知中心）。
+function notifClearedAt(){
+  try{var c=parseInt(localStorage.getItem('lattiao_notif_cleared_at')||'0',10);return c>0?c:0;}catch(e){return 0;}
+}
 function mergeNotifs(remoteNotifs){
   if(!remoteNotifs||!remoteNotifs.length)return false;
+  var clearedAt=notifClearedAt();
   var local=notifLoad();
   var map={};
   local.forEach(function(n){if(n&&n.id)map[n.id]=n;});
   var changed=false;
   remoteNotifs.forEach(function(n){
     if(!n||!n.id)return;
+    if(clearedAt&&(n.ts||0)<=clearedAt)return; // 已清空：不复活早于清空时刻的旧通知
     if(!map[n.id]){local.push(n);map[n.id]=n;changed=true;}
   });
   if(changed)notifSave(local);
@@ -9062,11 +9090,16 @@ function generateCollabNotifs(){
         // v124: 地点新增/修改/删除现在由 saveLocation / deleteLocation /
         // deleteCurrentTrip 生成细粒度 notif（带操作者 + 第几天 + 地点名），
         // 这条老的汇总 notif（「新增了 N 个地点」）与它重复且信息更少，
-        // 只会让通知中心变成噪音。保留 photos / budget / joy 分支 —— 那些
+        // 只会让通知中心变成噪音。保留 budget / joy 分支 —— 那些
         // v124 还没有覆盖。
         // pushNotif('collab','「'+c.title+'」新增了 '+(c.locs-p.locs)+' 个地点','行程有更新，快去看看吧 👀','col|'+id+'|locs='+c.locs);
       }
-      if(c.photos>p.photos){
+      // v134: 照片新增现在由 saveLocation 在「保存那一刻」生成带操作者(actor)的
+      // 细粒度通知「X 给「行程」D? 的「地点」加了 N 张照片 📷」，比这条无 actor 的
+      // 汇总 notif 更准确（不会把朋友的照片加成显示成「我」加的）。留着只会重复+误导，
+      // 故屏蔽。注意：generateCollabNotifs 在每次 syncPushNow 开头都会跑，若保留会
+      // 在「清空通知→立即 push」时又把陈旧照片 notif 造出来，导致清空失效。
+      if(false && c.photos>p.photos){
         pushNotif('collab','「'+c.title+'」新增了 '+(c.photos-p.photos)+' 张照片','回忆又厚了一层 📷','col|'+id+'|photos='+c.photos);
       }
       if(c.spent!==p.spent){
@@ -10668,6 +10701,17 @@ function ddSave(){
   // 另外 _photoCount 已被设成新的张数，缓存里却只有旧的几张，读取时
   // want(=_photoCount) > have 会让 App 误以为云端还有而空拉一轮。
   try{photoCachePut(locPhotoKey(tgt.trip.id,tgt.loc.id),tgt.loc.photos.slice());}catch(e){}
+  // v134: 涂鸦存成新照片也算「加照片」，给协作者发一条照片通知
+  try{
+    var _ddActor=peerNameOf(ghUserId());
+    var _ddTrip=tgt.trip.title||tgt.trip.destination||'未命名行程';
+    var _ddDayIdx=(tgt.trip.days?tgt.trip.days.indexOf(tgt.day):0)+1; if(_ddDayIdx<1)_ddDayIdx=1;
+    var _ddHour=Math.floor(Date.now()/3600000);
+    var _ddKey='loc|'+tgt.trip.id+'|'+tgt.loc.id+'|photo|'+_ddHour;
+    var _ddArr=notifLoad().filter(function(n){return n.key!==_ddKey;});
+    notifSave(_ddArr);
+    pushNotif('photo',_ddActor+' 给「'+_ddTrip+'」D'+_ddDayIdx+' 的「'+tgt.loc.name+'」加了 1 张照片（涂鸦）📷','',_ddKey,_ddActor);
+  }catch(e){}
   saveDataLocal();
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
