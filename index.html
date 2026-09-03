@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v128';
+var APP_VERSION='v129';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2350,10 +2350,11 @@ function mergeTripDuplicates(keep,t){
   if(!Array.isArray(keep.budget.items))keep.budget.items=[];
   if(tt>kt)keep.budget.total=tt;
   // v127: 记账条目按稳定 id 并集（老数据无 id 时回退到 cat|note|amt|time）
+  // v129: 同时剔除命中 budgetTombstones 的条目（与 mergeTrips 一致，防本地去重复活已删账目）
   var imap={};
   function bkey(it){return it&&it.id?('b:'+it.id):('x:'+[it?it.cat:'',it?it.note:'',it?it.amt:0,it?it.time||0:0].join('|'));}
-  (keep.budget.items||[]).forEach(function(it){if(it)imap[bkey(it)]=it;});
-  ((t.budget&&t.budget.items)||[]).forEach(function(it){if(it&&!imap[bkey(it)])imap[bkey(it)]=it;});
+  (keep.budget.items||[]).forEach(function(it){if(it&&!(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id]))imap[bkey(it)]=it;});
+  ((t.budget&&t.budget.items)||[]).forEach(function(it){if(it&&!(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id])&&!imap[bkey(it)])imap[bkey(it)]=it;});
   keep.budget.items=Object.keys(imap).map(function(k){return imap[k];}).sort(function(a,b){return (a.time||0)-(b.time||0);});
   return keep;
 }
@@ -3023,11 +3024,19 @@ function mergeTrips(localTrips,remoteTrips){
       // Local is newer: keep local total unless local is unset and remote has one.
       local.budget.total=(localTotal===0&&remoteTotal>0)?remoteTotal:localTotal;
     }
-    // Merge budget items by timestamp (kept for backward compatibility)
+    // v129: trip 级 budget.items 合并对齐 v127 location 级——按稳定 id 并集（无 id 用
+    // cat|note|amt|time 兜底），并剔除命中 budgetTombstones 的条目，避免已删账目在合并时复活。
+    // （当前 UI 记账写 location 级、trip.budget.items 正常恒空，此合并属防御性兜底；仍须与
+    //  location 级一致，否则未来任何 trip 级账目都会绕过墓碑。）
     var itemMap={};
-    local.budget.items.forEach(function(it){ if(it&&it.time)itemMap[it.time]=it; });
-    (remote.budget&&remote.budget.items||[]).forEach(function(it){ if(it&&it.time&&!itemMap[it.time])itemMap[it.time]=it; });
-    local.budget.items=Object.keys(itemMap).map(function(k){ return itemMap[k]; }).sort(function(a,b){ return a.time-b.time; });
+    function tripBKey(it){ return (it&&it.id)?('b:'+it.id):('x:'+[it?it.cat:'',it?it.note:'',it?it.amt:0,it?it.time||0:0].join('|')); }
+    (local.budget.items||[]).forEach(function(it){ if(it&&!(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id]))itemMap[tripBKey(it)]=it; });
+    (remote.budget&&remote.budget.items||[]).forEach(function(it){
+      if(!it)return;
+      if(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id])return; // 墓碑：跳过，不复活
+      if(!itemMap[tripBKey(it)])itemMap[tripBKey(it)]=it;
+    });
+    local.budget.items=Object.keys(itemMap).map(function(k){ return itemMap[k]; }).sort(function(a,b){ return (a.time||0)-(b.time||0); });
     byId[t.id].trip=local;
   });
   var out=Object.keys(byId).map(function(k){ return byId[k].trip; });
