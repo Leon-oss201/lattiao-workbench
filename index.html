@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v129';
+var APP_VERSION='v130';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3868,11 +3868,21 @@ function schedulePhotoRetry(failedChunks){
   setTimeout(function(){
     if(GH.pushing)return schedulePhotoRetry(failedChunks); // wait until free
     if(!ghHasToken())return;
+    // v130: 重传时用「当前」chunk 内容，而非推送失败时捕获的陈旧快照。否则边界位移
+    // 后重传会把过时照片写回云端并标记为已同步，造成「fp 对、云端错」的难查不一致。
+    var current=[];
+    (data.trips||[]).forEach(function(t){ current=current.concat(buildPhotoChunks(t)); });
     var jobs=failedChunks.map(function(c){
-      return function(){ return uploadPhotoChunk(c,2).then(function(){return true;}).catch(function(){return false;}); };
+      var cur=current.find(function(x){ return x.path===c.path; });
+      var target=cur||c;
+      return function(){ return uploadPhotoChunk(target,2).then(function(){return true;}).catch(function(){return false;}); };
     });
-    runWithLimit(jobs,4).then(function(){
-      try{localStorage.removeItem('lattiao_pending_push');}catch(e){}
+    runWithLimit(jobs,4).then(function(results){
+      // v130: 仅当全部补齐才清 pending。否则保留 lattiao_pending_push，
+      // 让下一轮 syncPushNow（绕过指纹跳过的 v130 逻辑）继续补传，
+      // 否则弱网丢的照片会卡在陈旧 chunk，只能等 15 分钟 reconcile 兜底。
+      var allOk=results&&results.every(function(r){return r===true;});
+      if(allOk){ try{localStorage.removeItem('lattiao_pending_push');}catch(e){} }
     }).catch(function(){});
   }, 8000);
 }
@@ -3905,6 +3915,68 @@ function syncStateFingerprint(remoteData){
               Object.keys(bt).map(function(k){return 'bt:'+k+'@'+bt[k];}).join('|');
   return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp+'::'+guideFp+'::'+favFp;
 }
+// v130: 同步可靠的 SHA1（与 Gitee/mock 服务端存储内容的 sha 一致）。
+// markOk 在每次成功上传后会把服务端返回的 sha 存进 GH.photoChunkSha[path]，
+// 所以 photoChunkSha 是「云端实际内容」的权威指纹——比本地 photoChunkFp 更可靠
+// （photoChunkFp 可能因边界位移覆盖、部分写入、localStorage 残留而「看起来对实则错」）。
+function sha1hex(str){
+  try{
+    var bytes=[];
+    for(var i=0;i<str.length;i++){
+      var c=str.charCodeAt(i);
+      if(c<0x80)bytes.push(c);
+      else if(c<0x800)bytes.push(0xc0|(c>>6),0x80|(c&0x3f));
+      else if(c<0xd800||c>=0xe000)bytes.push(0xe0|(c>>12),0x80|((c>>6)&0x3f),0x80|(c&0x3f));
+      else{i++;var c2=str.charCodeAt(i);var cp=0x10000+((c&0x3ff)<<10)+(c2&0x3ff);bytes.push(0xf0|(cp>>18),0x80|((cp>>12)&0x3f),0x80|((cp>>6)&0x3f),0x80|(cp&0x3f));}
+    }
+    var ml=bytes.length*8;
+    bytes.push(0x80);
+    while(bytes.length%64!==56)bytes.push(0);
+    bytes.push(0,0,0,0,(ml>>>24)&0xff,(ml>>>16)&0xff,(ml>>>8)&0xff,ml&0xff);
+    var h0=0x67452301,h1=0xEFCDAB89,h2=0x98BADCFE,h3=0x10325476,h4=0xC3D2E1F0;
+    function rotl(n,s){return (n<<s)|(n>>>(32-s));}
+    for(var p=0;p<bytes.length;p+=64){
+      var w=[];
+      for(var j=0;j<16;j++){var o=p+j*4;w[j]=(bytes[o]<<24)|(bytes[o+1]<<16)|(bytes[o+2]<<8)|bytes[o+3];}
+      for(var j=16;j<80;j++){var n=w[j-3]^w[j-8]^w[j-14]^w[j-16];w[j]=rotl(n,1);}
+      var a=h0,b=h1,c=h2,d=h3,e=h4;
+      for(var t=0;t<80;t++){
+        var f,k;
+        if(t<20){f=(b&c)|((~b)&d);k=0x5A827999;}
+        else if(t<40){f=b^c^d;k=0x6ED9EBA1;}
+        else if(t<60){f=(b&c)|(b&d)|(c&d);k=0x8F1BBCDC;}
+        else{f=b^c^d;k=0xCA62C1D6;}
+        var tmp=(rotl(a,5)+f+e+k+(w[t]>>>0))>>>0;
+        e=d;d=c;c=rotl(b,30);b=a;a=tmp;
+      }
+      h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d)>>>0;h4=(h4+e)>>>0;
+    }
+    function hx(n){return ('00000000'+(n>>>0).toString(16)).slice(-8);}
+    return hx(h0)+hx(h1)+hx(h2)+hx(h3)+hx(h4);
+  }catch(e){ return ''; }
+}
+// v130: 判断当前所有照片 chunk 是否都已同步到云端。照片分片指纹不进
+// syncStateFingerprint（那是文本指纹）—— 若某 chunk 云端缺失/陈旧，本地 data 不变 →
+// 文本指纹相同 → 会走 syncPushNow 的跳过早返回，失败 chunk 永不被补传（弱网丢的照片卡死）。
+// 这里不仅要比对本地 fp，还要比对「云端 sha」：只有当 本地 fp 匹配 且 云端 sha 也匹配当前内容
+// 时，才认为该 chunk 已同步。否则（fp 对但云端陈旧 / 未确认过云端）强制走完整推送。
+function photoChunksAllSynced(){
+  try{
+    if(!GH.photoChunkFp) return false; // 没有任何 chunk 指纹 → 强制走完整推送
+    var all=[];
+    (data.trips||[]).forEach(function(t){ all=all.concat(buildPhotoChunks(t)); });
+    for(var i=0;i<all.length;i++){
+      var c=all[i];
+      var rec=GH.photoChunkFp[c.path];
+      if(!rec) return false;                       // 该 chunk 从未成功上传过
+      if(rec!==JSON.stringify(c.data)) return false; // 内容变了（陈旧）→ 需重传
+      // 云端权威性校验：photoChunkSha 是上次成功写入后服务端返回的 sha，等于云端实际内容。
+      // 若它缺失或与「当前内容」的 sha 不符，说明云端其实是陈旧/不同的内容 → 需重传。
+      if(!GH.photoChunkSha||GH.photoChunkSha[c.path]!==sha1hex(JSON.stringify(c.data))) return false;
+    }
+    return true;
+  }catch(e){ return false; }
+}
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
   if(GH.writeTimer){clearTimeout(GH.writeTimer);GH.writeTimer=null;}
@@ -3930,7 +4002,14 @@ function syncPushNow(){
   // silently skipped — collaborators never see the new background.
   // v102: now also includes joys and notifications.
   var fp=syncStateFingerprint();
-  if(GH.lastPushFp&&GH.lastPushFp===fp){
+  // v130: 照片分片上传失败不会改 data，故文本指纹与上次成功推送相同。若直接走下方的
+  // 指纹跳过早返回，失败的 chunk 永远不被重传，只能靠 15 分钟 throttle 的
+  // reconcileLocalPhotos 兜底（弱网下丢的照片最长要等 15 分钟才补齐）。
+  // 这里额外判断「是否还有未同步的照片 chunk」，有则强制走完整推送（toUpload 仅重传差异 chunk）。
+  var pendingPush=false;
+  try{ pendingPush=!!localStorage.getItem('lattiao_pending_push'); }catch(e){}
+  var photoDirty=!photoChunksAllSynced();
+  if(GH.lastPushFp&&GH.lastPushFp===fp && !pendingPush && !photoDirty){
     GH.lastSync=Date.now();
     if(typeof queueClear==='function')queueClear();
     setSyncStatus('synced');
@@ -4065,7 +4144,10 @@ function doPushNowInner(triesLeft){
       if(typeof hidePendingBannerOnSync==='function')hidePendingBannerOnSync();
       var toUpload=photoChunks.filter(function(chunk){
         var fp2=JSON.stringify(chunk.data);
-        return !(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2);
+        // v130: 只有「本地 fp 匹配 且 云端 sha 也匹配当前内容」才跳过——否则弱网丢/陈旧
+        // 的 chunk（fp 对但云端内容错）会被漏掉，永远不重传。
+        if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2 && GH.photoChunkSha && GH.photoChunkSha[chunk.path]===sha1hex(fp2)) return false;
+        return true;
       });
       if(toUpload.length>0){
         // v99: 照片同步进度可视化
@@ -4319,10 +4401,23 @@ function reconcileLocalPhotos(){
         var chunks=buildPhotoChunksForLoc(tripId,{id:locId,photos:photos});
         return chunks.reduce(function(chain,chunk){
           return chain.then(function(){
+            // v130: 不只查「是否存在」，还要比「内容是否一致」。存在但陈旧的 chunk
+            // （边界位移覆盖 / 部分写入）会让照片永远差几张，只有内容比对能兜底修复。
             return ghGetSha(chunk.path).then(function(sha){
-              if(sha)return; // already on cloud
-              return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,null).then(function(){
+              if(!sha)return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,null).then(function(){
                 pushed+=(chunk.data.photos||[]).length;
+              });
+              // 已存在 → 下载云端内容，比对照片数；不一致才覆盖重传。
+              return geGetRaw(chunk.path).then(function(m){
+                if(!m||!m.content)return;
+                try{
+                  var remote=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
+                  var remoteN=(remote&&remote.photos||[]).length;
+                  var localN=(chunk.data.photos||[]).length;
+                  if(remoteN!==localN)return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,sha).then(function(){
+                    pushed+=localN;
+                  });
+                }catch(e){}
               });
             });
           });
