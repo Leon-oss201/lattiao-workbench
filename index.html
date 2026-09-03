@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v124';
+var APP_VERSION='v125';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -8855,7 +8855,12 @@ function generateCollabNotifs(){
         return;
       }
       if(c.locs>p.locs){
-        pushNotif('collab','「'+c.title+'」新增了 '+(c.locs-p.locs)+' 个地点','行程有更新，快去看看吧 👀','col|'+id+'|locs='+c.locs);
+        // v124: 地点新增/修改/删除现在由 saveLocation / deleteLocation /
+        // deleteCurrentTrip 生成细粒度 notif（带操作者 + 第几天 + 地点名），
+        // 这条老的汇总 notif（「新增了 N 个地点」）与它重复且信息更少，
+        // 只会让通知中心变成噪音。保留 photos / budget / joy 分支 —— 那些
+        // v124 还没有覆盖。
+        // pushNotif('collab','「'+c.title+'」新增了 '+(c.locs-p.locs)+' 个地点','行程有更新，快去看看吧 👀','col|'+id+'|locs='+c.locs);
       }
       if(c.photos>p.photos){
         pushNotif('collab','「'+c.title+'」新增了 '+(c.photos-p.photos)+' 张照片','回忆又厚了一层 📷','col|'+id+'|photos='+c.photos);
