@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v125';
+var APP_VERSION='v126';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2566,7 +2566,7 @@ function fieldTs(loc,field){
 // (previously the newer trip.updatedAt won the whole location — losing one side).
 function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   var out=JSON.parse(JSON.stringify(localLoc));
-  var fields=['name','guide','feeling'];
+  var fields=['name','guide','feeling','time','type','lat','lng'];
   fields.forEach(function(f){
     var rv=remoteLoc[f], lv=out[f];
     var rTs=fieldTs(remoteLoc,f)||remoteTripTs;
@@ -6409,7 +6409,7 @@ function saveLocation(){
   // falsely claiming it was merged. Always inherit _prev._fts first.
   var _prev=(isEdit&&day.locations[currentEditingLocationIdx])?day.locations[currentEditingLocationIdx]:null;
   loc._fts=(_prev&&_prev._fts)?JSON.parse(JSON.stringify(_prev._fts)):(loc._fts||{});
-  ['name','guide','feeling'].forEach(function(f){
+  ['name','guide','feeling','time','type','lat','lng'].forEach(function(f){
     if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
   });
   if(isEdit&&day.locations[currentEditingLocationIdx]){
