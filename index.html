@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v127';
+var APP_VERSION='v128';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3139,6 +3139,10 @@ function syncPull(force){
       if(typeof mergeJoys==='function'&&remote.joys){if(mergeJoys(remote.joys))settingsChanged=true;}
       if(typeof mergeNotifs==='function'&&remote.notifs){if(mergeNotifs(remote.notifs))settingsChanged=true;}
       if(typeof mergePeerNames==='function'&&remote.peerNames){if(mergePeerNames(remote.peerNames))settingsChanged=true;}
+      // v128: 攻略/收藏纳入云端同步（之前是唯一不同步的数据集合）。按 id 并集，
+      // 较新 createdAt 覆盖，与 joys 同模式；删除不跨设备传播（与 joys 一致，可接受）。
+      if(typeof mergeGuides==='function'&&remote.guides){if(mergeGuides(remote.guides))settingsChanged=true;}
+      if(typeof mergeFavorites==='function'&&remote.favorites){if(mergeFavorites(remote.favorites))settingsChanged=true;}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       if(changed)saveDataLocal();
@@ -3361,7 +3365,7 @@ function buildTextPayload(photoChunks){
     if(!chunkCountByLoc[locId]||idx+1>chunkCountByLoc[locId])chunkCountByLoc[locId]=idx+1;
   });
   var now=new Date().toISOString();
-  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{}};
+  var remoteData={trips:[],version:1,updatedAt:now,updatedBy:ghUserId(),tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{},guides:data.guides||[],favorites:data.favorites||[]};
   // v102: joys/notifications are top-level data so they sync across devices
   remoteData.joys=data.joys||[];
   remoteData.notifs=(data.notifs||[]).slice(0,80);
@@ -3872,6 +3876,12 @@ function syncStateFingerprint(remoteData){
   var notifs=(remoteData&&remoteData.notifs)||data.notifs||[];
   var joyFp=joys.map(function(j){return (j&&j.id)?j.id+'@'+(j.ts||0):'';}).join('|');
   var notifFp=notifs.map(function(n){return (n&&n.id)?n.id+'@'+(n.read?1:0)+'@'+(n.ts||0):'';}).join('|');
+  // v128: 攻略/收藏纳入指纹——新增/修改攻略、收藏要能触发推送，否则增量推送会因
+  // 指纹不变而跳过，A 端加的攻略在 B 端永远看不见。
+  var guides=(remoteData&&remoteData.guides)||data.guides||[];
+  var favs=(remoteData&&remoteData.favorites)||data.favorites||[];
+  var guideFp=guides.map(function(g){return (g&&g.id)?g.id+'@'+(g.createdAt||0):'';}).join('|');
+  var favFp=favs.map(function(f){return (f&&f.id)?f.id+'@'+(f.createdAt||0):'';}).join('|');
   // v113 BUG FIX: include tombstones in the fingerprint. If we don't, a
   // tombstone-only change (e.g. B deletes a location it never pulled, so
   // tripsFingerprint is unchanged) is silently skipped by syncPushNow's
@@ -3884,7 +3894,7 @@ function syncStateFingerprint(remoteData){
   var tombFp=Object.keys(tombstones).map(function(k){return 't:'+k+'@'+tombstones[k];}).join('|')+'##'+
               Object.keys(locTombstones).map(function(k){return 'lt:'+k+'@'+locTombstones[k];}).join('|')+'##'+
               Object.keys(bt).map(function(k){return 'bt:'+k+'@'+bt[k];}).join('|');
-  return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp;
+  return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp+'::'+guideFp+'::'+favFp;
 }
 function syncPushNow(){
   if(!ghHasToken())return Promise.resolve();
@@ -3975,12 +3985,18 @@ function pushMergeCloud(){
     data.trips=mergeTrips(data.trips,remote.trips);
     dedupeTrips();
     repairTrips();
+    // v128: 对账时也合并对端的攻略/收藏。否则并发推送触发 409 重试时，本端用「纯本地
+    // 状态」重新打包，会把对方新增的攻略/收藏整段覆盖（S3 并发场景 B 拉不到 A 的攻略）。
+    // 与 trips/joys 同口径：merge 进本地后 buildTextPayload 自然带上，重试 PUT 即收敛。
+    var gChanged=(remote.guides&&typeof mergeGuides==='function')?mergeGuides(remote.guides):false;
+    var fChanged=(remote.favorites&&typeof mergeFavorites==='function')?mergeFavorites(remote.favorites):false;
     var after=tripsFingerprint(data.trips);
-    if(before!==after){
+    var merged=before!==after||gChanged||fChanged;
+    if(merged){
       saveDataLocal();
       renderAll(); // 别人的新行程/地点立刻可见，不用等下一次 30s 轮询
     }
-    return before!==after;
+    return merged;
   }).catch(function(e){
     // 云端读不到（离线/超时）时不阻塞推送：宁可推本地状态，也不要什么都不做
     console.warn('v101 pre-push merge skipped',e);
@@ -8041,8 +8057,11 @@ function forceResync(){
       // v120: 同 forceRescue —— 重建 data 时保留 joys / notifs / peerNames，
       // 否则「立即从云端拉取」会把小确幸、通知、协作者名字清空，并在下次推送时
       // 把空数组写进云端，对端也跟着丢。
+      // v128: guides(攻略) / favorites(收藏) 也是本地独有数据，云端不带；若不保留，
+      // 按「立即从云端拉取」会把本机攻略/收藏永久清空（v120 漏了这俩）。即使 v128
+      // 起它们已纳入云端同步，这里仍优先保留本机副本，避免救援把还没推上云的内容抹掉。
       var _prevS=data||{};
-      data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
+      data={trips:[],guides:_prevS.guides||[],favorites:_prevS.favorites||[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
             joys:_prevS.joys||[],notifs:_prevS.notifs||[],peerNames:_prevS.peerNames||{}};
       if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
       if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
@@ -8199,8 +8218,9 @@ function forceRescue(){
     // 同步字段，「清空本地缓存并从云端恢复」反而会把小确幸、通知、协作者名字一起抹掉；
     // 而 pushMergeCloud 只合并 trips、不合并 joys，下一次推送就会把空数组写进云端
     // —— 对端也跟着丢，且不可恢复（syncPull 的 mergeJoys 只能从云端捞，云端已被清空）。
+    // v128: 同 forceResync，guides/favorites 也保留本机副本（防救援清空）。
     var _prevR=data||{};
-    data={trips:[],guides:[],favorites:[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
+    data={trips:[],guides:_prevR.guides||[],favorites:_prevR.favorites||[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
           joys:_prevR.joys||[],notifs:_prevR.notifs||[],peerNames:_prevR.peerNames||{}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
     if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
@@ -10041,6 +10061,50 @@ function mergeJoys(remoteJoys){
     else if((j.ts||0)>(local.ts||0)){local.text=j.text||'';local.ts=j.ts||0;local.date=j.date||local.date;changed=true;}
   });
   return changed;
+}
+// v128: 攻略/收藏的跨设备合并（与 joys 同模式：按 id 并集，较新 createdAt 覆盖）。
+// 删端不传播（与 joys 一致）：B 本地仍有的条目不会被 A 的删除冲掉，但代价是删除不跨设备。
+// 这是可接受的折中——攻略/收藏以"我加了我的"为主，不会出现"A 加了 B 看不见"这种协作死角。
+function dedupeList(arr){
+  // 防御：清掉列表里重复 id（任何历史脏数据都不会扩散）。保留首次出现项（merge 时已用更新）。
+  if(!arr||!arr.length)return false;
+  var seen={}, out=[], ch=false;
+  for(var i=0;i<arr.length;i++){
+    var it=arr[i];
+    if(it&&it.id&&seen[it.id]){ch=true;continue;}
+    if(it&&it.id)seen[it.id]=1;
+    out.push(it);
+  }
+  if(ch){arr.length=0;Array.prototype.push.apply(arr,out);}
+  return ch;
+}
+function mergeGuides(remoteGuides){
+  if(!remoteGuides||!remoteGuides.length)return dedupeList(data.guides);
+  if(!data.guides)data.guides=[];
+  var map={};
+  data.guides.forEach(function(g){if(g&&g.id)map[g.id]=g;});
+  var changed=false;
+  remoteGuides.forEach(function(g){
+    if(!g||!g.id)return;
+    var local=map[g.id];
+    if(!local){data.guides.push(g);map[g.id]=g;changed=true;}
+    else if((g.createdAt||0)>(local.createdAt||0)){Object.assign(local,g);changed=true;}
+  });
+  return dedupeList(data.guides)||changed;
+}
+function mergeFavorites(remoteFavs){
+  if(!remoteFavs||!remoteFavs.length)return dedupeList(data.favorites);
+  if(!data.favorites)data.favorites=[];
+  var map={};
+  data.favorites.forEach(function(f){if(f&&f.id)map[f.id]=f;});
+  var changed=false;
+  remoteFavs.forEach(function(f){
+    if(!f||!f.id)return;
+    var local=map[f.id];
+    if(!local){data.favorites.push(f);map[f.id]=f;changed=true;}
+    else if((f.createdAt||0)>(local.createdAt||0)){Object.assign(local,f);changed=true;}
+  });
+  return dedupeList(data.favorites)||changed;
 }
 
 /* ================= v100: polaroid wall ================= */
