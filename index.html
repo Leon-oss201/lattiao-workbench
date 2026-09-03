@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v131';
+var APP_VERSION='v132';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2772,21 +2772,14 @@ function ghCacheRead(){
   catch(e){return null;}
 }
 function ghCacheWrite(remote){
+  // v132: P0 性能 — 旧实现把整份远端 data（含全部 trip 元数据）冗余存进 localStorage，
+  // 与本地 data 翻倍占用配额，且每次 pull 都要 JSON.stringify 整份。但 ghCacheRead 只用于
+  // 判断「离线 vs 出错」状态（只需 hasTrips），救援流程读的是云端 remote 而非缓存内容，
+  // 故这里只存轻量标记位，彻底去掉这份额外开销。
   try{
-    localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:remote}));
-  }catch(e){
-    // Storage full (big photo payload): cache a photo-stripped copy so the
-    // offline fallback still has all text data.
-    try{
-      var slim=JSON.parse(JSON.stringify(remote));
-      (slim.trips||[]).forEach(function(t){
-        t.photos=[];
-        if(t.cover)t.cover='';
-        (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
-      });
-      localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),data:slim}));
-    }catch(e2){}
-  }
+    var trips=(remote&&remote.trips)||[];
+    localStorage.setItem('lattiao_gh_cache',JSON.stringify({ts:Date.now(),hasTrips:!!trips.length,count:trips.length}));
+  }catch(e){}
 }
 
 // Cheap change-detection fingerprint: id + updatedAt per trip, no full JSON compare
@@ -3054,6 +3047,7 @@ function mergeTrips(localTrips,remoteTrips){
 function syncPull(force){
   if(GH.pulling)return Promise.resolve();
   if(GH.pushing)return Promise.resolve(); // don't pull while pushing — avoids race with deletes
+  var _pullBeforeFp=activeScreenFp(); // v132: P0 指纹，合并后比对可见内容是否真有变化
   // v58: auto-retry on network failure (2s, 5s, 10s) — a single transient
   // timeout in mainland no longer surfaces as "网络不佳" to the user.
   var attempt=0;
@@ -3191,11 +3185,11 @@ function syncPull(force){
       // shortly after opening, without blocking the text sync.
       if(currentTripId){
         var ct=data.trips.find(function(x){return x.id===currentTripId;});
-        if(ct)prefetchTripPhotos(ct);
+        if(ct)prefetchTripPhotos(ct,_pullBeforeFp);
       }
       // v60+: pull photo chunks for every trip so calendar/home refresh
       // within seconds of syncPull success — not on the next page render.
-      if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos();
+      if(typeof prefetchAllTripPhotos==='function')prefetchAllTripPhotos(_pullBeforeFp);
       // v63: reconcile local photos against cloud (auto-reupload missing chunks).
       // Runs after every successful pull, throttled to 15 min internally.
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
@@ -3216,7 +3210,10 @@ function syncPull(force){
         showToast('Gitee Token 已失效，请到「我的 → 设置」重新填入');
       }
       var cache=ghCacheRead();
-      if(cache&&cache.data&&cache.data.trips&&cache.ts&&cache.ts>0&&!GH.tokenInvalid){
+      // v132: 兼容新旧缓存结构（旧为 {ts,data}，新为 {ts,hasTrips,count}）
+      var _cacheOk = cache && cache.ts && cache.ts>0 && !GH.tokenInvalid &&
+                    (cache.hasTrips || (cache.data && cache.data.trips));
+      if(_cacheOk){
         setSyncStatus('offline');
       }else{
         setSyncStatus('error');
@@ -3681,7 +3678,47 @@ function ghReadPhotoChunk(path){
 }
 // Load all photo chunks for a trip (used after a pull / on trip open) and
 // refresh the timeline once photos arrive. Non-blocking.
-function prefetchTripPhotos(t){
+// v132: P0 性能 — 拉取后仅在「可见内容确有变化」时才重渲染，否则停留在大行程
+// 详情页时每 ~60s 轮询都会把整条时间线推倒重来（滚动跳顶 + 图片重新解码 + 卡顿）。
+// 指纹覆盖文本字段 + 封面 + 照片数；sha 变了但合并结果等价时不重渲染。
+// 注意：必须覆盖文本字段（别人新增/改动的地点要靠这块渲染出来），否则会变成真 bug。
+function activeScreenFp(){
+  try{
+    var a=document.querySelector('.page.active');
+    if(!a)return 'na';
+    if(a.id==='page-trip-detail'){
+      if(!currentTripId)return 'td:na';
+      var t=data.trips.find(function(x){return x.id===currentTripId;});
+      if(!t)return 'td:null';
+      return 'td|'+tripRenderFp(t);
+    }
+    if(a.id==='page-calendar')return 'cal|'+JSON.stringify((data.trips||[]).map(function(t){return t.id+':'+(t.days||[]).length+':'+(t._photoCount||0);}));
+    if(a.id==='page-trips')return 'trips|'+JSON.stringify((data.trips||[]).map(function(t){return t.id+':'+(t.title||'')+':'+(t.cover?1:0)+':'+(t._photoCount||0)+':'+((t.tags||[]).join(','));}));
+    return 'other:'+a.id;
+  }catch(e){return 'err';}
+}
+function tripRenderFp(t){
+  var parts=[];
+  (t.days||[]).forEach(function(d){
+    var locs=(d.locations||[]).map(function(l){
+      return [l.name,l.guide,l.feeling,l.time,l.type,(l.lat!=null?1:0),(l.lng!=null?1:0),(l.photos||[]).length,l._photoCount||0];
+    });
+    parts.push({dt:d.date,L:locs});
+  });
+  return JSON.stringify({c:(t.cover?1:0),d:parts});
+}
+function renderIfChanged(beforeFp){
+  var afterFp=activeScreenFp();
+  if(beforeFp!==null&&beforeFp!==undefined&&beforeFp===afterFp)return; // 可见内容无变化 → 跳过重渲染
+  var active=document.querySelector('.page.active');
+  if(active){
+    if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
+    else if(active.id==='page-calendar')renderCal();
+    else if(active.id==='page-trips')renderTrips();
+  }
+  try{saveDataLocal();}catch(e){}
+}
+function prefetchTripPhotos(t,beforeFp){
   if(!t||!t.days)return;
   var jobs=[];
   (t.days||[]).forEach(function(d){
@@ -3709,24 +3746,11 @@ function prefetchTripPhotos(t){
             }
           }).catch(function(){}));
         });
-        Promise.all(retryJobs).then(function(){
-          var active=document.querySelector('.page.active');
-          if(active){
-            if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
-            else if(active.id==='page-calendar')renderCal();
-            else if(active.id==='page-trips')renderTrips();
-          }
-        }).catch(function(){});
+        Promise.all(retryJobs).then(function(){ renderIfChanged(beforeFp); }).catch(function(){});
       },30000);
     }
-    // Re-render whatever is on screen (trip detail, calendar, or home thumbnails)
-    var active=document.querySelector('.page.active');
-    if(active){
-      if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
-      else if(active.id==='page-calendar')renderCal();
-      else if(active.id==='page-trips')renderTrips();
-    }
-    try{saveDataLocal();}catch(e){}
+    // v132: 仅在可见内容变化时才重渲染（renderIfChanged 内部比对 beforeFp）
+    renderIfChanged(beforeFp);
   }).catch(function(){});
 }
 // v58+: pull photo chunks for every trip in the user's library. Called from
@@ -3756,7 +3780,7 @@ function runWithLimit(jobs,limit){
   }
   return Promise.all(workers);
 }
-function prefetchAllTripPhotos(){
+function prefetchAllTripPhotos(beforeFp){
   if(!data.trips||!data.trips.length)return;
   // v71: also fetch any trip covers that exist in the cloud (data/covers/…)
   ensureTripCovers();
@@ -3772,14 +3796,8 @@ function prefetchAllTripPhotos(){
   });
   if(!jobs.length)return;
   runWithLimit(jobs,PREFETCH_CONCURRENCY).then(function(){
-    // re-render whatever is on screen (calendar/trips/home thumbnails)
-    var active=document.querySelector('.page.active');
-    if(active){
-      if(active.id==='page-trip-detail'){renderTimeline();renderTripDetailExtras();}
-      else if(active.id==='page-calendar')renderCal();
-      else if(active.id==='page-trips')renderTrips();
-    }
-    try{saveDataLocal();}catch(e){}
+    // v132: 仅在可见内容变化时才重渲染（renderIfChanged 比对 beforeFp；UI 路径未传参则恒渲染）
+    renderIfChanged(beforeFp);
   }).catch(function(){});
 }
 // v98.1: fetch trip covers from cloud files (data/covers/{tripId}.json) only
