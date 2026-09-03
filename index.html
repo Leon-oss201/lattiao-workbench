@@ -2122,7 +2122,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v130';
+var APP_VERSION='v131';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -8115,6 +8115,11 @@ function importData(e){
           notifs:d.notifs||prev.notifs||[],
           peerNames:d.peerNames||prev.peerNames||{}
         };
+        // v131: 导入把本地数据整体替换后，必须重置协作通知基线
+        // （与 forceRescue/forceResync 的 GH_NOTIF_SNAP=null 同款处理）。
+        // 否则紧接着的 push 会把导入进来的行程当成「协作者新增加的行程」，
+        // 给你自己弹一堆「新增行程「X」」的噪音通知（导入的是你自己的备份，不是别人的）。
+        if(typeof GH_NOTIF_SNAP!=='undefined')GH_NOTIF_SNAP=null;
         saveData();
         showToast('已导入');
         renderHome();
