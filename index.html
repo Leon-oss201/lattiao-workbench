@@ -907,6 +907,7 @@ img.photo-fade.loaded{opacity:1;}
 .joy-item:last-child{border-bottom:none;}
 .joy-item .ji-d{font-size:10.5px;color:var(--primary-dark);font-weight:700;flex:0 0 36px;padding-top:2px;}
 .joy-item .ji-x{flex:1;font-size:12.5px;color:var(--text-sec);line-height:1.55;word-break:break-word;}
+.joy-item .ji-author{font-size:10px;color:var(--text-light);margin-top:2px;}
 .joy-item .ji-del{flex:0 0 auto;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 4px;}
 /* ================= v100: polaroid ================= */
 .pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;max-height:340px;overflow-y:auto;padding:4px;}
@@ -2122,7 +2123,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v132';
+var APP_VERSION='v133';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -10089,8 +10090,13 @@ function renderCountdownCard(){
 function joyAll(){return (data.joys&&data.joys.length)?data.joys:[];}
 function joyToday(){
   var d=new Date().toISOString().slice(0,10);
+  var myId=ghUserId();
   var l=joyAll();
-  for(var i=0;i<l.length;i++)if(l[i].date===d)return l[i];
+  for(var i=0;i<l.length;i++){
+    var j=l[i];
+    // v133: 每人每天一条；无 uid 的老数据视为当前设备用户
+    if(j.date===d && (!j.uid || j.uid===myId)) return j;
+  }
   return null;
 }
 // v104: resolve which trip a "joy" belongs to. Joys created before v104 carry no
@@ -10130,8 +10136,14 @@ function joyAdd(){
   var cur=joyToday();
   // v104: stamp the trip so the timeline can label it even if days[] is sparse.
   var _tid=(typeof currentTripId!=='undefined'&&currentTripId)?currentTripId:(joyTripIdFor({date:d})||'');
-  if(cur){cur.text=v;cur.ts=Date.now();if(!cur.tripId&&_tid)cur.tripId=_tid;}
-  else data.joys.push({id:uid(),date:d,text:v,ts:Date.now(),tripId:_tid||''});
+  if(cur){
+    // v133: 每人只能改自己的；老数据无 uid 时补上
+    if(!cur.uid)cur.uid=ghUserId();
+    cur.text=v;cur.ts=Date.now();if(!cur.tripId&&_tid)cur.tripId=_tid;
+  } else {
+    // v133: 新 joy 带 uid，避免被协作者覆盖
+    data.joys.push({id:uid(),date:d,text:v,ts:Date.now(),tripId:_tid||'',uid:ghUserId()});
+  }
   saveDataLocal();
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
@@ -10163,10 +10175,15 @@ function renderJoyCard(){
   }
   if(all.length){
     h+='<div class="joy-list">';
+    var myId=ghUserId();
     all.slice(0,30).forEach(function(j){
+      var isMine=(!j.uid)||(j.uid===myId);
+      var author=peerName(j.uid||myId);
       h+='<div class="joy-item"><div class="ji-d">'+escapeHTML((j.date||'').slice(5).replace('-','.'))+'</div>'+
-         '<div class="ji-x">'+escapeHTML(j.text||'')+'</div>'+
-         '<div class="ji-del" onclick="joyDel(\''+escapeHTML(j.id||'')+'\')">✕</div></div>';
+         '<div class="ji-x"><div>'+escapeHTML(j.text||'')+'</div>'+
+         '<div class="ji-author">'+escapeHTML(author)+'</div></div>'+
+         (isMine?'<div class="ji-del" onclick="joyDel(\''+escapeHTML(j.id||'')+'\')">✕</div>':'')+
+         '</div>';
     });
     h+='</div>';
   }
