@@ -2123,7 +2123,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v134';
+var APP_VERSION='v135';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3935,10 +3935,10 @@ function syncStateFingerprint(remoteData){
               Object.keys(bt).map(function(k){return 'bt:'+k+'@'+bt[k];}).join('|');
   return tripsFingerprint(trips)+'::'+settingsFingerprint(settings)+'::'+joyFp+'::'+notifFp+'::'+tombFp+'::'+guideFp+'::'+favFp;
 }
-// v130: 同步可靠的 SHA1（与 Gitee/mock 服务端存储内容的 sha 一致）。
-// markOk 在每次成功上传后会把服务端返回的 sha 存进 GH.photoChunkSha[path]，
-// 所以 photoChunkSha 是「云端实际内容」的权威指纹——比本地 photoChunkFp 更可靠
-// （photoChunkFp 可能因边界位移覆盖、部分写入、localStorage 残留而「看起来对实则错」）。
+// v135: 纯内容 SHA1（UTF-8 字节）。注意：Gitee  Contents API 返回的是 Git blob sha
+//（格式 sha1('blob '+size+'\\0'+content)），与本函数的原始内容 SHA1 不同。
+// 因此 photoChunksAllSynced / toUpload 只能用 photoChunkSha 的「存在性」表示
+// 该 chunk 已得到服务端确认，不能直接拿它跟 sha1hex(content) 做等值比较。
 function sha1hex(str){
   try{
     var bytes=[];
@@ -3975,11 +3975,14 @@ function sha1hex(str){
     return hx(h0)+hx(h1)+hx(h2)+hx(h3)+hx(h4);
   }catch(e){ return ''; }
 }
-// v130: 判断当前所有照片 chunk 是否都已同步到云端。照片分片指纹不进
+// v135: 判断当前所有照片 chunk 是否都已同步到云端。照片分片指纹不进
 // syncStateFingerprint（那是文本指纹）—— 若某 chunk 云端缺失/陈旧，本地 data 不变 →
 // 文本指纹相同 → 会走 syncPushNow 的跳过早返回，失败 chunk 永不被补传（弱网丢的照片卡死）。
-// 这里不仅要比对本地 fp，还要比对「云端 sha」：只有当 本地 fp 匹配 且 云端 sha 也匹配当前内容
-// 时，才认为该 chunk 已同步。否则（fp 对但云端陈旧 / 未确认过云端）强制走完整推送。
+// 这里用两个条件：① 本地 photoChunkFp 与当前内容一致（内容未变）；② 该路径有 photoChunkSha
+//（上次上传已得到服务端确认）。 photoChunkSha 存的是 Gitee 返回的 blob sha，仅用于后续 PUT
+// CAS，不能用原始内容 sha1 等值比较；它的存在性足以说明该 chunk 已成功落盘云端。
+// 若云端之后被覆盖/删除，后续 uploadPhotoChunk 的 CAS 409/404 会重新获取 sha 并修复；
+// reconcileLocalPhotos() 也会周期性做内容比对兜底。
 function photoChunksAllSynced(){
   try{
     if(!GH.photoChunkFp) return false; // 没有任何 chunk 指纹 → 强制走完整推送
@@ -3990,9 +3993,9 @@ function photoChunksAllSynced(){
       var rec=GH.photoChunkFp[c.path];
       if(!rec) return false;                       // 该 chunk 从未成功上传过
       if(rec!==JSON.stringify(c.data)) return false; // 内容变了（陈旧）→ 需重传
-      // 云端权威性校验：photoChunkSha 是上次成功写入后服务端返回的 sha，等于云端实际内容。
-      // 若它缺失或与「当前内容」的 sha 不符，说明云端其实是陈旧/不同的内容 → 需重传。
-      if(!GH.photoChunkSha||GH.photoChunkSha[c.path]!==sha1hex(JSON.stringify(c.data))) return false;
+      // v135 fix: 只检查 photoChunkSha 是否存在。真实 Gitee blob sha ≠ sha1hex(content)，
+      // 之前用等值比较导致这里永远返回 false，每次 syncPushNow 都重传全部照片。
+      if(!GH.photoChunkSha||!GH.photoChunkSha[c.path]) return false;
     }
     return true;
   }catch(e){ return false; }
@@ -4164,9 +4167,9 @@ function doPushNowInner(triesLeft){
       if(typeof hidePendingBannerOnSync==='function')hidePendingBannerOnSync();
       var toUpload=photoChunks.filter(function(chunk){
         var fp2=JSON.stringify(chunk.data);
-        // v130: 只有「本地 fp 匹配 且 云端 sha 也匹配当前内容」才跳过——否则弱网丢/陈旧
-        // 的 chunk（fp 对但云端内容错）会被漏掉，永远不重传。
-        if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2 && GH.photoChunkSha && GH.photoChunkSha[chunk.path]===sha1hex(fp2)) return false;
+        // v135: 跳过「本地 fp 匹配 且 服务端已确认存在(photoChunkSha 非空)」的 chunk。
+        // 注意：Gitee 返回的 blob sha 不等于 sha1hex(content)，所以只检查存在性。
+        if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2 && GH.photoChunkSha && GH.photoChunkSha[chunk.path]) return false;
         return true;
       });
       if(toUpload.length>0){
