@@ -2123,7 +2123,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v137';
+var APP_VERSION='v139';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4172,8 +4172,17 @@ function pushMergeCloud(){
     // 与 trips/joys 同口径：merge 进本地后 buildTextPayload 自然带上，重试 PUT 即收敛。
     var gChanged=(remote.guides&&typeof mergeGuides==='function')?mergeGuides(remote.guides):false;
     var fChanged=(remote.favorites&&typeof mergeFavorites==='function')?mergeFavorites(remote.favorites):false;
+    // v137.1: 推送前必须把云端的 notifs / joys / peerNames 也合并进本地。
+    // 否则本地为空/过时的私有关联字段会把云端版本整段覆盖 —— 典型 bug：A 写了通知
+    // n1 推上云，B 推（B 本地 notifs 为空）→ 云端 n1 被清空，救援时拉到的云端也不含 n1
+    // → 通知永久丢失（sync_rescue_test 抓到）。与 trips/guides/favorites 同口径：先 merge
+    // 进本地，buildTextPayload 自然带上，重试 PUT 收敛（union 不丢数据）。
+    var myChanged=false;
+    if(remote.notifs&&typeof mergeNotifs==='function'){ try{ if(mergeNotifs(remote.notifs))myChanged=true; }catch(e){} }
+    if(remote.joys&&typeof mergeJoys==='function'){ try{ if(mergeJoys(remote.joys))myChanged=true; }catch(e){} }
+    if(remote.peerNames&&typeof mergePeerNames==='function'){ try{ if(mergePeerNames(remote.peerNames))myChanged=true; }catch(e){} }
     var after=tripsFingerprint(data.trips);
-    var merged=before!==after||gChanged||fChanged;
+    var merged=before!==after||gChanged||fChanged||myChanged;
     if(merged){
       // v136: 推送前的云端合并回写，用 quiet —— 这是「云端→本地」吸收，不是本地用户改动，
       // 绝不能打脏标记（否则把刚从云端 merge 来的数据又推回去）。
@@ -8996,9 +9005,15 @@ function notifLoad(){
   if(!data.notifs)data.notifs=[];
   return data.notifs;
 }
-function notifSave(a){
+function notifSave(a,quiet){
   data.notifs=(a||[]).slice(0,80);
-  if(typeof saveDataLocal==='function')saveDataLocal();
+  // v138.1: merge 场景（syncPull / pushMergeCloud 的 mergeNotifs）是「云端→本地」回写，
+  // 必须 quiet 落盘，否则会把刚拉下来的通知误判成本地改动，在 pull 期间打上
+  // lattiao_pending_push 脏标记（local_dirty_v136 T3 预存 bug）。用户动作（pushNotif /
+  // 清空通知 / ddSave / saveLocation 通知）仍走 loud 以正常触发上传。
+  if(typeof saveDataLocal==='function'){
+    if(quiet)saveDataLocalQuiet(); else saveDataLocal();
+  }
 }
 // one-time migration from the old localStorage-only store
 function migrateNotifs(){
@@ -9142,7 +9157,7 @@ function mergeNotifs(remoteNotifs){
     if(clearedAt&&(n.ts||0)<=clearedAt)return; // 已清空：不复活早于清空时刻的旧通知
     if(!map[n.id]){local.push(n);map[n.id]=n;changed=true;}
   });
-  if(changed)notifSave(local);
+  if(changed)notifSave(local,true); // merge 回写必须 quiet（见 notifSave 注释）
   return changed;
 }
 // v102: snapshot-based collaboration notifications. Generates one summary
