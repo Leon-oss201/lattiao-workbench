@@ -2123,7 +2123,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v135';
+var APP_VERSION='v137';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2432,8 +2432,18 @@ function repairTrips(){
     return true;
   });
 }
-function saveDataLocal(){
-  // v124: GUEST_MODE write gate removed — viewer / guest mode no longer exists.
+// v136: 显式脏标记。任何「本地用户改动」落盘时打标，使同步层能 100% 只对真实改动
+// 放行上传，而不再单纯依赖整包指纹（指纹会被 updatedAt/排序等无意义变化骗到，误触发
+// 一次小传）。标记即 localStorage['lattiao_pending_push']，与 syncPushNow 入口的
+// pendingPush 闸门、以及跨会话续传（schedulePushRetry）共用同一信号。
+// ⚠️ 合并/拉取回写路径（syncPull / pushMergeCloud）必须改用 saveDataLocalQuiet，
+// 否则会把「云端合并回写」误判成本地改动，造成无谓回传甚至差量放大。
+function markLocalDirty(){
+  try{localStorage.setItem('lattiao_pending_push','1');}catch(e){}
+}
+// 真正落盘（与 v124/v47+/v76 行为完全一致）。抽出以便 saveDataLocal（打标记）与
+// saveDataLocalQuiet（不打标记）共用，避免两处逻辑漂移。
+function _persistLocal(){
   try{
     var now=new Date().toISOString();
     data.updatedAt=now;
@@ -2457,6 +2467,14 @@ function saveDataLocal(){
       snapPut(slim);
     }catch(e){console.warn('[save] local save failed',e);}
   }catch(e){}
+}
+function saveDataLocal(){
+  markLocalDirty();
+  _persistLocal();
+}
+// 合并/拉取回写专用：落盘但不打脏标记（避免把云端数据重新推回云端）。
+function saveDataLocalQuiet(){
+  _persistLocal();
 }
 
 // ============ Cloud Sync (Gitee backend, v71) ============
@@ -2643,7 +2661,9 @@ function geHeaders(){
 function geGetRaw(path,timeout){
   var t=ghToken();
   var qs='access_token='+encodeURIComponent(t||'');
-  return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders()},timeout||20000,'GET '+path)
+  // v137: 同步读必须绕过 HTTP 缓存（含 verify 回读、pull 拉取）。否则浏览器缓存可能
+  // 返回陈旧响应，骗过 uploadPhotoChunk 的「写后校验」或让 pull 看到旧数据。
+  return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders(),cache:'no-store'},timeout||20000,'GET '+path)
     .then(function(r){
       if(r.status===401){if(t)GH.tokenInvalid=true;throw new Error('TOKEN_INVALID');}
       if(r.status===404)return null;
@@ -3150,7 +3170,9 @@ function syncPull(force){
       if(typeof mergeFavorites==='function'&&remote.favorites){if(mergeFavorites(remote.favorites))settingsChanged=true;}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
-      if(changed)saveDataLocal();
+      // v136: 合并结果落盘用 quiet —— 这是「云端→本地」回写，绝不能打脏标记，否则会被
+      // 误判成本地改动而把刚拉下来的数据又推回云端（差量放大）。
+      if(changed)saveDataLocalQuiet();
       // v80: if settings changed, re-apply hero bg + re-render hero
       if(settingsChanged){applyHeroBg();}
       renderAll();
@@ -3355,6 +3377,16 @@ function buildPhotoChunks(t){
     });
   });
   return out;
+}
+// v137: 按路径从「当前 data」派生单个照片 chunk（uploadPhotoChunk 每次上传前调用，
+// 避免写入陈旧快照）。照片随用户操作增减会让分片边界漂移，同一个 locId_N.json 路径
+// 在不同时间点代表不同内容；只有现场重新计算才能保证写上去的是最新照片集。
+function livePhotoChunkByPath(path){
+  try{
+    var all=[];
+    (data.trips||[]).forEach(function(t){ all=all.concat(buildPhotoChunks(t)); });
+    return all.find(function(c){ return c.path===path; }) || null;
+  }catch(e){ return null; }
 }
 function buildTextPayload(photoChunks){
   ensurePeerName(); // v103: make sure our own name is in the synced map
@@ -3718,7 +3750,9 @@ function renderIfChanged(beforeFp){
     else if(active.id==='page-calendar')renderCal();
     else if(active.id==='page-trips')renderTrips();
   }
-  try{saveDataLocal();}catch(e){}
+  // v136: 重渲染落盘是「渲染副作用」（仅把已加载的照片等内存态写回），不是用户改动，
+  // 必须 quiet —— 否则每次打开/拉取导致可见内容变化后都会被打脏标记，制造「打开就上传」。
+  try{saveDataLocalQuiet();}catch(e){}
 }
 function prefetchTripPhotos(t,beforeFp){
   if(!t||!t.days)return;
@@ -3744,7 +3778,8 @@ function prefetchTripPhotos(t,beforeFp){
         failed.forEach(function(l){
           retryJobs.push(ensureLocationPhotos(t.id,l,false).then(function(photos){
             if(photos&&photos.length){
-              try{saveDataLocal();}catch(e){}
+              // v136: 照片加载重试成功是渲染副作用，非用户改动 → quiet
+              try{saveDataLocalQuiet();}catch(e){}
             }
           }).catch(function(){}));
         });
@@ -3824,10 +3859,11 @@ function ensureTripCovers(){
         if(!m||!m.content)return;
         try{
           var obj=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
-          if(obj&&obj.cover&&obj.cover.length>100){
+            if(obj&&obj.cover&&obj.cover.length>100){
             t.cover=obj.cover;t._hasCover=1;
             if(typeof photoCachePut==='function')photoCachePut('cover_'+t.id,[t.cover]);
-            try{saveDataLocal();}catch(e){}
+            // v136: 从云端拉回封面是「云端→本地」吸收，非用户改动 → quiet
+            try{saveDataLocalQuiet();}catch(e){}
             renderAll();
           }
         }catch(e){}
@@ -3840,44 +3876,79 @@ function ensureTripCovers(){
 // (stale sha after a concurrent write) refetches the sha and retries. This is
 // module-scope so schedulePhotoRetry can reuse it for failed-only re-uploads.
 function uploadPhotoChunk(chunk,retries){
+  // v137 根因修复：chunk 路径是「位置索引」(locId_N.json)，照片数变化会让同一路径
+  // 指代不同内容。重试 / 二次推送若携带陈旧的 chunk.data 快照，会把它写回云端并覆盖
+  // 正确内容（photo_sync_test T6 复现：_7 先被正确写成 4 张，随后一个陈旧 1 张快照
+  // 覆盖为 1 张 → 朋友少 3 张照片）。因此上传前一律从「当前 data」重新派生该路径的
+  // chunk；路径已不存在（分片边界漂移）则无需上传，直接视为完成。
+  var live=livePhotoChunkByPath(chunk.path);
+  if(!live) return Promise.resolve(true);
+  chunk=live;
   var fp2=JSON.stringify(chunk.data);
+  var nPhotos=(chunk.data.photos||[]).length;
+  // v136 照片自愈修复：上传成功后回读云端 chunk，校验真实照片数与本地一致才记
+  // photoChunkSha。否则（弱网截断/部分写入）云端只有 N 张而本地有 M 张，记录的 sha
+  // 来自残缺文件，会被 photoChunksAllSynced 误判为已同步、永不补传 → 朋友少照片
+  // （v135 数据丢失根因，photo_sync_test T6 复现）。
   function markOk(s){
-    if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}
-    if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
-    // v99: 照片同步进度
-    if(typeof photoSyncTick==='function')photoSyncTick(true);
-    // v124: 持久化 photoChunkFp 到 localStorage。原先只存内存，刷新后清零，
-    // photoChunkAllUploaded 总返回 false，导致「0/82 张待同步」重启后永远是 0。
-    // fp2 本身已是 JSON.stringify 指纹字符串，不会变化；只需 path→fp2 映射。
-    try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
-  }
-  var cached=GH.photoChunkSha?GH.photoChunkSha[chunk.path]:null;
-  if(cached){
-    return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,cached).then(markOk).catch(function(e){
-      if(String(e).indexOf('409')>=0&&retries>0){
-        return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+    return ghReadPhotoChunk(chunk.path).then(function(cloud){
+      var cloudN=cloud&&cloud.photos?cloud.photos.length:0;
+      if(cloudN===nPhotos){
+        if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}
+        if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
+        if(typeof photoSyncTick==='function')photoSyncTick(true);
+        try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+        return true;
       }
+      // 云端内容不一致 → 视为未同步，清掉 sha（若有），让下次 push 重试补齐
+      if(GH.photoChunkSha&&GH.photoChunkSha[chunk.path]){ try{delete GH.photoChunkSha[chunk.path];}catch(e){} }
+      throw new Error('CHUNK_MISMATCH cloud='+cloudN+' local='+nPhotos);
+    }).catch(function(e){
+      // 校验读不到云端（超时/404/截断 JSON）→ 保守当作未同步，清 sha 触发重试，
+      // 绝不把残缺 chunk 标记为已同步。
+      if(GH.photoChunkSha&&GH.photoChunkSha[chunk.path]){ try{delete GH.photoChunkSha[chunk.path];}catch(e2){} }
       throw e;
     });
   }
-  // v101: no cached sha → POST 直接建，省掉 geWrite 的存在性 GET 探测。
-  // 若文件其实已存在（新设备 / sha 缓存被清），Gitee 返回 409（或 400）拒绝
-  // 创建，我们再取 sha 退回到 PUT。最坏情况 3 次调用而不是 2 次，且只发生在
-  // 这种罕见场景；常规「全新 chunk」从 2 次降到 1 次。
-  return geCreate(chunk.path,chunk.data,'sync: photo '+chunk.path).then(markOk).catch(function(e){
-    var _m=String(e);
-    if((_m.indexOf('409')>=0||_m.indexOf('HTTP_400')>=0)&&retries>0){
-      return ghGetSha(chunk.path).then(function(s){
-        if(!s)throw e; // 文件确实不存在 → 保留原始错误，不要无意义重试
-        if(!GH.photoChunkSha)GH.photoChunkSha={};
-        GH.photoChunkSha[chunk.path]=s;
-        return uploadPhotoChunk(chunk,retries-1);
+  // v137 根因修复：照片上传必须「增量 / 云端更全则不动」。读者端（B）从云端读回的
+  // 照片可能只是作者（A）上传途中的瞬态偏少快照（A 还没传完），若原样回写云端会
+  // 把作者已传的照片截断（photo_sync_test T6 复现：A 把 _7 正确写成 4 张后，B 用读回
+  // 的 1 张覆盖成 1，朋友少 3 张）。因此写之前先读云端当前照片数：云端更多 → 跳过
+  // （云端更权威，绝不回写覆盖）；否则才写。geGetRaw 已加 cache:'no-store'，保证这里
+  // 读到的是云端真实状态而非陈旧缓存。
+  return ghReadPhotoChunk(chunk.path).then(function(cloud){
+    var cloudN=cloud&&cloud.photos?cloud.photos.length:0;
+    if(cloudN>nPhotos){
+      return false; // 云端更全，不回写，避免截断；正确数据随后会补齐
+    }
+    var cached=GH.photoChunkSha?GH.photoChunkSha[chunk.path]:null;
+    if(cached){
+      return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,cached).then(markOk).catch(function(e){
+        if(String(e).indexOf('409')>=0&&retries>0){
+          return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+        }
+        throw e;
       });
     }
-    if(retries>0){
-      return new Promise(function(r){setTimeout(r,2000);}).then(function(){return uploadPhotoChunk(chunk,retries-1);});
-    }
-    throw e;
+    // v101: no cached sha → POST 直接建，省掉 geWrite 的存在性 GET 探测。
+    // 若文件其实已存在（新设备 / sha 缓存被清），Gitee 返回 409（或 400）拒绝
+    // 创建，我们再取 sha 退回到 PUT。最坏情况 3 次调用而不是 2 次，且只发生在
+    // 这种罕见场景；常规「全新 chunk」从 2 次降到 1 次。
+    return geCreate(chunk.path,chunk.data,'sync: photo '+chunk.path).then(markOk).catch(function(e){
+      var _m=String(e);
+      if((_m.indexOf('409')>=0||_m.indexOf('HTTP_400')>=0)&&retries>0){
+        return ghGetSha(chunk.path).then(function(s){
+          if(!s)throw e; // 文件确实不存在 → 保留原始错误，不要无意义重试
+          if(!GH.photoChunkSha)GH.photoChunkSha={};
+          GH.photoChunkSha[chunk.path]=s;
+          return uploadPhotoChunk(chunk,retries-1);
+        });
+      }
+      if(retries>0){
+        return new Promise(function(r){setTimeout(r,2000);}).then(function(){return uploadPhotoChunk(chunk,retries-1);});
+      }
+      throw e;
+    });
   });
 }
 // v91: retry ONLY the photo chunks that failed, 8s later, without re-pushing the
@@ -4104,7 +4175,9 @@ function pushMergeCloud(){
     var after=tripsFingerprint(data.trips);
     var merged=before!==after||gChanged||fChanged;
     if(merged){
-      saveDataLocal();
+      // v136: 推送前的云端合并回写，用 quiet —— 这是「云端→本地」吸收，不是本地用户改动，
+      // 绝不能打脏标记（否则把刚从云端 merge 来的数据又推回去）。
+      saveDataLocalQuiet();
       renderAll(); // 别人的新行程/地点立刻可见，不用等下一次 30s 轮询
     }
     return merged;
@@ -4406,10 +4479,24 @@ function reconcileLocalPhotos(){
       };
       r.onerror=function(){resolve(all);};
     });
-  }).then(function(all){
+  }).then(function(cacheAll){
+    // v137 根因修复：照片的权威本地来源是 data.trips[].locations[].photos（作者端），
+    // 不是 IndexedDB 照片缓存。缓存可能只是「从云端读回来的陈旧/偏少快照」，若用它当
+    // 上传源，reconcile 会把较短的集合写回云端、截断朋友/自己的照片
+    // （photo_sync_test T6 复现：_7 被正确写成 4 张后，reconcile 用缓存的 1 张覆盖成 1）。
+    // 因此优先用 data 里的权威照片；读者端 data 的 photos 被同步层剥离，才退回缓存兜底。
+    var byKey={};
+    (data.trips||[]).forEach(function(t){
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          if(l&&l.id&&l.photos&&l.photos.length){ byKey[t.id+'|'+l.id]=l.photos; }
+        });
+      });
+    });
+    Object.keys(cacheAll||{}).forEach(function(k){ if(byKey[k]==null) byKey[k]=cacheAll[k]; });
     // For each trip/location with local photos, ensure cloud chunks exist.
     // Compare against the CURRENT photoChunk scheme (byte-sized chunks).
-    var keys=Object.keys(all);
+    var keys=Object.keys(byKey);
     if(!keys.length){GH_RECONCILING=false;return;}
     var seq=Promise.resolve();
     var pushed=0;
@@ -4418,7 +4505,7 @@ function reconcileLocalPhotos(){
         var parts=key.split('|');
         if(parts.length!==2)return;
         var tripId=parts[0],locId=parts[1];
-        var photos=all[key];
+        var photos=byKey[key];
         if(!photos||!photos.length)return;
         // Build chunks for these photos (byte-size) and ensure each exists.
         var chunks=buildPhotoChunksForLoc(tripId,{id:locId,photos:photos});
@@ -4437,9 +4524,11 @@ function reconcileLocalPhotos(){
                   var remote=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
                   var remoteN=(remote&&remote.photos||[]).length;
                   var localN=(chunk.data.photos||[]).length;
-                  if(remoteN!==localN)return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,sha).then(function(){
+                  // v137: 增量原则——云端照片更多则不动（云端更权威），绝不回写覆盖。
+                  // 否则读者端会把从云端读回的瞬态偏少快照写回，截断作者已传照片。
+                  if(remoteN<localN){ return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,sha).then(function(){
                     pushed+=localN;
-                  });
+                  }); }
                 }catch(e){}
               });
             });
