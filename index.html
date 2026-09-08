@@ -62,7 +62,7 @@
   --success-bg:#F0FDF4;--success-fg:#166534;
   --warn-bg:#FFEDD9;--warn-fg:#9A4A0F;
   --danger-bg:#FEE2E2;--danger-fg:#B91C1C;
-  --neutral-bg:#F1F5F9;--neutral-fg:#64748B;
+  --neutral-bg:#F1F5F9;--neutral-fg:#475569;
   --surface:var(--primary-lighter);
   /* v94: glass pill (hero sync indicator / corner button) + weather card gradient.
      Light mode keeps white glass over the pastel hero; dark mode flips to deep
@@ -140,7 +140,7 @@
   --surface:#262040;
   /* v94: red used as *text* must be brighter on dark cards; red used as a
      *button fill* must stay deep enough to carry white label text (4.5:1). */
-  --danger:#F87171;--danger-solid:#CE3B3B;
+  --danger:#FF8A8A;--danger-solid:#CE3B3B;
   --pill-glass:rgba(38,32,64,.85);
   --glass-hover:rgba(255,255,255,.12);--glass-hover-strong:rgba(255,255,255,.18);
   --weather-grad:linear-gradient(135deg,#223A2C,#3A3224);
@@ -190,7 +190,7 @@
     --danger-bg:rgba(226,92,92,.15);--danger-fg:#F87171;
     --neutral-bg:rgba(134,124,160,.15);--neutral-fg:#B6AECB;
     --surface:#262040;
-    --danger:#F87171;--danger-solid:#CE3B3B;
+    --danger:#FF8A8A;--danger-solid:#CE3B3B;
     --pill-glass:rgba(38,32,64,.85);
     --glass-hover:rgba(255,255,255,.12);--glass-hover-strong:rgba(255,255,255,.18);
     --weather-grad:linear-gradient(135deg,#223A2C,#3A3224);
@@ -983,6 +983,36 @@ img.photo-fade.loaded{opacity:1;}
 /* v140: 移动端长文本溢出保护（长地名/大金额/长标题在 480px 不撑破布局） */
 .p-name,.ps-v,.bn-item,.si-t,.notif-t,.td-title,.menu-row .mr-label,.pro-highlight .ph-v,.loc-name,.tl-name,.srch-item .si-s,.cta-card .ct-title{overflow-wrap:anywhere;word-break:break-word;}
 
+/* v141: 诊断/健康度面板 + 搜索增强 + 照片管理 + 手势 */
+.diag-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--border);}
+.diag-row:last-child{border-bottom:none;}
+.diag-row>span{color:var(--text-sec);}
+.diag-row>b{font-weight:700;}
+.diag-log{font-size:12px;padding:6px 8px;background:var(--primary-lighter);border-radius:8px;margin-bottom:6px;line-height:1.4;}
+.diag-log.diag-ok{background:var(--success-bg);}
+.diag-empty{font-size:12px;color:var(--text-light);padding:8px 0;}
+.srch-filters{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px;}
+.srch-chip{padding:5px 11px;border-radius:999px;font-size:12px;background:var(--card);border:1px solid var(--border);color:var(--text-sec);cursor:pointer;font-family:inherit;}
+.srch-chip.on{background:var(--primary-solid);color:#fff;border-color:var(--primary-solid);}
+.srch-saved{margin-top:4px;}
+.srch-saved-item{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--primary-lighter);color:var(--primary-dark);border-radius:999px;padding:3px 9px;margin:3px 5px 0 0;cursor:pointer;}
+.srch-saved-item .x{opacity:.6;font-weight:700;}
+.storage-bar{height:8px;border-radius:999px;background:var(--border);overflow:hidden;margin:4px 0 2px;}
+.storage-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#7C3AED,#EC4899);}
+.ph-sel{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;z-index:3;}
+.album-manage .ph-sel{display:flex;}
+.album-manage .album-cell.sel{outline:3px solid var(--primary);outline-offset:-3px;}
+.album-group-title{font-size:12px;font-weight:700;color:var(--primary-dark);margin:12px 0 6px;display:flex;justify-content:space-between;align-items:center;grid-column:1/-1;}
+.album-group-toggle{cursor:pointer;font-size:11px;color:var(--primary);}
+.swipe-hint{font-size:11px;color:var(--text-light);text-align:center;padding:6px 0;}
+.album-selbar{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--card);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.12);}
+.album-sel-count{font-size:13px;font-weight:700;color:var(--text);}
+.album-sel-actions{display:flex;gap:8px;}
+.album-sel-actions button{font-size:12px;padding:7px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;}
+.album-sel-actions .btn-ghost{background:var(--border);color:var(--text);}
+.album-sel-actions .btn-danger{background:#EF4444;color:#fff;}
+.pv-cover{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(124,58,237,.92);color:#fff;border:none;border-radius:999px;padding:10px 18px;font-size:13px;font-family:inherit;cursor:pointer;z-index:5;display:none;}
+.pv-cover.show{display:block;}
 </style>
 </head>
 <body data-page-node-id="z9CEYAYI1Ae8o6oheeVF2q">
@@ -1127,7 +1157,7 @@ setTimeout(function(){
 
     <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
-    <div class="cta-card" onclick="showPage('trips');setTimeout(()= data-page-node-id="EHPRDqyAArg19hMzwJnHfr">openTripModal(),100)">
+    <div class="cta-card" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" data-page-node-id="EHPRDqyAArg19hMzwJnHfr">
       <div class="cta-text" data-page-node-id="dxwHo5EnsrHnwG51iHWJLF">
         <div class="cta-title" data-page-node-id="u75F91DL4q8fP0kyWXoeLj">开始规划行程</div>
         <div class="cta-desc" data-page-node-id="X06JBTQEOxoIKSIGYVIl09">定制你的专属专属旅程</div>
@@ -1167,7 +1197,7 @@ setTimeout(function(){
       <div class="cities-scroll" id="home-cities" data-page-node-id="UpZEr9qKFgSqJo240lDE4m"></div>
     </div>
 
-    <button class="fab" onclick="showPage('trips');setTimeout(()= data-page-node-id="0wQ4pfa5mH2M0dvAa1cv72">openTripModal(),100)" title="新增行程">＋</button>
+    <button class="fab" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" data-page-node-id="0wQ4pfa5mH2M0dvAa1cv72" title="新增行程">＋</button>
   </section>
 
   <!-- ====== CALENDAR ====== -->
@@ -1261,6 +1291,7 @@ setTimeout(function(){
       <button class="btn btn-ghost btn-sm" id="td-addloc-btn" onclick="addLocationToCurrentDay()" data-page-node-id="hfoC5e77I0ZamzczYg5NpN">＋ 添加地点</button>
     </div>
     <div class="td-day-pills" id="td-day-pills" data-page-node-id="EGiBRt7psOjez9GfKwtVvE"></div>
+    <div class="swipe-hint" id="td-swipe-hint" data-page-node-id="v141swipe">← 左右滑动切换行程 · 滑动日期条切换当天 →</div>
     <div class="td-weather" data-page-node-id="2dmHL9M7FwNsODkuqkZj3n">
       <div class="left" data-page-node-id="Ab0C3ZgvE18LxG7CEPQz9M"><span id="td-weather-label" data-page-node-id="ogdCZtHt35rZanYQ40WQ7M">☀️ 加载中...</span></div>
       <div class="right" id="td-weather-alert" style="display:none;" data-page-node-id="nxAHfRUbZlUOY6svyof4Pi"></div>
@@ -1439,9 +1470,14 @@ setTimeout(function(){
     <div class="album-hero" data-page-node-id="iqZLKyQWKD61fNgfaDU5VK">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;" data-page-node-id="ciYHadKnqOyLLlJSI20irp">
         <h1 style="margin:0;" data-page-node-id="5FEWfVWenLTK4g4qYqTpNb">📷 行程相册</h1>
-        <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);" data-page-node-id="pQ3FS3Sv0KFHL14HvenkJR">‹</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-icon" id="album-manage-btn" onclick="albumToggleManage()" style="background:var(--pill-glass);color:var(--text);font-size:12px;padding:4px 10px;" data-page-node-id="v141mngbtn">⚙️ 管理</button>
+          <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);" data-page-node-id="pQ3FS3Sv0KFHL14HvenkJR">‹</button>
+        </div>
       </div>
       <p id="album-summary" data-page-node-id="nNZJkPa7n4fEvSE2AeLBDl">所有行程的照片，按时间倒序</p>
+      <div class="storage-bar" id="album-storage-bar" style="display:none;" data-page-node-id="v141stbar"><div class="storage-fill" id="album-storage-fill" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--text-light);" id="album-storage-text" data-page-node-id="v141sttxt"></div>
       <div style="margin-top:6px;" data-page-node-id="gAFl9w9Fo6WGdwOgmB8uzf"><span class="psync-badge" id="album-photo-sync" style="display:none;" data-page-node-id="8ETASryvGBZSKepitHGr1c">📷 0/0</span></div>
       <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;" data-page-node-id="jlmaPhKOXoAgdNbiekBcoh">
         <span class="tpl-btn" onclick="openPolaroid()" data-page-node-id="EodZ4KVoBECUCNPmAH1BfI">🖼️ 拍立得照片墙</span>
@@ -1450,6 +1486,14 @@ setTimeout(function(){
     </div>
     <div class="album-tabs" id="album-tabs" data-page-node-id="5IctdhPn8HA41nKCKnsBVc"></div>
     <div id="album-grid-wrap" data-page-node-id="GEgQn79qFuSFRPLK2G2RLX"></div>
+    <div class="album-selbar" id="album-selbar" style="display:none;" data-page-node-id="v141selbar">
+      <span id="album-sel-count" class="album-sel-count" data-page-node-id="v141selcnt">已选 0 张</span>
+      <span class="album-sel-actions">
+        <button class="btn-ghost" onclick="albumSelectAll()">全选</button>
+        <button class="btn-ghost" onclick="albumClearSel()">取消</button>
+        <button class="btn-danger" onclick="albumDeleteSelected()">删除选中</button>
+      </span>
+    </div>
   </section>
 </div>
 
@@ -1516,6 +1560,19 @@ setTimeout(function(){
       <label class="form-label" data-page-node-id="PvKiTE2zAH0RvtwZrhy17f">标签（逗号分隔，可空）</label>
       <input class="form-input" id="tm-tags" placeholder="例如：蜜月, 美食, 海边" maxlength="100" data-page-node-id="0MEGZLc8nIRKR74wbF8Pzg">
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;" data-page-node-id="d7FCAWTqYxyxZo97yelvJV">用标签给行程分类，行程页可按标签筛选。常用：蜜月 / 亲子 / 美食 / 海边 / 独自旅行 / 周末游</div>
+    </div>
+    <div class="form-row form-row-flex" data-page-node-id="v141visa">
+      <div data-page-node-id="v141visa1">
+        <label class="form-label" data-page-node-id="v141visa2">签证到期日（可选）</label>
+        <input class="form-input" id="tm-visaDate" type="date" data-page-node-id="v141visa3">
+      </div>
+      <div data-page-node-id="v141visa4">
+        <label class="form-label" data-page-node-id="v141visa5">机票/车次号（可选）</label>
+        <input class="form-input" id="tm-flightNo" placeholder="如 CA1234 / G123" maxlength="60" data-page-node-id="v141visa6">
+      </div>
+    </div>
+    <div class="form-row" data-page-node-id="v141visa7">
+      <div style="font-size:11px;color:var(--text-light);line-height:1.5;">填了签证到期日和机票号，出发前会在「通知中心」和首页提醒你办理/确认（国内游可留空）</div>
     </div>
     <div class="form-row" data-page-node-id="ns7FHbClVpIBEemCRAHPwS">
       <label class="form-label" data-page-node-id="pHnv5enaHR3TG1G2vsPH0t">封面图片（可选）</label>
@@ -1706,8 +1763,10 @@ setTimeout(function(){
       <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏…" oninput="runGlobalSearch(this.value)" autocomplete="off" aria-label="全局搜索行程、地点、攻略、收藏" data-page-node-id="WFTHzif2eQDMFK9Lgr5EaH">
       <span style="cursor:pointer;color:var(--text-light);" onclick="document.getElementById('srch-input').value='';runGlobalSearch('')" data-page-node-id="rZE1iwmZLFGT51vOujjzYw">✕</span>
     </div>
-    <div id="srch-results" style="max-height:56vh;overflow-y:auto;" data-page-node-id="LK09pCZY4hkXuB5q5aXOID"><div class="srch-empty" data-page-node-id="FEYL3dfys9hxcdhNSjZSED">输入关键字开始搜索 ✨</div></div>
-    <div class="modal-actions" data-page-node-id="k0zoIdHGi5Mn8dBtKJi6Zw"><button class="btn btn-ghost" onclick="closeModal('search-modal')" data-page-node-id="DttCGHGUlJkM5ZIvTBoMNM">关闭</button></div>
+    <div class="srch-filters" id="srch-filters"></div>
+    <div id="srch-results" style="max-height:50vh;overflow-y:auto;" data-page-node-id="LK09pCZY4hkXuB5q5aXOID"><div class="srch-empty" data-page-node-id="FEYL3dfys9hxcdhNSjZSED">输入关键字开始搜索 ✨</div></div>
+    <div class="srch-saved" id="srch-saved"></div>
+    <div class="modal-actions" data-page-node-id="k0zoIdHGi5Mn8dBtKJi6Zw"><button class="btn btn-ghost" style="flex:1;" onclick="saveCurrentSearch()">💾 保存此搜索</button><button class="btn btn-ghost" style="flex:1;" onclick="closeModal('search-modal')" data-page-node-id="DttCGHGUlJkM5ZIvTBoMNM">关闭</button></div>
   </div>
 </div>
 
@@ -2047,6 +2106,41 @@ setTimeout(function(){
         <div style="font-size:11px;color:var(--text-light);line-height:1.5;" data-page-node-id="71udY9wOn3Ij54zuobQH7f">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
       </div>
     </details>
+    <details class="set-acc" data-page-node-id="v141sync">
+      <summary>🔄 同步健康度自检</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
+        <div id="sync-health-box" class="diag-empty">点「刷新」查看同步状态</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="renderSyncHealth()">🔍 刷新健康度</button>
+          <button class="btn btn-ghost" style="flex:1;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="syncNowManual()">☁️ 立即同步</button>
+        </div>
+      </div>
+    </details>
+    <details class="set-acc" data-page-node-id="v141photo">
+      <summary>📷 照片同步自检与修复</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
+        <div id="photo-check-box" class="diag-empty">点「开始检查」比对本地与云端照片</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="runPhotoSelfCheck()">🔍 开始检查</button>
+          <button class="btn btn-ghost" style="flex:1;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="repairPhotos()" id="photo-repair-btn" disabled>🛠 一键修复</button>
+        </div>
+      </div>
+    </details>
+    <details class="set-acc" data-page-node-id="v141offq">
+      <summary>📡 离线编辑队列</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
+        <div id="offline-queue-box" class="diag-empty">点「刷新」查看离线期间改了什么</div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="renderOfflineQueue()">🔍 刷新队列</button>
+      </div>
+    </details>
+    <details class="set-acc" data-page-node-id="v141collab">
+      <summary>🤝 协作动态</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
+        <div id="collab-activity-box" class="diag-empty">点「刷新」查看最近协作与冲突</div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="renderCollabActivity()">🔍 刷新动态</button>
+      </div>
+    </details>
+
     <div class="modal-actions" data-page-node-id="HvkSwwhwLjkDgNaljKVKxY">
       <button class="btn btn-danger" onclick="clearAll()" data-page-node-id="GO2elKIb0oprEvtKSpR4tG">清空所有</button>
       <button class="btn btn-ghost" onclick="closeModal('settings-modal')" data-page-node-id="S2vCiH6kFxCtNcCitXvsvm">取消</button>
@@ -2061,6 +2155,7 @@ setTimeout(function(){
   <button class="pv-next" onclick="pvNav(1)" data-page-node-id="IVIJbyPPvoM37K7iYq2pAm">›</button>
   <img id="pv-img" data-page-node-id="IwgLNQfJvE5jbUvGzCSNZ5">
   <div class="pv-counter" id="pv-counter" data-page-node-id="bFlHC5q8LX6uisG0KtwOWF"></div>
+  <button class="pv-cover" id="pv-cover" onclick="pvSetCover()" data-page-node-id="v141pvcover">设为行程封面</button>
 </div>
 
 <div class="toast" id="toast" data-page-node-id="XeAgXSixr0I3hEfMOZAdpO"></div>
@@ -2139,7 +2234,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v140';
+var APP_VERSION='v141';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2503,6 +2598,8 @@ function _persistLocal(){
 function saveDataLocal(){
   markLocalDirty();
   _persistLocal();
+  // v141: 记录离线编辑，供「离线编辑队列」可视化（仅用户落盘路径，quiet 路径不记）
+  try{ editLogPush((typeof currentTripId!=='undefined'&&currentTripId)||(typeof currentEditingTripId!=='undefined'?currentEditingTripId:''),'保存'); }catch(e){}
 }
 // 合并/拉取回写专用：落盘但不打脏标记（避免把云端数据重新推回云端）。
 function saveDataLocalQuiet(){
@@ -6104,12 +6201,16 @@ function openTripModal(id){
       document.getElementById('tm-budget').value=(t.budget&&t.budget.total)?t.budget.total.toFixed(2):'';
       document.getElementById('tm-aa').value=t.aaPeople||1;
       document.getElementById('tm-tags').value=Array.isArray(t.tags)?t.tags.join(', '):'';
+      document.getElementById('tm-visaDate').value=t.visaDate||'';
+      document.getElementById('tm-flightNo').value=t.flightNo||'';
       if(t.cover){document.getElementById('tm-cover-img').src=t.cover;document.getElementById('tm-cover-preview').style.display='block';}
     }
   }else{
     ['tm-title','tm-destination','tm-start','tm-end','tm-budget'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('tm-aa').value=1;
     document.getElementById('tm-tags').value='';
+    document.getElementById('tm-visaDate').value='';
+    document.getElementById('tm-flightNo').value='';
     document.getElementById('tm-status').value='upcoming';
   }
   document.getElementById('trip-modal').classList.add('active');
@@ -6165,7 +6266,9 @@ function saveTrip(){
     feeling:'',
     budget:{total:tripBudget||0,items:[]},
     aaPeople:Math.max(1,parseInt(document.getElementById('tm-aa').value,10)||1),
-    tags:document.getElementById('tm-tags').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean)
+    tags:document.getElementById('tm-tags').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean),
+    visaDate:document.getElementById('tm-visaDate').value||'',
+    flightNo:(document.getElementById('tm-flightNo').value||'').trim()
   };
   if(!t.cover)t.cover='';
   // days
@@ -6424,6 +6527,43 @@ function swipeDeleteLocation(idx){
           if(next>=0&&next<n)selectTripDay(next);
         }
       }
+    },{passive:true});
+  });
+})();
+// v141 #241: swipe left/right anywhere on the trip-detail page (except the
+// day-pills bar, which keeps its own day-switch gesture) to move between trips.
+function switchTrip(dir){
+  var trips=(data.trips||[]);
+  if(trips.length<2)return;
+  var idx=-1;
+  for(var i=0;i<trips.length;i++){if(trips[i].id===currentTripId){idx=i;break;}}
+  if(idx<0)return;
+  var ni=idx+dir;
+  if(ni<0)ni=trips.length-1;        // wrap around both ends
+  if(ni>=trips.length)ni=0;
+  openTrip(trips[ni].id);
+}
+(function(){
+  document.addEventListener('DOMContentLoaded',function(){
+    var page=document.getElementById('page-trip-detail');
+    if(!page)return;
+    var sx=0,sy=0,onPills=false,moved=false;
+    page.addEventListener('touchstart',function(e){
+      if(e.touches.length!==1){onPills=false;return;}
+      sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+      onPills=!!(e.target&&e.target.closest&&e.target.closest('#td-day-pills'));
+      moved=false;
+    },{passive:true});
+    page.addEventListener('touchmove',function(e){
+      if(moved)return;
+      var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+      if(Math.abs(dx)>10||Math.abs(dy)>10)moved=true;
+    },{passive:true});
+    page.addEventListener('touchend',function(e){
+      if(onPills||!moved)return;     // let the day-pills handler own horizontal swipes there
+      var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+      // Horizontal, dominant over vertical → switch trip. (Vertical is page scroll.)
+      if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)switchTrip(dx<0?1:-1);
     },{passive:true});
   });
 })();
@@ -7965,7 +8105,7 @@ function renderProfile(){
             var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
             var tt=_tn?(' · '+escapeHTML(_tn)):'';
             return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
-              '<span style="color:var(--accent2);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
+              '<span style="color:var(--primary-dark);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
               '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
           }).join('')+
           (joys.length>30?'<div style="font-size:11px;color:var(--text-light);text-align:center;padding-top:6px;">还有 '+(joys.length-30)+' 条…</div>':'');
@@ -8619,6 +8759,24 @@ function pvRender(){
   document.getElementById('pv-img').src=typeof cur==='string'?cur:cur.src;
   var c=document.getElementById('pv-counter');
   if(c)c.textContent=PV_LIST.length>1?((PV_IDX+1)+' / '+PV_LIST.length):'';
+  // v141 #242: "set as cover" only when the photo belongs to a known trip
+  var coverBtn=document.getElementById('pv-cover');
+  if(coverBtn){
+    if(cur&&cur.tripId&&cur.src)coverBtn.classList.add('show');
+    else coverBtn.classList.remove('show');
+  }
+}
+function pvSetCover(){
+  var cur=PV_LIST[PV_IDX];
+  if(!cur||!cur.tripId){showToast('该照片无法设为封面');return;}
+  var trip=(data.trips||[]).find(function(t){return t.id===cur.tripId;});
+  if(!trip){showToast('找不到所属行程');return;}
+  trip.cover=cur.src;
+  trip.updatedAt=trip.updatedAt||Date.now();
+  saveData();
+  syncPushNow().catch(function(){});
+  showToast('已设为行程封面 🖼️');
+  renderAll();
 }
 // Lightweight swipe support on the viewer
 (function(){
@@ -8654,7 +8812,7 @@ function collectAlbumPhotos(filter){
     (t.days||[]).forEach(function(day){
       (day.locations||[]).forEach(function(l){
         (l.photos||[]).forEach(function(p,idx){
-          list.push({src:p,tripId:t.id,tripTitle:t.title||'',locName:l.name||'',d:day.date||'',idx:idx});
+          list.push({src:p,tripId:t.id,tripTitle:t.title||'',locName:l.name||'',loc:l,pidx:idx,d:day.date||'',idx:idx});
         });
       });
     });
@@ -8677,7 +8835,9 @@ function collectAlbumPhotos(filter){
 // into view, and hard-cap the live DOM at ALBUM_MAX_CELLS.
 var ALBUM_PAGE=60;
 var ALBUM_MAX_CELLS=600;
-var ALBUM_STATE={photos:[],rendered:0,lastMonth:'',obs:null,loading:false};
+var ALBUM_STATE={photos:[],rendered:0,lastMonth:'',lastTrip:'',obs:null,loading:false};
+var ALBUM_SELECT=new Set();   // selected photo indices (into ALBUM_STATE.photos)
+var albumManage=false;        // album batch-select / delete mode (v141 #242)
 function albumMonthLabel(d){
   return (d||'').slice(0,4)+' 年 '+parseInt((d||'').slice(5,7),10)+' 月';
 }
@@ -8687,12 +8847,19 @@ function albumBuildCells(from,to){
   var photos=ALBUM_STATE.photos,g='';
   for(var i=from;i<to&&i<photos.length;i++){
     var p=photos[i];
+    // v141 #242: two-level grouping — trip title (only in "all" view) then month
+    if(ALBUM_FILTER==='all'&&p.tripId!==ALBUM_STATE.lastTrip){
+      ALBUM_STATE.lastTrip=p.tripId;
+      g+='<div class="album-group-title">'+escapeHTML(p.tripTitle||'未命名行程')+'</div>';
+    }
     var m=(p.d||'').slice(0,7);
     if(m&&m!==ALBUM_STATE.lastMonth){
       ALBUM_STATE.lastMonth=m;
       g+='<div class="album-month" style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--primary-dark);padding:12px 2px 6px;">'+albumMonthLabel(p.d)+'</div>';
     }
-    g+='<div class="album-cell photo-skeleton" data-i="'+i+'"><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(p.locName||'')+'</div></div>';
+    var sel=ALBUM_SELECT.has(i)?' sel':'';
+    var check=ALBUM_SELECT.has(i)?'✓':'';
+    g+='<div class="album-cell photo-skeleton'+sel+'" data-i="'+i+'"><div class="ph-sel">'+check+'</div><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(p.locName||'')+'</div></div>';
   }
   return g;
 }
@@ -8770,7 +8937,15 @@ function albumCellClick(e){
   }
   if(!el||!el.classList||!el.classList.contains('album-cell'))return;
   var i=parseInt(el.dataset.i,10)||0;
-  viewPhotos(ALBUM_STATE.photos.map(function(x){return x.src;}),i);
+  // v141 #242: in manage mode a tap toggles selection instead of opening
+  if(albumManage){
+    if(ALBUM_SELECT.has(i))ALBUM_SELECT.delete(i); else ALBUM_SELECT.add(i);
+    el.classList.toggle('sel');
+    var chk=el.querySelector('.ph-sel'); if(chk)chk.textContent=ALBUM_SELECT.has(i)?'✓':'';
+    albumUpdateSelBar();
+    return;
+  }
+  viewPhotos(ALBUM_STATE.photos,i);
 }
 function renderAlbum(){
   var tabsEl=document.getElementById('album-tabs');
@@ -8788,6 +8963,8 @@ function renderAlbum(){
       // logic inside draw() is only meant for the same filter growing as photo
       // chunks stream in from the cloud.)
       ALBUM_STATE.rendered=0;
+      ALBUM_SELECT.clear();          // v141 #242: selection indices are filter-specific
+      albumManage=false;
       ALBUM_FILTER=el.dataset.filter;
       renderAlbum();
     });
@@ -8816,8 +8993,13 @@ function renderAlbum(){
     ALBUM_STATE.photos=photos;
     ALBUM_STATE.rendered=0;
     ALBUM_STATE.lastMonth='';
+    ALBUM_STATE.lastTrip='';
+    wrap.classList.toggle('album-manage',albumManage);
+    wrap.style.paddingBottom=albumManage?'72px':'';
     if(!photos.length){
       wrap.innerHTML='<div class="album-empty"><div style="font-size:40px;margin-bottom:10px;">📷</div><div>还没有照片</div><div style="font-size:11px;margin-top:6px;">去每个地点选照片保存，就会出现在这里</div></div>';
+      albumRenderStorage();
+      albumUpdateSelBar();
       return;
     }
     var first=Math.min(keep,photos.length,ALBUM_MAX_CELLS);
@@ -8828,10 +9010,99 @@ function renderAlbum(){
     // is safe to call on every redraw.
     wrap.addEventListener('click',albumCellClick);
     albumObserveSentinel();
+    albumRenderStorage();
+    albumUpdateSelBar();
   };
   if(!jobs.length){draw();return;}
   draw(); // show what we have now, refresh when more photos arrive
   runWithLimit(jobs,Math.max(3,Math.min(PREFETCH_CONCURRENCY,4))).then(function(){draw();});
+}
+
+// ============ Album management (v141 #242) ============
+function albumToggleManage(){
+  albumManage=!albumManage;
+  if(!albumManage)ALBUM_SELECT.clear();   // leaving manage mode drops the selection
+  renderAlbum();
+}
+function albumUpdateSelBar(){
+  var bar=document.getElementById('album-selbar');
+  var cnt=document.getElementById('album-sel-count');
+  if(bar)bar.style.display=albumManage?'flex':'none';
+  if(cnt)cnt.textContent='已选 '+ALBUM_SELECT.size+' 张';
+}
+function albumSelectAll(){
+  for(var i=0;i<ALBUM_STATE.photos.length;i++)ALBUM_SELECT.add(i);
+  var cells=document.querySelectorAll('#album-grid-wrap .album-cell');
+  cells.forEach(function(c){
+    c.classList.add('sel');
+    var chk=c.querySelector('.ph-sel'); if(chk)chk.textContent='✓';
+  });
+  albumUpdateSelBar();
+}
+function albumClearSel(){
+  ALBUM_SELECT.clear();
+  document.querySelectorAll('#album-grid-wrap .album-cell.sel').forEach(function(c){
+    c.classList.remove('sel');
+    var chk=c.querySelector('.ph-sel'); if(chk)chk.textContent='';
+  });
+  albumUpdateSelBar();
+}
+function albumDeleteSelected(){
+  if(!ALBUM_SELECT.size){showToast('请先选择照片');return;}
+  if(!confirm('确定删除选中的 '+ALBUM_SELECT.size+' 张照片吗？此操作不可撤销。'))return;
+  // Group selected photo indices by their owning location, then splice from
+  // highest index first so earlier indices stay valid during removal.
+  var byLoc=new Map();
+  ALBUM_SELECT.forEach(function(i){
+    var p=ALBUM_STATE.photos[i];
+    if(!p||!p.loc)return;
+    if(!byLoc.has(p.loc))byLoc.set(p.loc,[]);
+    byLoc.get(p.loc).push(p.pidx);
+  });
+  byLoc.forEach(function(idxs,loc){
+    idxs.sort(function(a,b){return b-a;});
+    idxs.forEach(function(x){ if(loc.photos&&x<loc.photos.length)loc.photos.splice(x,1); });
+    loc._photoCount=(loc.photos||[]).length;
+  });
+  ALBUM_SELECT.clear();
+  albumManage=false;
+  saveData();
+  syncPushNow().catch(function(){});
+  renderAlbum();
+  showToast('已删除选中照片');
+}
+// v141 #242: storage footprint of all photos (base64 → decoded byte estimate)
+function estPhotoBytes(src){
+  if(!src)return 0;
+  if(typeof src==='string'&&src.indexOf('data:')===0){
+    var c=src.indexOf(',');
+    if(c>=0)return Math.floor((src.length-c-1)*0.75);
+  }
+  return (src&&src.length)||0;
+}
+function albumStorageBytes(){
+  var bytes=0;
+  (data.trips||[]).forEach(function(t){
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        (l.photos||[]).forEach(function(p){ bytes+=estPhotoBytes(p); });
+      });
+    });
+  });
+  return bytes;
+}
+function albumRenderStorage(){
+  var bar=document.getElementById('album-storage-bar');
+  var fill=document.getElementById('album-storage-fill');
+  var txt=document.getElementById('album-storage-text');
+  if(!bar)return;
+  var bytes=albumStorageBytes();
+  if(!bytes){bar.style.display='none';if(txt)txt.textContent='';return;}
+  bar.style.display='block';
+  var mb=bytes/1048576;
+  if(txt)txt.textContent='照片约占用本地 '+mb.toFixed(1)+' MB（估算）';
+  var pct=Math.min(100,Math.round(mb/50*100));   // soft 50MB reference scale
+  if(fill)fill.style.width=pct+'%';
 }
 
 // ============ Duplicate Trip (v73) ============
@@ -9230,9 +9501,19 @@ function collectNotifEvents(){
       var s=t.startDate||'';
       if(s){
         var dleft=Math.round((parseDateStr(s)-parseDateStr(tk))/86400000);
-        if(dleft===1)pushNotif('departure','明天出发：'+(t.title||''),'目的地 '+(t.destination||'—')+' · 记得检查行李和车票','dep|'+t.id+'|1');
-        else if(dleft===0)pushNotif('departure','今天出发：'+(t.title||''),'祝旅途愉快 ✨','dep|'+t.id+'|0');
+        if(dleft===1)pushNotif('departure','明天出发：'+(t.title||''),'目的地 '+(t.destination||'—')+' · 记得检查行李和车票'+(t.flightNo?(' · 航班/车次 '+t.flightNo):''),'dep|'+t.id+'|1');
+        else if(dleft===0)pushNotif('departure','今天出发：'+(t.title||''),'祝旅途愉快 ✨'+(t.flightNo?(' · '+t.flightNo):''),'dep|'+t.id+'|0');
         else if(dleft===7)pushNotif('departure','还有 7 天出发：'+(t.title||''),'可以开始收拾行李啦','dep|'+t.id+'|7');
+        else if(dleft===3)pushNotif('packing','出发前 3 天：收拾行李清单','🛂 证件 · 🔌 充电器 · 💊 常用药 · 📷 相机 · 👕 换洗衣物','pack|'+t.id);
+        // v141: 签证到期日提醒
+        if(t.visaDate){
+          var vd=Math.round((parseDateStr(t.visaDate)-parseDateStr(tk))/86400000);
+          if(vd===7)pushNotif('visa','「'+(t.title||'')+'」签证还有 7 天到期','提前安排续签/办理','visa|'+t.id);
+          else if(vd===1)pushNotif('visa','「'+(t.title||'')+'」签证明天到期','务必确认签证状态','visa|'+t.id);
+          else if(vd===0)pushNotif('visa','「'+(t.title||'')+'」签证今天到期','立即检查','visa|'+t.id);
+        }
+        // v141: 机票/车次关键日
+        if(t.flightNo&&dleft===1)pushNotif('flight','出发前一天：确认机票/车次','航班/车次：'+t.flightNo+' · 提前值机/候车','flight|'+t.id);
       }
       if(t.endDate===tk)pushNotif('memory','「'+(t.title||'')+'」今天是最后一天','别忘了写两句旅行感受 💜','end|'+t.id);
       // 预算超支提醒
@@ -9350,12 +9631,196 @@ function generateCollabNotifs(){
   }catch(e){console.warn('generateCollabNotifs err',e);}
 }
 
+/* ---------------- v141: 同步/照片/离线/协作 诊断面板 ---------------- */
+function relTimeAgo(ts){
+  if(!ts)return '—';
+  var s=Math.floor((Date.now()-ts)/1000);
+  if(s<60)return '刚刚';
+  if(s<3600)return Math.floor(s/60)+' 分钟前';
+  if(s<86400)return Math.floor(s/3600)+' 小时前';
+  return Math.floor(s/86400)+' 天前';
+}
+// v141: 离线编辑日志——每次用户落盘（saveDataLocal）追加一条，供「离线编辑队列」可视化。
+// 同步成功（GH.lastSync）后由面板推导「已同步」状态，不侵入推送热路径。
+var EDIT_LOG_KEY='lattiao_edit_log';
+function editLogLoad(){ try{var a=JSON.parse(localStorage.getItem(EDIT_LOG_KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];} }
+function editLogPush(tripId,action){
+  try{
+    var t=data&&data.trips?data.trips.find(function(x){return x.id===tripId;}):null;
+    var title=t?(t.title||t.destination||'未命名'):'通用设置';
+    var a=editLogLoad();
+    a.unshift({ts:Date.now(),tripId:tripId||'',tripTitle:title,action:action||'编辑'});
+    if(a.length>60)a=a.slice(0,60);
+    localStorage.setItem(EDIT_LOG_KEY,JSON.stringify(a));
+  }catch(e){}
+}
+function editLogPendingCount(){
+  try{var a=editLogLoad();var ls=GH.lastSync||0;return a.filter(function(e){return !(e.synced||(ls&&e.ts<=ls));}).length;}catch(e){return 0;}
+}
+// #237 同步健康度自检
+function renderSyncHealth(){
+  var el=document.getElementById('sync-health-box'); if(!el)return;
+  try{
+    var token=ghHasToken();
+    var pending=!!localStorage.getItem('lattiao_pending_push');
+    var pushing=!!GH.pushing;
+    var lastSync=GH.lastSync?relTimeAgo(GH.lastSync):'从未';
+    var peers=Object.keys(data.peerNames||{}).length;
+    var photoOk=typeof photoChunksAllSynced==='function'?photoChunksAllSynced():true;
+    var conflicts=GH.mergeConflicts||0;
+    var statusTxt=GH.status||'offline';
+    var row=function(k,v,c){return '<div class="diag-row"><span>'+k+'</span><b'+(c?' style="color:'+c+'"':'')+'>'+v+'</b></div>';};
+    var html='';
+    html+=row('同步状态',escapeHTML(statusTxt), statusTxt==='synced'?'#16a34a':(statusTxt==='error'?'#dc2626':''));
+    html+=row('Token', !token?'未配置':(GH.tokenInvalid?'已失效':'已配置'), (!token||GH.tokenInvalid)?'#dc2626':'#16a34a');
+    html+=row('上次同步', lastSync);
+    html+=row('待推送改动', pending?('有（'+editLogPendingCount()+' 条）'):'无', pending?'#dc2626':'#16a34a');
+    html+=row('照片同步', photoOk?'全部一致':'有差异', photoOk?'#16a34a':'#dc2626');
+    html+=row('协作人数', String(peers));
+    html+=row('合并冲突(近次)', String(conflicts), conflicts?'#dc2626':'#16a34a');
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML='<div style="color:#dc2626">读取失败：'+(e&&e.message||e)+'</div>'; }
+}
+function syncNowManual(){
+  if(!ghHasToken()){showToast('请先配置协作 Token');setTimeout(openSettings,400);return;}
+  showToast('正在同步…');
+  try{ if(typeof syncPull==='function')syncPull(true); }catch(e){}
+  try{ if(typeof syncPushNow==='function')syncPushNow(); }catch(e){}
+  setTimeout(renderSyncHealth,1500);
+}
+// #245 照片同步自检 + 一键修复
+function runPhotoSelfCheck(){
+  var el=document.getElementById('photo-check-box'); if(!el)return;
+  try{
+    var totalPhotos=0,syncedPhotos=0,missChunks=0;
+    (data.trips||[]).forEach(function(t){
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          var cnt=(l.photos&&l.photos.length)||0;
+          if(!cnt)return;
+          totalPhotos+=cnt;
+          var chunks=(typeof buildPhotoChunksForLoc==='function')?buildPhotoChunksForLoc(t.id,l):[];
+          if(!chunks.length){missChunks+=1;return;}
+          chunks.forEach(function(c){
+            var fp=JSON.stringify(c.data);
+            var ok=GH.photoChunkFp&&GH.photoChunkFp[c.path]===fp&&GH.photoChunkSha&&GH.photoChunkSha[c.path];
+            if(ok)syncedPhotos+=(c.data.photos||[]).length; else missChunks+=1;
+          });
+        });
+      });
+    });
+    var row=function(k,v,c){return '<div class="diag-row"><span>'+k+'</span><b'+(c?' style="color:'+c+'"':'')+'>'+v+'</b></div>';};
+    var html='';
+    html+=row('本地照片总数', String(totalPhotos));
+    html+=row('已同步到云端', String(syncedPhotos), (totalPhotos>0&&syncedPhotos===totalPhotos)?'#16a34a':'#dc2626');
+    html+=row('待补传/不一致', String(missChunks), missChunks?'#dc2626':'#16a34a');
+    el.innerHTML=html;
+    var rb=document.getElementById('photo-repair-btn'); if(rb)rb.disabled=!missChunks;
+    window._photoSelfCheck={totalPhotos:totalPhotos,syncedPhotos:syncedPhotos,missChunks:missChunks};
+  }catch(e){ el.innerHTML='<div style="color:#dc2626">检查失败：'+(e&&e.message||e)+'</div>'; }
+}
+function repairPhotos(){
+  try{
+    if(typeof reconcileManual==='function'){ reconcileManual(); }
+    showToast('开始补传本地照片到云端 📷');
+    var rb=document.getElementById('photo-repair-btn'); if(rb)rb.disabled=true;
+  }catch(e){ showToast('修复失败：'+(e&&e.message||e)); }
+}
+// #243 离线编辑队列可视化
+function renderOfflineQueue(){
+  var el=document.getElementById('offline-queue-box'); if(!el)return;
+  try{
+    var pending=!!localStorage.getItem('lattiao_pending_push');
+    var online=(navigator.onLine!==false)&&ghHasToken();
+    var log=editLogLoad();
+    var html='';
+    html+='<div class="diag-row"><span>网络</span><b style="color:'+(navigator.onLine===false?'#dc2626':(ghHasToken()?'#16a34a':'#dc2626'))+'">'+(navigator.onLine===false?'离线':(ghHasToken()?'在线':'未配置Token'))+'</b></div>';
+    html+='<div class="diag-row"><span>待同步改动</span><b style="color:'+(pending?'#dc2626':'#16a34a')+'">'+(pending?'有':'无')+'</b></div>';
+    if(log.length){
+      html+='<div style="font-size:11px;color:var(--text-sec);margin-top:6px;">离线/未同步期间的改动（最近 '+log.length+' 条）：</div>';
+      html+='<div style="max-height:150px;overflow:auto;margin-top:4px;">';
+      log.slice(0,30).forEach(function(e){
+        var synced=e.synced||(GH.lastSync&&e.ts<=GH.lastSync);
+        html+='<div class="diag-log'+(synced?' diag-ok':'')+'">'+(synced?'✅':'⏳')+' '+relTimeAgo(e.ts)+' · '+escapeHTML(e.tripTitle||'')+' · '+(e.action||'编辑')+'</div>';
+      });
+      html+='</div>';
+    } else { html+='<div class="diag-empty">暂无记录</div>'; }
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML='<div style="color:#dc2626">读取失败</div>'; }
+}
+// #240 协作动态（最近协作 + 冲突可见性）
+function renderCollabActivity(){
+  var el=document.getElementById('collab-activity-box'); if(!el)return;
+  try{
+    var ns=(typeof notifLoad==='function')?notifLoad():[];
+    var collab=(ns||[]).filter(function(n){return n&&(n.type==='collab'||n.type==='photo'||/^col\|/.test(n.key||'')||/^photo\|/.test(n.key||''));});
+    collab.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    var html='';
+    if(!collab.length){ html='<div class="diag-empty">暂无协作动态</div>'; }
+    else{
+      html+='<div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">最近协作（'+collab.length+' 条）：</div>';
+      html+='<div style="max-height:150px;overflow:auto;">';
+      collab.slice(0,30).forEach(function(n){
+        var actor=n.actor?(typeof peerName==='function'?peerName(n.actor):n.actor):'';
+        html+='<div class="diag-log">'+ (actor?('👤 '+escapeHTML(actor)+' '):'') + escapeHTML(n.title||'') + '<div style="font-size:10px;color:var(--text-sec);">'+relTimeAgo(n.ts||0)+'</div></div>';
+      });
+      html+='</div>';
+    }
+    var mc=GH.mergeConflicts||0;
+    html+='<div class="diag-row" style="margin-top:6px;"><span>最近合并冲突</span><b style="color:'+(mc?'#dc2626':'#16a34a')+'">'+mc+'</b></div>';
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML='<div style="color:#dc2626">加载失败</div>'; }
+}
+
 /* ---------------- v99-2: 全局搜索 ---------------- */
 function openSearch(){
   document.getElementById('search-modal').classList.add('active');
   var i=document.getElementById('srch-input');
   if(i){i.value='';setTimeout(function(){i.focus();},120);}
+  renderSrchFilters();
+  renderSavedSearches();
   runGlobalSearch('');
+}
+// v141: 搜索增强——类型筛选 + 可保存搜索
+var srchFilter='全部';
+function renderSrchFilters(){
+  var box=document.getElementById('srch-filters'); if(!box)return;
+  var cats=['全部','行程','地点','攻略','收藏'];
+  box.innerHTML=cats.map(function(c){
+    return '<span class="srch-chip'+(c===srchFilter?' on':'')+'" onclick="setSrchFilter(\''+c+'\')">'+c+'</span>';
+  }).join('');
+}
+function setSrchFilter(f){
+  srchFilter=f; renderSrchFilters();
+  var i=document.getElementById('srch-input');
+  runGlobalSearch(i?i.value:'');
+}
+var SRCH_SAVED_KEY='lattiao_saved_searches';
+function srchSavedLoad(){ try{var a=JSON.parse(localStorage.getItem(SRCH_SAVED_KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];} }
+function saveCurrentSearch(){
+  var i=document.getElementById('srch-input'); var q=i?i.value.trim():'';
+  if(!q){showToast('先输入要保存的关键字');return;}
+  var a=srchSavedLoad();
+  if(a.indexOf(q)<0)a.unshift(q);
+  if(a.length>10)a=a.slice(0,10);
+  try{localStorage.setItem(SRCH_SAVED_KEY,JSON.stringify(a));}catch(e){}
+  renderSavedSearches();
+  showToast('已保存搜索「'+q+'」🔖');
+}
+function renderSavedSearches(){
+  var box=document.getElementById('srch-saved'); if(!box)return;
+  var a=srchSavedLoad();
+  if(!a.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:11px;color:var(--text-sec);margin:4px 0 2px;">已保存的搜索：</div>'+a.map(function(q){
+    return '<span class="srch-saved-item" onclick="runSavedSearch(\''+encodeURIComponent(q)+'\')">'+escapeHTML(q)+'<span class="x" onclick="event.stopPropagation();removeSavedSearch(\''+encodeURIComponent(q)+'\')">✕</span></span>';
+  }).join('');
+}
+function runSavedSearch(q){ q=decodeURIComponent(q); var i=document.getElementById('srch-input'); if(i)i.value=q; runGlobalSearch(q); }
+function removeSavedSearch(q){
+  q=decodeURIComponent(q);
+  var a=srchSavedLoad().filter(function(x){return x!==q;});
+  try{localStorage.setItem(SRCH_SAVED_KEY,JSON.stringify(a));}catch(e){}
+  renderSavedSearches();
 }
 function srchMark(text,q){
   var safe=escapeHTML(text||'');
@@ -9399,6 +9864,7 @@ function runGlobalSearch(q){
     var pool=[f.name,f.note,f.address].join(' ').toLowerCase();
     if(pool.indexOf(ql)>=0)hits.push({g:'收藏',icon:'🎒',t:f.name||'未命名',s:(f.address||f.note||'').slice(0,28),act:"closeModal('search-modal');showPage('favorites');"});
   });
+  if(srchFilter&&srchFilter!=='全部')hits=hits.filter(function(h){return h.g===srchFilter;});
   if(!hits.length){box.innerHTML='<div class="srch-empty">没有找到「'+escapeHTML(q)+'」相关内容 🤔</div>';return;}
   var order=['行程','地点','攻略','收藏'];
   var html='';
