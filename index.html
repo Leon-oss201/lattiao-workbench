@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#7C3AED">
+<html lang="zh-CN" data-page-node-id="px3K6AM3jFaIOfCr4X9Hpk">
+<head data-page-node-id="RdbUbl6C56ThVDeQeaA3Qi">
+<meta charset="UTF-8" data-page-node-id="me03a1iUHsaMDTPK5VEKRg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="5UrnqsaHkREi4H19zfwhA4">
+<meta name="theme-color" content="#7C3AED" data-page-node-id="hz8i348mOPe59k85sjFCQE">
 <!-- v85: iOS 26 / Safari 17 needs this to honor the user's dark-mode preference
      for form controls and inner element rendering. Without it, several system
      widgets snap to a light default that fights our dark theme. -->
-<meta name="color-scheme" content="light dark">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="薄荷旅行手账">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="薄荷旅行手账">
+<meta name="color-scheme" content="light dark" data-page-node-id="GcRkoFrHkYkctFWvFGijac">
+<meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="iVZhxAbCzKvzPD1mPFOHdC">
+<meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="ABb5bKj13W9DkLhDpjW55E">
+<meta name="apple-mobile-web-app-title" content="薄荷旅行手账" data-page-node-id="K7tUlpZFcjxvxAHkMBhfNL">
+<meta name="mobile-web-app-capable" content="yes" data-page-node-id="g8HPdo84lISJYqBJcRALcS">
+<meta name="application-name" content="薄荷旅行手账" data-page-node-id="nlrZVXnr3H7tjmTp2i7Ty4">
 <!-- No-cache: Safari's heuristic caching used to serve a stale index.html for
      hours, which made users stuck on old versions (they saw "still v39" etc.).
      These headers force a revalidation on every launch. -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="./favicon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="nW0s1efGCAUrZniGJ28kEg">
+<meta http-equiv="Pragma" content="no-cache" data-page-node-id="L7LHTEhgqDk1qJcCx3bG83">
+<meta http-equiv="Expires" content="0" data-page-node-id="sOrv1QiwheI7DnkiOnjIcN">
+<link rel="manifest" href="./manifest.json" data-page-node-id="7fzpkJG7FqZ8bVt3Xr6gMV">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon.png" data-page-node-id="nfsCzM4RaIAa7Nq5EEfC0g">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" data-page-node-id="lNj4ZjdQasBr0sfGgYk0Ob">
 <title>薄荷旅行手账</title>
 <style>
 :root{
@@ -973,38 +973,48 @@ img.photo-fade.loaded{opacity:1;}
 .ps-note{font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.6;}
 
 
+/* v140: 首页强提醒横幅（出发前 7 天） */
+.reminder-banner{display:flex;align-items:center;gap:10px;max-width:480px;margin:10px auto 0;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow-sm);}
+.reminder-banner .rb-ico{font-size:24px;line-height:1;flex:0 0 auto;}
+.reminder-banner .rb-body{flex:1;min-width:0;}
+.reminder-banner .rb-t{font-size:13px;font-weight:700;color:var(--primary-dark);overflow-wrap:anywhere;}
+.reminder-banner .rb-s{font-size:11px;color:var(--text-sec);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reminder-banner .rb-btn{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
+/* v140: 移动端长文本溢出保护（长地名/大金额/长标题在 480px 不撑破布局） */
+.p-name,.ps-v,.bn-item,.si-t,.notif-t,.td-title,.menu-row .mr-label,.pro-highlight .ph-v,.loc-name,.tl-name,.srch-item .si-s,.cta-card .ct-title{overflow-wrap:anywhere;word-break:break-word;}
+
 </style>
 </head>
-<body>
+<body data-page-node-id="z9CEYAYI1Ae8o6oheeVF2q">
 <!-- v109: guest read-only banner (fixed + body padding, never covers content) -->
-<div id="guest-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:9px 16px;font-size:12px;font-weight:600;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18);">👁 只读访客模式 · 你可以看全部内容，但不能修改哦</div>
+<div id="guest-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:9px 16px;font-size:12px;font-weight:600;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18);" data-page-node-id="eSXDmBgWODkB8bwcKXE2wc">👁 只读访客模式 · 你可以看全部内容，但不能修改哦</div>
 <!-- v75: offline banner -->
-<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--warn-bg);color:var(--warn-fg);font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);">📴 当前离线，数据保存在本地，联网后自动同步</div>
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--warn-bg);color:var(--warn-fg);font-size:12px;font-weight:600;text-align:center;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);" data-page-node-id="kpWZ3BIrYF3oQv1CtuXtFO">📴 当前离线，数据已存本地 · <span onclick="event.stopPropagation();offlineRetrySync()" style="color:var(--warn-fg);text-decoration:underline;cursor:pointer;" data-page-node-id="PQfjNdpcnC8CsoTh3pwkzr">恢复网络后点此立即同步</span></div>
 <!-- v82: prominent pending-push banner — shows when there are unsynced changes.
      Bigger and more visible than the small sync-indicator pill, with two clear
      actions: 立即重试 (resume the push) and 导出本地备份 (manual fallback for
      friends to import). Iris repeatedly missed the small orange pill. -->
-<div id="pending-banner" style="display:none;background:var(--warn-bg);color:var(--warn-fg);padding:14px 16px;border-bottom:2px solid var(--accent);box-shadow:0 4px 12px rgba(255,140,66,.15);">
-  <div style="display:flex;align-items:flex-start;gap:10px;max-width:480px;margin:0 auto;">
-    <div style="font-size:24px;line-height:1;">⚠️</div>
-    <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">云端同步未完成</div>
-      <div style="font-size:11px;line-height:1.5;opacity:.9;" id="pending-banner-detail">部分行程/照片暂存在本机，正在自动重试…</div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="syncPushNow()">🔄 立即重试</button>
-        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="exportFullBackup()">📤 导出本地备份</button>
-        <button class="btn btn-ghost" style="background:transparent;color:var(--warn-fg);padding:6px 8px;font-size:12px;" onclick="dismissPendingBanner()">知道了</button>
+<div id="pending-banner" style="display:none;background:var(--warn-bg);color:var(--warn-fg);padding:14px 16px;border-bottom:2px solid var(--accent);box-shadow:0 4px 12px rgba(255,140,66,.15);" data-page-node-id="EwQth42I3v0YZkysCzbBWI">
+  <div style="display:flex;align-items:flex-start;gap:10px;max-width:480px;margin:0 auto;" data-page-node-id="JG298cNUBAQGXYNl1DD9bU">
+    <div style="font-size:24px;line-height:1;" data-page-node-id="sLXBNp23qaE2mtDlcM32kd">⚠️</div>
+    <div style="flex:1;min-width:0;" data-page-node-id="UIIGbqLMcFDhZDK39cfIen">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;" data-page-node-id="zSIe0cgGDc85XM3rcrFmRF">云端同步未完成</div>
+      <div style="font-size:11px;line-height:1.5;opacity:.9;" id="pending-banner-detail" data-page-node-id="GiQXGbfkg5mNoRqbWZi7q8">部分行程/照片暂存在本机，正在自动重试…</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;" data-page-node-id="blCNWUsQrQy1TNHwtoo3kB">
+        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="syncPushNow()" data-page-node-id="cTq9IskZ0FjSj1e6ICLMB0">🔄 立即重试</button>
+        <button class="btn btn-ghost" style="background:var(--card);color:var(--warn-fg);padding:6px 12px;font-size:12px;font-weight:700;" onclick="exportFullBackup()" data-page-node-id="bf97y5lVeHN6g0TeX7d8rl">📤 导出本地备份</button>
+        <button class="btn btn-ghost" style="background:transparent;color:var(--warn-fg);padding:6px 8px;font-size:12px;" onclick="dismissPendingBanner()" data-page-node-id="YPNNm6HBEIFa7NMMtXF3rc">知道了</button>
       </div>
     </div>
   </div>
 </div>
 <!-- v79: install-to-home-screen hint (once per device) -->
-<div id="a2hs-banner" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:300;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:14px 16px;width:calc(100% - 48px);max-width:360px;">
-  <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">📲 添加到主屏幕</div>
-  <div style="font-size:12px;color:var(--text-sec);line-height:1.6;margin-bottom:10px;">像 App 一样使用：<b>iPhone/iPad</b>：点 Safari 底部 <b>分享</b> → <b>添加到主屏幕</b>；<b>Android Chrome</b>：右上菜单 → <b>安装应用</b>。</div>
-  <div style="display:flex;gap:8px;">
-    <button class="btn btn-ghost" style="flex:1;padding:8px 0;" onclick="dismissA2hs()">知道了</button>
-    <button class="btn btn-primary" style="flex:1;padding:8px 0;" onclick="dismissA2hs()">好</button>
+<div id="a2hs-banner" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:300;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:14px 16px;width:calc(100% - 48px);max-width:360px;" data-page-node-id="apT5iVOoDkqY89IGPfbfFY">
+  <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;" data-page-node-id="P2mbgDvct0FYJgXmF80FZe">📲 添加到主屏幕</div>
+  <div style="font-size:12px;color:var(--text-sec);line-height:1.6;margin-bottom:10px;" data-page-node-id="i7lSRUgmg9ESU0GsyOeaDm">像 App 一样使用：<b data-page-node-id="9I7pnH2bL5uFJgiGUqgJ2U">iPhone/iPad</b>：点 Safari 底部 <b data-page-node-id="k62Er7OgdehedRhUaRokLQ">分享</b> → <b data-page-node-id="1Yrpy3fPmht0WvG1hzWmqe">添加到主屏幕</b>；<b data-page-node-id="xJBTj0s4vLwWv232KEl654">Android Chrome</b>：右上菜单 → <b data-page-node-id="VOz5BsXYDgjtkaFdHTJXIE">安装应用</b>。</div>
+  <div style="display:flex;gap:8px;" data-page-node-id="MVWE2oO6EaljFCKSaj9YPJ">
+    <button class="btn btn-ghost" style="flex:1;padding:8px 0;" onclick="dismissA2hs()" data-page-node-id="3toC5iLZBbVJJdZ1LLaBx0">知道了</button>
+    <button class="btn btn-primary" style="flex:1;padding:8px 0;" onclick="dismissA2hs()" data-page-node-id="A7hBIU6QXPLCbDmbmlHGXA">好</button>
   </div>
 </div>
 <!-- v98: boot skeleton. The single-file app ships ~390 KB of HTML+JS; on a
@@ -1012,13 +1022,18 @@ img.photo-fade.loaded{opacity:1;}
      plain markup that paints immediately, then hideBootSkeleton() removes them
      once the app has rendered (with a 3 s failsafe so a script error can never
      leave the user staring at a shimmering shell). -->
-<div id="boot-skeleton" aria-hidden="true">
-  <div class="bs-hero"></div>
-  <div class="bs-chips"><span></span><span></span><span></span><span></span></div>
-  <div class="bs-card"></div>
-  <div class="bs-card"></div>
-  <div class="bs-card"></div>
+<div id="boot-skeleton" aria-hidden="true" data-page-node-id="0l2WZcFpjxFYHjGs1DvNKA">
+  <div class="bs-hero" data-page-node-id="AVO1HUqvwLkNaEWbo5uECz"></div>
+  <div class="bs-chips" data-page-node-id="QrGvNdGQGnIGycB6024Ion"><span data-page-node-id="MwIGZPHPZutRNviCoiRGSf"></span><span data-page-node-id="R0TAH0jewYps940j0EefXm"></span><span data-page-node-id="26cerhFviwAPd4PlQc4SUW"></span><span data-page-node-id="nHSF5AVpGSlTeZKJKe8tSH"></span></div>
+  <div class="bs-card" data-page-node-id="QEaWQc5A568LN4av5SCSj1"></div>
+  <div class="bs-card" data-page-node-id="2tOnSeNHEtW8MNU5WHaWP8"></div>
+  <div class="bs-card" data-page-node-id="Npw0ScjaszYsYhjcJYOSlz"></div>
 </div>
+<script>
+/* LZString (v1.5.0, inline for single-file PWA) */
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+</script>
+
 <script>
 // Failsafe: if anything during startup throws, the skeleton must still go away
 // after 3 s so the user is never stuck on a shimmering shell. Runs inline (and
@@ -1033,1021 +1048,1022 @@ setTimeout(function(){
   }catch(err){}
 },3000);
 </script>
-<div class="app">
+<div class="app" data-page-node-id="62vWXg56GxMmsniKmODYiY">
 
   <!-- ====== HOME ====== -->
-  <section class="page page-home active" id="page-home">
-    <div class="home-hero">
-      <svg class="hero-bg" viewBox="0 0 480 320" preserveAspectRatio="xMidYMax slice">
-        <defs>
-          <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8F2E4"/><stop offset="1" stop-color="#D5E6CC"/></linearGradient>
-          <radialGradient id="sun1" cx="0.85" cy="0.2" r="0.3"><stop offset="0" stop-color="#FFF2D9" stop-opacity=".9"/><stop offset="1" stop-color="#FFF2D9" stop-opacity="0"/></radialGradient>
+  <section class="page page-home active" id="page-home" data-page-node-id="I8Vu1r5dm1HbflRz57Xq1K">
+    <div class="home-hero" data-page-node-id="SEmWXHToaklOMUrsKdCoXa">
+      <svg class="hero-bg" viewBox="0 0 480 320" preserveAspectRatio="xMidYMax slice" data-page-node-id="n6jzkeHKk0Hg83VJ8bW0uZ">
+        <defs data-page-node-id="JcqiI0IZ2dMGtlLhkfmEDD">
+          <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1" data-page-node-id="H1bICMKl2qjXzOEayk2UUq"><stop offset="0" stop-color="#E8F2E4" data-page-node-id="4uR5FlPc7AwjAOVYweibDE"/><stop offset="1" stop-color="#D5E6CC" data-page-node-id="9s80kJz9uDmTX3fNj2ph4S"/></linearGradient>
+          <radialGradient id="sun1" cx="0.85" cy="0.2" r="0.3" data-page-node-id="cuNKH5DWzQHXjo2B3yALSm"><stop offset="0" stop-color="#FFF2D9" stop-opacity=".9" data-page-node-id="BWxQ3NUZhJ6Rnc9Q9A1RdD"/><stop offset="1" stop-color="#FFF2D9" stop-opacity="0" data-page-node-id="AswAoOlIlAOJfXMo1Bu1VA"/></radialGradient>
         </defs>
-        <rect width="480" height="320" fill="url(#sky1)"/>
-        <circle cx="400" cy="70" r="80" fill="url(#sun1)"/>
+        <rect width="480" height="320" fill="url(#sky1)" data-page-node-id="izVPfffVLRmzR75skM2SU7"/>
+        <circle cx="400" cy="70" r="80" fill="url(#sun1)" data-page-node-id="mhzp5uKZgtyWOvjRUo26vU"/>
         <!-- distant mountains -->
-        <path d="M0 200 L60 165 L120 180 L180 150 L260 175 L340 155 L420 175 L480 160 L480 220 L0 220 Z" fill="#D8B4FE" opacity=".5"/>
-        <path d="M0 215 L80 185 L160 200 L240 175 L320 195 L400 180 L480 200 L480 240 L0 240 Z" fill="#C4B5FD" opacity=".7"/>
+        <path d="M0 200 L60 165 L120 180 L180 150 L260 175 L340 155 L420 175 L480 160 L480 220 L0 220 Z" fill="#D8B4FE" opacity=".5" data-page-node-id="QgB7BDRJOIyv2dunAuSFRE"/>
+        <path d="M0 215 L80 185 L160 200 L240 175 L320 195 L400 180 L480 200 L480 240 L0 240 Z" fill="#C4B5FD" opacity=".7" data-page-node-id="bhh8ITw3DjhpTs5OUMxUwB"/>
         <!-- Pagoda -->
-        <g transform="translate(80,150)">
-          <rect x="22" y="50" width="20" height="60" fill="#5B21B6"/>
-          <polygon points="0,50 64,50 56,38 8,38" fill="#7C3AED"/>
-          <polygon points="6,38 58,38 50,28 14,28" fill="#A78BFA"/>
-          <polygon points="12,28 52,28 44,18 20,18" fill="#7C3AED"/>
-          <polygon points="18,18 46,18 38,8 26,8" fill="#A78BFA"/>
-          <rect x="29" y="0" width="6" height="8" fill="#5B21B6"/>
-          <rect x="30" y="60" width="4" height="46" fill="#FAFAF0"/>
-          <rect x="28" y="78" width="8" height="6" fill="#FF8C42" opacity=".7"/>
+        <g transform="translate(80,150)" data-page-node-id="M5sGC3AVRzPk5IpA1O9B6A">
+          <rect x="22" y="50" width="20" height="60" fill="#5B21B6" data-page-node-id="UPq6I9ZIWBsxMQHXxkI06k"/>
+          <polygon points="0,50 64,50 56,38 8,38" fill="#7C3AED" data-page-node-id="9RpRAupg4PRYvlNm1U5N88"/>
+          <polygon points="6,38 58,38 50,28 14,28" fill="#A78BFA" data-page-node-id="KLXdg70Fo90BQMl9hF6Ee4"/>
+          <polygon points="12,28 52,28 44,18 20,18" fill="#7C3AED" data-page-node-id="AKpnqfiifdmxKz9lUS0gJb"/>
+          <polygon points="18,18 46,18 38,8 26,8" fill="#A78BFA" data-page-node-id="76vNQ0rvBHf2yzse6zgpX1"/>
+          <rect x="29" y="0" width="6" height="8" fill="#5B21B6" data-page-node-id="L2yM2p4jY9IzT2DGFiDPD1"/>
+          <rect x="30" y="60" width="4" height="46" fill="#FAFAF0" data-page-node-id="vsRCLK46ZnfuhzXLa5C1Gn"/>
+          <rect x="28" y="78" width="8" height="6" fill="#FF8C42" opacity=".7" data-page-node-id="Fy46abW8NHsADf1ZGitpSA"/>
         </g>
         <!-- Bridge arch -->
-        <g transform="translate(220,210)">
-          <path d="M0 30 Q60 -20 120 30" stroke="#5B21B6" stroke-width="3" fill="none"/>
-          <path d="M5 30 Q60 -15 115 30" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".6"/>
-          <rect x="-3" y="30" width="126" height="4" fill="#5B21B6"/>
+        <g transform="translate(220,210)" data-page-node-id="jcbq69tXktJe5QfBBeXvuA">
+          <path d="M0 30 Q60 -20 120 30" stroke="#5B21B6" stroke-width="3" fill="none" data-page-node-id="VAQk62SWW1C6tvPTG03iPn"/>
+          <path d="M5 30 Q60 -15 115 30" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".6" data-page-node-id="08CT305vEhoAQx98YYAlFz"/>
+          <rect x="-3" y="30" width="126" height="4" fill="#5B21B6" data-page-node-id="EBkNp3s7fKxzHQNB5kqHhJ"/>
         </g>
         <!-- Willow right -->
-        <g transform="translate(360,100)" stroke="#7C3AED" stroke-width="1.5" fill="none" opacity=".6">
-          <path d="M0 0 Q-2 30 -8 60"/>
-          <path d="M10 0 Q12 35 6 70"/>
-          <path d="M22 0 Q26 40 20 80"/>
-          <path d="M-10 0 Q-15 25 -25 50"/>
-          <path d="M35 0 Q40 30 32 60"/>
+        <g transform="translate(360,100)" stroke="#7C3AED" stroke-width="1.5" fill="none" opacity=".6" data-page-node-id="UwEvd83aozoXGRm6zFvyTc">
+          <path d="M0 0 Q-2 30 -8 60" data-page-node-id="mu0fIrpS2pG3a5IQPIjWUL"/>
+          <path d="M10 0 Q12 35 6 70" data-page-node-id="zaGIZmXw0yhL6cGciASwJL"/>
+          <path d="M22 0 Q26 40 20 80" data-page-node-id="ByH8my0zmHB9vFMYfdOWQa"/>
+          <path d="M-10 0 Q-15 25 -25 50" data-page-node-id="b7cA4xwr5HSQTBfht8pnlg"/>
+          <path d="M35 0 Q40 30 32 60" data-page-node-id="zpeNEdVR61CFB2zg4PwW8Y"/>
         </g>
         <!-- water reflection -->
-        <path d="M0 240 Q120 235 240 240 T480 240 L480 320 L0 320 Z" fill="#E9D5FF" opacity=".4"/>
-        <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4"/>
+        <path d="M0 240 Q120 235 240 240 T480 240 L480 320 L0 320 Z" fill="#E9D5FF" opacity=".4" data-page-node-id="pkwfHXdyayqgZ6keBtQvEB"/>
+        <path d="M0 270 Q120 264 240 270 T480 270 L480 320 L0 320 Z" fill="#D8B4FE" opacity=".4" data-page-node-id="6GLYr5xEMYUKRQf0PE0ypM"/>
       </svg>
-      <button class="corner-btn" onclick="openSettings()">⚙️</button>
-      <div class="hero-action-row">
-        <button class="corner-btn" onclick="openSearch()" title="搜索行程 / 地点 / 攻略" aria-label="搜索">🔍</button>
-        <button class="corner-btn" onclick="openNotifCenter()" title="通知中心" aria-label="通知中心">🔔<span class="notif-badge" id="notif-badge">0</span></button>
-        <button class="corner-btn" onclick="openBlindBox()" title="回忆盲盒" aria-label="回忆盲盒">🎁</button>
+      <button class="corner-btn" onclick="openSettings()" data-page-node-id="u5qPrBLq06kCZADkbR3FZg">⚙️</button>
+      <div class="hero-action-row" data-page-node-id="ENvCgVWbGGhOUZZc3s4oJ9">
+        <button class="corner-btn" onclick="openSearch()" title="搜索行程 / 地点 / 攻略" aria-label="搜索" data-page-node-id="3G60ix2pxGL2F2nEJJsFEP">🔍</button>
+        <button class="corner-btn" onclick="openNotifCenter()" title="通知中心" aria-label="通知中心" data-page-node-id="q1p5W8duI6rxJHWYQrtIvM">🔔<span class="notif-badge" id="notif-badge" data-page-node-id="1MRjc5nqzDhsOlM6H1QTRW">0</span></button>
+        <button class="corner-btn" onclick="openBlindBox()" title="回忆盲盒" aria-label="回忆盲盒" data-page-node-id="z0Sz28aaubbftAQIym0DKQ">🎁</button>
       </div>
-      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步">📴 离线</div>
-      <div class="hero-decor">✨</div>
-      <div class="home-hero-text">
-        <h1 id="hero-title" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="城市旅行计划" title="点击编辑标题（100 字以内）">杭州旅行计划</h1>
-        <div class="sub-slogan" id="hero-slogan" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="让每一次出行都值得期待" title="点击编辑签名（100 字以内）">让每一次出行都值得期待</div>
+      <div id="sync-indicator" class="sync-indicator sync-offline" onclick="syncPull(true);ghHasToken()&&syncPushNow();" title="点击立即同步" data-page-node-id="2hZcBbL7EVT8RCheR7uC5X">📴 离线</div>
+      <div class="hero-decor" data-page-node-id="twbKgRtsyPygmZvZf31qCr">✨</div>
+      <div class="home-hero-text" data-page-node-id="CTZllmPqoAQWDq8AaFxhxm">
+        <h1 id="hero-title" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="城市旅行计划" title="点击编辑标题（100 字以内）" data-page-node-id="SHdje7bJsQWUzWjucSpksp">杭州旅行计划</h1>
+        <div class="sub-slogan" id="hero-slogan" contenteditable="true" spellcheck="false" maxlength="100" data-placeholder="让每一次出行都值得期待" title="点击编辑签名（100 字以内）" data-page-node-id="ghBHqZ7ZvnBkYVFIf2QzTM">让每一次出行都值得期待</div>
       </div>
     </div>
 
-    <div id="mood-cover"></div>
+    <div id="reminder-banner" class="reminder-banner" style="display:none;" data-page-node-id="6A1p2j4nDdZQOEXTUbvFFw"></div>
+    <div id="mood-cover" data-page-node-id="AXKeyrRQBJC6fY8bUN7Nep"></div>
 
-    <div class="home-greeting">
-      <div class="greeting-left">
-        <div class="hi" id="greet-hi">Hi, 杭州 👋</div>
-        <div class="greet-desc" id="greet-msg">西湖的风，等你来遇见</div>
-        <div class="greet-meta" id="greet-date">今天 · <b id="home-weather-line">--</b></div>
+    <div class="home-greeting" data-page-node-id="IiXnyVQEg10hkYDHBW7fmA">
+      <div class="greeting-left" data-page-node-id="n0OVsoIyQqelITfzkZqVSW">
+        <div class="hi" id="greet-hi" data-page-node-id="SLBCfg3BvGVXT1n1XQdAqG">Hi, 杭州 👋</div>
+        <div class="greet-desc" id="greet-msg" data-page-node-id="nUzn1lJjLStwUYE9HMbWcm">西湖的风，等你来遇见</div>
+        <div class="greet-meta" id="greet-date" data-page-node-id="2u1BWi4r7SkhEyDXVsV4hG">今天 · <b id="home-weather-line" data-page-node-id="n4SiroeNEsMFB6v2JADrIn">--</b></div>
       </div>
-      <div class="weather-pill">
-        <div class="w-icon" id="home-weather-icon">⛅</div>
-        <div class="w-mid">
-          <div class="w-temp" id="home-weather-temp">--°C</div>
-          <div class="w-lab" id="home-weather-text">加载中</div>
+      <div class="weather-pill" data-page-node-id="Rn6Sd32G9dqjbNvFLHwcjm">
+        <div class="w-icon" id="home-weather-icon" data-page-node-id="jxvZPgzU4ce7xbUPnmk01R">⛅</div>
+        <div class="w-mid" data-page-node-id="jd4QHuD7sXTKrXOrc98ado">
+          <div class="w-temp" id="home-weather-temp" data-page-node-id="AwY4mQh8V2xd2At94btiGw">--°C</div>
+          <div class="w-lab" id="home-weather-text" data-page-node-id="az1nYaSPjwk6J289hpWKP5">加载中</div>
         </div>
-        <div class="w-city" id="home-weather-city" style="font-size:10px;color:var(--text-light);margin-left:2px;"></div>
+        <div class="w-city" id="home-weather-city" style="font-size:10px;color:var(--text-light);margin-left:2px;" data-page-node-id="o1WaOkDlYAUlB9r6tQzOVQ"></div>
       </div>
     </div>
 
-    <div id="cd-card-host"></div>
+    <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
-    <div class="cta-card" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)">
-      <div class="cta-text">
-        <div class="cta-title">开始规划行程</div>
-        <div class="cta-desc">定制你的专属专属旅程</div>
+    <div class="cta-card" onclick="showPage('trips');setTimeout(()= data-page-node-id="EHPRDqyAArg19hMzwJnHfr">openTripModal(),100)">
+      <div class="cta-text" data-page-node-id="dxwHo5EnsrHnwG51iHWJLF">
+        <div class="cta-title" data-page-node-id="u75F91DL4q8fP0kyWXoeLj">开始规划行程</div>
+        <div class="cta-desc" data-page-node-id="X06JBTQEOxoIKSIGYVIl09">定制你的专属专属旅程</div>
       </div>
-      <div class="cta-arrow">→</div>
+      <div class="cta-arrow" data-page-node-id="KDsDmgjV5k1hNTOiS13bpw">→</div>
     </div>
 
     <!-- quick-grid hidden per user request -->
-    <div class="quick-grid" style="display:none;">
-      <div class="quick-card" onclick="showPage('trips')">
-        <div class="q-icon">📋</div>
-        <div class="q-name">行程清单</div>
-        <div class="q-desc">计划你的行程安排</div>
+    <div class="quick-grid" style="display:none;" data-page-node-id="a5mCPW87NEuHqGkItPBckH">
+      <div class="quick-card" onclick="showPage('trips')" data-page-node-id="NzJyOEJzKNi8st1ManH8DE">
+        <div class="q-icon" data-page-node-id="H8IweDCJ5f8u5AAmCkAqoB">📋</div>
+        <div class="q-name" data-page-node-id="b6h2saRZBvTbA7DRheisyA">行程清单</div>
+        <div class="q-desc" data-page-node-id="KKBVCdHkd0Av50jqLmgJ16">计划你的行程安排</div>
       </div>
-      <div class="quick-card" onclick="showPage('guides')">
-        <div class="q-icon">📝</div>
-        <div class="q-name">备忘记录</div>
-        <div class="q-desc">重要事项不遗漏</div>
+      <div class="quick-card" onclick="showPage('guides')" data-page-node-id="FXKFDfu8lWjZRedVAhASiu">
+        <div class="q-icon" data-page-node-id="7wjIYNlX7LW39jZDidwrTz">📝</div>
+        <div class="q-name" data-page-node-id="Pzz1sCYeZi0uzeLwddFtdm">备忘记录</div>
+        <div class="q-desc" data-page-node-id="EZEvTlv06hOnxlFKO01wym">重要事项不遗漏</div>
       </div>
-      <div class="quick-card" onclick="showPage('favorites')">
-        <div class="q-icon">🎒</div>
-        <div class="q-name">我的收藏</div>
-        <div class="q-desc">喜欢的地点收藏</div>
+      <div class="quick-card" onclick="showPage('favorites')" data-page-node-id="BKCGGZkSTFjCAkhG9FyS1A">
+        <div class="q-icon" data-page-node-id="lt2kMuSoiE9HQMILjzUTap">🎒</div>
+        <div class="q-name" data-page-node-id="8HJcK8EoYBZvHjLbtl8sbv">我的收藏</div>
+        <div class="q-desc" data-page-node-id="1zTr8BhW4RkYCICde2bJNP">喜欢的地点收藏</div>
       </div>
     </div>
 
-    <div id="joy-card-host"></div>
+    <div id="joy-card-host" data-page-node-id="XNycscFF948Jay4HlunS5t"></div>
 
-    <div class="home-section">
-      <div class="section-head"><h2>即将出行</h2><span class="more" onclick="showPage('trips')">查看全部 →</span></div>
-      <div id="home-upcoming"></div>
+    <div class="home-section" data-page-node-id="YK2X4xLC3bDJKJ3mn5J2sO">
+      <div class="section-head" data-page-node-id="N9fJrXnvCvIBEz2A2mzGQ2"><h2 data-page-node-id="6v0hG27FtUAW7BaxWdEPDC">即将出行</h2><span class="more" onclick="showPage('trips')" data-page-node-id="cBPiRKJ7JSfw1F6YdU4de9">查看全部 →</span></div>
+      <div id="home-upcoming" data-page-node-id="nfkjIkzcgOZDVBMLVC4wZ3"></div>
     </div>
 
     <!-- v78: explored cities -->
-    <div class="home-section" id="home-cities-section" style="display:none;">
-      <div class="section-head"><h2>🌍 去过的地方</h2><span class="more" onclick="openAlbum()">相册 →</span></div>
-      <div class="cities-scroll" id="home-cities"></div>
+    <div class="home-section" id="home-cities-section" style="display:none;" data-page-node-id="new5jPEeyXc6A6XjH2EE7Q">
+      <div class="section-head" data-page-node-id="6D96x8Ab3xfFDoV84Ow9Rg"><h2 data-page-node-id="oDIUwhFSoRVK24n5eGmTSB">🌍 去过的地方</h2><span class="more" onclick="openAlbum()" data-page-node-id="jEGXez95mXEMlsMduVHr61">相册 →</span></div>
+      <div class="cities-scroll" id="home-cities" data-page-node-id="UpZEr9qKFgSqJo240lDE4m"></div>
     </div>
 
-    <button class="fab" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" title="新增行程">＋</button>
+    <button class="fab" onclick="showPage('trips');setTimeout(()= data-page-node-id="0wQ4pfa5mH2M0dvAa1cv72">openTripModal(),100)" title="新增行程">＋</button>
   </section>
 
   <!-- ====== CALENDAR ====== -->
-  <section class="page page-calendar" id="page-calendar">
-    <div class="cal-hero">
-      <svg class="willow" viewBox="0 0 60 200" preserveAspectRatio="xMidYMid slice">
-        <g stroke="#7C3AED" stroke-width="1.2" fill="none" opacity=".7">
-          <path d="M30 0 Q26 50 22 100 Q20 150 18 200"/>
-          <path d="M30 10 Q24 30 16 50"/>
-          <path d="M30 30 Q22 50 14 70"/>
-          <path d="M30 50 Q20 70 10 90"/>
-          <path d="M30 70 Q22 90 12 110"/>
+  <section class="page page-calendar" id="page-calendar" data-page-node-id="XNbTsSPlM2yiXyK7KHBKBM">
+    <div class="cal-hero" data-page-node-id="lgyPFa6u22lT3kvd3N1b1V">
+      <svg class="willow" viewBox="0 0 60 200" preserveAspectRatio="xMidYMid slice" data-page-node-id="bA55B2MhRQflYp5hfOOu1c">
+        <g stroke="#7C3AED" stroke-width="1.2" fill="none" opacity=".7" data-page-node-id="FcrvZzxlGoSggCEtK2emff">
+          <path d="M30 0 Q26 50 22 100 Q20 150 18 200" data-page-node-id="SQpilBacwfhwutXBjIV38m"/>
+          <path d="M30 10 Q24 30 16 50" data-page-node-id="qqHKVdI1i2YRpq4r0b1UvN"/>
+          <path d="M30 30 Q22 50 14 70" data-page-node-id="mCLWdbyYU92KHZ8nA8Gxvv"/>
+          <path d="M30 50 Q20 70 10 90" data-page-node-id="SQOpSseM9dhJMRmCmG6e7J"/>
+          <path d="M30 70 Q22 90 12 110" data-page-node-id="5EINLuwDHG2e2NHF2D4JiH"/>
         </g>
       </svg>
-      <h1 id="cal-hero-title">杭州出行计划</h1>
-      <div class="cal-sub" id="cal-hero-sub">安排你的行程，遇见更美的杭州</div>
+      <h1 id="cal-hero-title" data-page-node-id="Ri96LW6vht8fn47pEzKQCB">杭州出行计划</h1>
+      <div class="cal-sub" id="cal-hero-sub" data-page-node-id="fDqEjR2fPc86OpUIIoJZSR">安排你的行程，遇见更美的杭州</div>
     </div>
-    <div class="cal-bar">
-      <div class="cal-nav">
-        <span class="cal-arrow" onclick="calShift(-1)">‹</span>
-        <span class="cal-month" id="cal-month-label">2024年6月</span>
-        <span class="cal-arrow" onclick="calShift(1)">›</span>
+    <div class="cal-bar" data-page-node-id="y7eD2mjbF0ouOj0ztlTELY">
+      <div class="cal-nav" data-page-node-id="gkK5DdBzcmcoVfBvcFenua">
+        <span class="cal-arrow" onclick="calShift(-1)" data-page-node-id="u8NwF2VMANBxKEf5YZhGBb">‹</span>
+        <span class="cal-month" id="cal-month-label" data-page-node-id="Vc88lIbH3JaMs3YNPKn8N3">2024年6月</span>
+        <span class="cal-arrow" onclick="calShift(1)" data-page-node-id="SppigV3GdMQfKAP8wX5YZY">›</span>
       </div>
-      <span style="font-size:12px;color:var(--text-sec);cursor:pointer;" onclick="calToday()">今天</span>
+      <span style="font-size:12px;color:var(--text-sec);cursor:pointer;" onclick="calToday()" data-page-node-id="A1NhBcXBCvUVpaWZwabCf4">今天</span>
     </div>
-    <div class="cal-weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
-    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-weekdays" data-page-node-id="jGCjwsSUW5bK8MHPlKdwRs"><div data-page-node-id="hLKMMnREmNRvMrRZAHndTB">日</div><div data-page-node-id="XWRr0vPO0dnb9sKlxgdp4C">一</div><div data-page-node-id="uP1MfCkk2tFuCBGycbMox0">二</div><div data-page-node-id="eXY4GWXwXdlFiLxdP0R3YI">三</div><div data-page-node-id="1YCT9vqFl8D44MyjVN4EIX">四</div><div data-page-node-id="01VWeaI2v68nTBn4gTgMCm">五</div><div data-page-node-id="ZgAHbNnQbDXUAh1EyWXJMe">六</div></div>
+    <div class="cal-grid" id="cal-grid" data-page-node-id="4g4VvMKAXaC1P1XSjd4N7z"></div>
     <!-- v80: active/upcoming trip banner — the single most eye-catching thing
          on the calendar ("here's what you're doing or about to do"). -->
-    <div id="cal-status" style="display:none;"></div>
-    <div class="cal-legend">
-      <div class="cal-legend-title">— 行程标注（点击筛选）—</div>
-      <div class="cal-legend-grid">
-        <div class="cal-legend-item" data-type="attraction" onclick="setCalFilter('attraction')"><div class="cli">🏞</div>景点</div>
-        <div class="cal-legend-item" data-type="food" onclick="setCalFilter('food')"><div class="cli">🍜</div>美食</div>
-        <div class="cal-legend-item" data-type="transport" onclick="setCalFilter('transport')"><div class="cli">🚇</div>交通</div>
-        <div class="cal-legend-item" data-type="departure" onclick="setCalFilter('departure')"><div class="cli">✈️</div>出行</div>
-        <div class="cal-legend-item" data-type="checkin" onclick="setCalFilter('checkin')"><div class="cli">📷</div>打卡</div>
+    <div id="cal-status" style="display:none;" data-page-node-id="SbUCPm1qNU5fADOGrWP25g"></div>
+    <div class="cal-legend" data-page-node-id="nPSriPAAdTiHQ70Zy2Jydg">
+      <div class="cal-legend-title" data-page-node-id="yohXm6UY54tBSd7i0B6Vf5">— 行程标注（点击筛选）—</div>
+      <div class="cal-legend-grid" data-page-node-id="YgGvFwYo2CicqyfBmoYIt8">
+        <div class="cal-legend-item" data-type="attraction" onclick="setCalFilter('attraction')" data-page-node-id="NfBFUC9PZLkKnueTEQ4Zdi"><div class="cli" data-page-node-id="wqNBDNlAjHIm14bsX0izNk">🏞</div>景点</div>
+        <div class="cal-legend-item" data-type="food" onclick="setCalFilter('food')" data-page-node-id="uqahppg2eLYbTMIuuVO1Zp"><div class="cli" data-page-node-id="8fZDC2sfSefbRtbxVgdqDv">🍜</div>美食</div>
+        <div class="cal-legend-item" data-type="transport" onclick="setCalFilter('transport')" data-page-node-id="3HauoBKGFHEYxMIp0DEeCD"><div class="cli" data-page-node-id="6krHr04owDZCUkAK3XzrEe">🚇</div>交通</div>
+        <div class="cal-legend-item" data-type="departure" onclick="setCalFilter('departure')" data-page-node-id="IU8GXhXv3VJJFgLyfPZI0x"><div class="cli" data-page-node-id="zRIBIjDNxkcNOC4g8br1cm">✈️</div>出行</div>
+        <div class="cal-legend-item" data-type="checkin" onclick="setCalFilter('checkin')" data-page-node-id="IlTdFEvSIhRP3IbX12tD6H"><div class="cli" data-page-node-id="Hp1AArRUfRJSRvG83zGZWm">📷</div>打卡</div>
       </div>
-      <div style="height:8px;"></div>
-      <div class="cal-legend-grid">
-        <div class="cal-legend-item" data-type="return" onclick="setCalFilter('return')"><div class="cli">🏠</div>返程</div>
-        <div class="cal-legend-item" data-type="stay" onclick="setCalFilter('stay')"><div class="cli">🏨</div>住宿</div>
-        <div class="cal-legend-item" data-type="other" onclick="setCalFilter('other')"><div class="cli">✨</div>其他</div>
-        <div class="cal-legend-item active" data-type="all" onclick="setCalFilter('all')" style="grid-column:span 2;"><div class="cli">🔍</div>显示全部</div>
+      <div style="height:8px;" data-page-node-id="MwMwEAubUPbJPtqL3v75NR"></div>
+      <div class="cal-legend-grid" data-page-node-id="b9warzVZglFM3wqEPdVjGw">
+        <div class="cal-legend-item" data-type="return" onclick="setCalFilter('return')" data-page-node-id="P3V9I5iMTU5xfEApvjvx1f"><div class="cli" data-page-node-id="rAbqQsRS5aoEQ7CAIP9r9x">🏠</div>返程</div>
+        <div class="cal-legend-item" data-type="stay" onclick="setCalFilter('stay')" data-page-node-id="GUCmLdB1cbJvbU5enhEcSG"><div class="cli" data-page-node-id="lagFsuHe6ENijL59lSHskH">🏨</div>住宿</div>
+        <div class="cal-legend-item" data-type="other" onclick="setCalFilter('other')" data-page-node-id="0fX21bS1jWuSf5ojEZvxlL"><div class="cli" data-page-node-id="2mgDQNKbHkY3MfI904Vm9c">✨</div>其他</div>
+        <div class="cal-legend-item active" data-type="all" onclick="setCalFilter('all')" style="grid-column:span 2;" data-page-node-id="0nJrlv5dolgCzrU7yNPRQN"><div class="cli" data-page-node-id="viWdso3s2LkzZDqDzL7F24">🔍</div>显示全部</div>
       </div>
     </div>
-    <div class="home-section" style="padding-top:6px;padding-bottom:24px;">
-      <div class="section-head"><h2 id="cal-list-title">本月地点</h2><span class="more" onclick="setCalFilter('all')">全部</span></div>
-      <div id="cal-locations"></div>
+    <div class="home-section" style="padding-top:6px;padding-bottom:24px;" data-page-node-id="DardeTindGPySeupjJrOEm">
+      <div class="section-head" data-page-node-id="svZtD5Yt6KEaRwPupK0mFT"><h2 id="cal-list-title" data-page-node-id="6OUYrYpvIqzLCMZHfyTma3">本月地点</h2><span class="more" onclick="setCalFilter('all')" data-page-node-id="S1qUiMEOsLwXtGMr2pnQvK">全部</span></div>
+      <div id="cal-locations" data-page-node-id="gmJw0ZlvjDMtIQu16S1O1H"></div>
     </div>
   </section>
 
   <!-- ====== TRIPS ====== -->
-  <section class="page page-trips" id="page-trips">
-    <div class="trips-hero">
-      <svg class="deco" viewBox="0 0 200 200"><path d="M10 180 Q50 100 100 130 T190 100" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".5"/><polygon points="80,120 95,90 110,120" fill="#A78BFA" opacity=".4"/><polygon points="120,135 135,105 150,135" fill="#A78BFA" opacity=".3"/></svg>
-      <h1 id="trips-hero-title">杭州行程规划</h1>
-      <div class="sub" id="trips-hero-sub">遇见西湖的温柔时光 🍃</div>
+  <section class="page page-trips" id="page-trips" data-page-node-id="HqUHoAEuYJwhIw3KWsihN5">
+    <div class="trips-hero" data-page-node-id="YEBeUB0YzCqD7LndwhgHB8">
+      <svg class="deco" viewBox="0 0 200 200" data-page-node-id="D2aDaJ2b81c18ZyjcgxlZb"><path d="M10 180 Q50 100 100 130 T190 100" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".5" data-page-node-id="lC7OAszdsNsWfNSLay0yPH"/><polygon points="80,120 95,90 110,120" fill="#A78BFA" opacity=".4" data-page-node-id="fK5i6vdJ6W7k6TClMTI7t6"/><polygon points="120,135 135,105 150,135" fill="#A78BFA" opacity=".3" data-page-node-id="bxxhpEjMN0XHTWxNLHhOfe"/></svg>
+      <h1 id="trips-hero-title" data-page-node-id="j2V9Y9ZkJmLRXkFDoiFMoK">杭州行程规划</h1>
+      <div class="sub" id="trips-hero-sub" data-page-node-id="LiAssnBfz31MCCdiXwplDh">遇见西湖的温柔时光 🍃</div>
     </div>
-    <div class="trips-tabs">
-      <div class="active" data-tab="upcoming" onclick="tripsTab(this,'upcoming')">即将出行</div>
-      <div data-tab="all" onclick="tripsTab(this,'all')">全部行程</div>
-      <div data-tab="archived" onclick="tripsTab(this,'archived')">已归档</div>
+    <div class="trips-tabs" data-page-node-id="YVPU3el5vBOwJc9XVEHYLB">
+      <div class="active" data-tab="upcoming" onclick="tripsTab(this,'upcoming')" data-page-node-id="lGcdpEzTBA5sFfvnCHPg6R">即将出行</div>
+      <div data-tab="all" onclick="tripsTab(this,'all')" data-page-node-id="sfY8CTHgvvPAidYjKttxnJ">全部行程</div>
+      <div data-tab="archived" onclick="tripsTab(this,'archived')" data-page-node-id="LtkiyHAnS51XGuhLarXm4N">已归档</div>
     </div>
-    <div id="trips-tag-tabs"></div>
+    <div id="trips-tag-tabs" data-page-node-id="wi48TCO6nmtuZCgp5KMDkm"></div>
     <!-- v78: city search bar (filled when tapping an explored-city chip) -->
-    <div style="padding:10px 16px 0;" id="trip-city-search-wrap">
-      <input class="form-input" id="trip-city-search" placeholder="🔍 搜索目的地…" oninput="citySearchTyped(this.value)" style="border-radius:20px;">
+    <div style="padding:10px 16px 0;" id="trip-city-search-wrap" data-page-node-id="EUuUD8LtfyMBWWfpfSZMMV">
+      <input class="form-input" id="trip-city-search" placeholder="🔍 搜索目的地…" oninput="citySearchTyped(this.value)" style="border-radius:20px;" data-page-node-id="40Es3ORc7LDqopN0Dq4o73">
     </div>
-    <div class="trip-list" id="trip-list"></div>
+    <div class="trip-list" id="trip-list" data-page-node-id="LRBa6cln05R1TA36E8GOnB"></div>
   </section>
 
   <!-- ====== TRIP DETAIL ====== -->
-  <section class="page page-trip-detail" id="page-trip-detail">
-    <div class="td-hero" id="td-hero">
-      <button class="td-back" onclick="showPage('trips')">‹</button>
-      <div class="td-actions">
-        <button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>
-        <button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>
-        <button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>
-        <button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>
+  <section class="page page-trip-detail" id="page-trip-detail" data-page-node-id="3lTj07d9lzEkdjxlPoLk7Z">
+    <div class="td-hero" id="td-hero" data-page-node-id="Empp4AVsD6oyrn4rZwenaS">
+      <button class="td-back" onclick="showPage('trips')" data-page-node-id="QUMAN7Yv9G2kOSNf8lSIRX">‹</button>
+      <div class="td-actions" data-page-node-id="TpT2O8cqPbjFA5Cd0vvn89">
+        <button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF" data-page-node-id="3EBNPlQPGVw3vCCX0hIt3R">📄</button>
+        <button class="btn-icon" onclick="shareTripPoster()" title="生成海报" data-page-node-id="WAGwOtTwtnYHuVO3Pr1OjA">🎨</button>
+        <button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接" data-page-node-id="8jSt4atxxMlVBBp8zs3uE7">↗</button>
+        <button class="btn-icon" onclick="editCurrentTrip()" title="编辑" data-page-node-id="rCBuB8Ht5TLGCMNBxTkjwg">✎</button>
       </div>
-      <div class="td-hero-overlay">
-        <h1 id="td-title">—</h1>
-        <div class="sub" id="td-sub">—</div>
+      <div class="td-hero-overlay" data-page-node-id="nEVR7Gvhjcfml1vy1AoxaL">
+        <h1 id="td-title" data-page-node-id="14rFx3qtf3FDCvD4YBdRhy">—</h1>
+        <div class="sub" id="td-sub" data-page-node-id="j4tmu6WeTWs1s0DqGg2pwg">—</div>
       </div>
     </div>
-    <div class="td-date-strip">
-      <div class="tds" id="td-date-range">—</div>
-      <button class="btn btn-ghost btn-sm" id="td-addloc-btn" onclick="addLocationToCurrentDay()">＋ 添加地点</button>
+    <div class="td-date-strip" data-page-node-id="wJ2VDahEW3IxdzzbtRr8c9">
+      <div class="tds" id="td-date-range" data-page-node-id="WqbunesmUlMFZjhrqUSnqq">—</div>
+      <button class="btn btn-ghost btn-sm" id="td-addloc-btn" onclick="addLocationToCurrentDay()" data-page-node-id="hfoC5e77I0ZamzczYg5NpN">＋ 添加地点</button>
     </div>
-    <div class="td-day-pills" id="td-day-pills"></div>
-    <div class="td-weather">
-      <div class="left"><span id="td-weather-label">☀️ 加载中...</span></div>
-      <div class="right" id="td-weather-alert" style="display:none;"></div>
+    <div class="td-day-pills" id="td-day-pills" data-page-node-id="EGiBRt7psOjez9GfKwtVvE"></div>
+    <div class="td-weather" data-page-node-id="2dmHL9M7FwNsODkuqkZj3n">
+      <div class="left" data-page-node-id="Ab0C3ZgvE18LxG7CEPQz9M"><span id="td-weather-label" data-page-node-id="ogdCZtHt35rZanYQ40WQ7M">☀️ 加载中...</span></div>
+      <div class="right" id="td-weather-alert" style="display:none;" data-page-node-id="nxAHfRUbZlUOY6svyof4Pi"></div>
     </div>
-    <div class="td-toolbar" style="padding:12px 18px 0;">
-      <span>📍 今日行程 · 共 <b id="td-loc-count">0</b> 个地点 <span class="psync-badge" id="td-photo-sync" style="display:none;">📷 0/0</span></span>
-      <span id="td-toolbar-actions" style="display:flex;gap:10px;"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()">📝 写日记</span></span>
+    <div class="td-toolbar" style="padding:12px 18px 0;" data-page-node-id="wJC8Ci9AYSJCx7FDi5ahOz">
+      <span data-page-node-id="bB0CqLBwmhWDZH4227eFgO">📍 今日行程 · 共 <b id="td-loc-count" data-page-node-id="A4v4g1sGsC3ZXzxO8qgG3E">0</b> 个地点 <span class="psync-badge" id="td-photo-sync" style="display:none;" data-page-node-id="dAOvxgPvL8IIaCqODcUGE6">📷 0/0</span></span>
+      <span id="td-toolbar-actions" style="display:flex;gap:10px;" data-page-node-id="DgA5CUutwjsBYb7esJ0PHj"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')" data-page-node-id="WHxzGA6R3aLElz7R3EaldR">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')" data-page-node-id="7xEW8LpYsqRLC8EZIsTpQn">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()" data-page-node-id="YHpdVl7d8vkBM0RoUYEe0q">📝 写日记</span></span>
     </div>
-    <div class="timeline" id="td-timeline"></div>
-    <div class="td-map" id="td-map">
-      <div id="td-map-real"></div>
-      <div id="td-map-fallback"></div>
-      <div class="map-setup" id="td-map-setup">
-        <button class="map-upgrade" onclick="openMapSettings()">🗺️ 用真实地图显示（可选）</button>
+    <div class="timeline" id="td-timeline" data-page-node-id="H7AcTptBoF8cDw54H0dboC"></div>
+    <div class="td-map" id="td-map" data-page-node-id="fScJXRulXtSPJPSeivpOL7">
+      <div id="td-map-real" data-page-node-id="8bWNOXDO40pqlefM2BOUUg"></div>
+      <div id="td-map-fallback" data-page-node-id="jdFu8UzlzzQirCNHUqaEBo"></div>
+      <div class="map-setup" id="td-map-setup" data-page-node-id="i67F8ZprMF9EoA0wIZHo6b">
+        <button class="map-upgrade" onclick="openMapSettings()" data-page-node-id="hey2AcyN2lXMwDBUCpt3lb">🗺️ 用真实地图显示（可选）</button>
       </div>
-      <div class="map-label" id="td-map-label">🗺️ 路线示意</div>
+      <div class="map-label" id="td-map-label" data-page-node-id="bkqEULhnNMtOYsAp7lUD6c">🗺️ 路线示意</div>
     </div>
-    <div class="td-section">
-      <h3>📖 攻略笔记</h3>
-      <div id="td-guide"></div>
+    <div class="td-section" data-page-node-id="kbZH9QGAGNz7Cpl4eHzFL4">
+      <h3 data-page-node-id="zyvd5rdlbd9IKsE5pWDT2l">📖 攻略笔记</h3>
+      <div id="td-guide" data-page-node-id="tDRaO29oCFvMcrcoVlZuyu"></div>
     </div>
-    <div class="td-section">
-      <h3>✨ 旅行感受</h3>
-      <div id="td-feeling"></div>
+    <div class="td-section" data-page-node-id="ei6czuGGdbJhctEC8pF5el">
+      <h3 data-page-node-id="4QW2f6zP3CuMIVnOUHQRSF">✨ 旅行感受</h3>
+      <div id="td-feeling" data-page-node-id="d2Gr0sPRXGgxhqBic2Nujx"></div>
     </div>
-    <div class="td-section" id="td-summary-section" style="display:none;">
-      <h3>🧾 旅行总结</h3>
-      <div id="td-summary"></div>
+    <div class="td-section" id="td-summary-section" style="display:none;" data-page-node-id="SyHYCjuEFMwb6ZFvAyN3c3">
+      <h3 data-page-node-id="W3AKxsc8ASpBXh9memQZZR">🧾 旅行总结</h3>
+      <div id="td-summary" data-page-node-id="BQErMyex4KO3tPCPJxPAHm"></div>
     </div>
-    <div class="td-section">
-      <div class="td-toolbar">
-        <h3 style="margin:0;">📷 旅行照片 <span id="td-photo-count" style="color:var(--text-light);font-weight:400;"></span></h3>
+    <div class="td-section" data-page-node-id="hPZwte5KOw3lWbW3pCW5X4">
+      <div class="td-toolbar" data-page-node-id="bCGFEKOrz15UAHoFNIZjsn">
+        <h3 style="margin:0;" data-page-node-id="WICiot3AvFPSofDL9c5zWu">📷 旅行照片 <span id="td-photo-count" style="color:var(--text-light);font-weight:400;" data-page-node-id="OFJCDQpJgEunZXAkEnrmFX"></span></h3>
       </div>
-      <div class="td-photos" id="td-photos"></div>
+      <div class="td-photos" id="td-photos" data-page-node-id="XGZi9iUaT14Ujw2Lh1Yvst"></div>
     </div>
-    <div class="td-section">
-      <h3>💰 预算明细</h3>
-      <div class="td-budget-summary" id="td-budget"></div>
+    <div class="td-section" data-page-node-id="6nKEHTtKxHZB6Pr0GaS8wO">
+      <h3 data-page-node-id="bWbcso0tIknqJ9IfC1T6je">💰 预算明细</h3>
+      <div class="td-budget-summary" id="td-budget" data-page-node-id="kxzu1zyBbyJM7gtuHmStlF"></div>
     </div>
   </section>
 
   <!-- ====== BUDGET ====== -->
-  <section class="page page-budget" id="page-budget">
-    <div class="budget-hero">
-      <h1 id="budget-hero-title">杭州行程预算</h1>
-      <div class="sub" id="budget-hero-sub">计划每一段美好旅程</div>
+  <section class="page page-budget" id="page-budget" data-page-node-id="X3d9ayrbsFLpdOVhgErpbL">
+    <div class="budget-hero" data-page-node-id="KplqCgg2yJ4R0EByPzbX8f">
+      <h1 id="budget-hero-title" data-page-node-id="nKH4JFi9T0Ss1bDisAfDVF">杭州行程预算</h1>
+      <div class="sub" id="budget-hero-sub" data-page-node-id="29Fi1cDuzcbdUElIcmHI5y">计划每一段美好旅程</div>
     </div>
-    <div style="padding:0 18px 10px;">
-      <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()">
-        <span id="budget-filter-label">📊 全部行程</span>
-        <span style="color:var(--primary);">▼</span>
+    <div style="padding:0 18px 10px;" data-page-node-id="a3SEHcj6mI0QiOAijpceTj">
+      <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()" data-page-node-id="ot2lBxOcVR9UWf3IKQtn8V">
+        <span id="budget-filter-label" data-page-node-id="i7T5yyHeh9GiFJQk6AV1mO">📊 全部行程</span>
+        <span style="color:var(--primary);" data-page-node-id="f2CVNrT4PierX4dGIxaQqO">▼</span>
       </div>
-      <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;"></div>
+      <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;" data-page-node-id="3qwxB0Df7ZllYvlqRkEuWU"></div>
       <!-- v78: fx conversion — fixed rates, no network needed -->
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-        <span style="font-size:12px;color:var(--text-sec);">💱 换算</span>
-        <select class="form-select" id="fx-select" onchange="setFxRate(this.value)" style="flex:1;">
-          <option value="1">人民币 ¥</option>
-          <option value="0.14">美元 $（1¥≈$0.14）</option>
-          <option value="0.13">欧元 €（1¥≈€0.13）</option>
-          <option value="0.05">日元 ₩（1¥≈¥0.05）</option>
-          <option value="1.09">港币 HK$（1¥≈HK$1.09）</option>
-          <option value="0.19">新币 S$（1¥≈S$0.19）</option>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;" data-page-node-id="R8tZ3SBHz4BA6io2u2Ld2b">
+        <span style="font-size:12px;color:var(--text-sec);" data-page-node-id="jiBUUFTUzrCXyNPoSWoAif">💱 换算</span>
+        <select class="form-select" id="fx-select" onchange="setFxRate(this.value)" style="flex:1;" data-page-node-id="pqWv2scHopLJy1l2FiWXkw">
+          <option value="1" data-page-node-id="ew5hiUtjFf3NlH0LwBDiRD">人民币 ¥</option>
+          <option value="0.14" data-page-node-id="p5bflbDdh9gDJvn4rlsORR">美元 $（1¥≈$0.14）</option>
+          <option value="0.13" data-page-node-id="qtLiLYuHixRFttfNQBEvL9">欧元 €（1¥≈€0.13）</option>
+          <option value="0.05" data-page-node-id="F8nA1oHlFu1RLIXiUQEEiN">日元 ₩（1¥≈¥0.05）</option>
+          <option value="1.09" data-page-node-id="98hAGSoQHQUenZCQc7GUN9">港币 HK$（1¥≈HK$1.09）</option>
+          <option value="0.19" data-page-node-id="DUGDxdD0bNqOfxIBPYbPw2">新币 S$（1¥≈S$0.19）</option>
         </select>
       </div>
     </div>
-    <div class="budget-summary">
-      <div class="donut">
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="48" fill="none" stroke="var(--primary-light)" stroke-width="14"/>
-          <circle id="donut-transport" cx="60" cy="60" r="48" fill="none" stroke="#5BC0DE" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
-          <circle id="donut-stay" cx="60" cy="60" r="48" fill="none" stroke="#A78BFA" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
-          <circle id="donut-food" cx="60" cy="60" r="48" fill="none" stroke="#FF8C42" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
-          <circle id="donut-ticket" cx="60" cy="60" r="48" fill="none" stroke="#B07AB8" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
-          <circle id="donut-shop" cx="60" cy="60" r="48" fill="none" stroke="#F4A940" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;"/>
+    <div class="budget-summary" data-page-node-id="A8UZU75a595AIWz4NdISn4">
+      <div class="donut" data-page-node-id="u994UcgOoxdXoWHlVgs52r">
+        <svg width="120" height="120" viewBox="0 0 120 120" data-page-node-id="99Uo1bHa0gEvMy7FBYVjdj">
+          <circle cx="60" cy="60" r="48" fill="none" stroke="var(--primary-light)" stroke-width="14" data-page-node-id="dUUOddk3KresVvNw1TBEwo"/>
+          <circle id="donut-transport" cx="60" cy="60" r="48" fill="none" stroke="#5BC0DE" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;" data-page-node-id="lZtOsU6xWFWbbSP6eY0IId"/>
+          <circle id="donut-stay" cx="60" cy="60" r="48" fill="none" stroke="#A78BFA" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;" data-page-node-id="1xMdf9s9UF7YwGqQv3x9nD"/>
+          <circle id="donut-food" cx="60" cy="60" r="48" fill="none" stroke="#FF8C42" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;" data-page-node-id="RxzhQtBABWV9ssmaNF3VCT"/>
+          <circle id="donut-ticket" cx="60" cy="60" r="48" fill="none" stroke="#B07AB8" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;" data-page-node-id="Afs6HTjfgiFne88J1uztDC"/>
+          <circle id="donut-shop" cx="60" cy="60" r="48" fill="none" stroke="#F4A940" stroke-width="14" stroke-dasharray="0 301.6" stroke-dashoffset="0" style="transition:stroke-dasharray 1s ease,stroke-dashoffset 1s ease;" data-page-node-id="K62X0LxupCA9v26sDsbUtX"/>
         </svg>
-        <div class="donut-center">
-          <div class="dc-total">总预算</div>
-          <div class="dc-amt" id="budget-total">¥0</div>
+        <div class="donut-center" data-page-node-id="wKUBoE1mBsmC5GHPg5cYYz">
+          <div class="dc-total" data-page-node-id="74AovNITQzk9e3ttbjoEZM">总预算</div>
+          <div class="dc-amt" id="budget-total" data-page-node-id="NHNKcGrTC7jozpECVBX0ZP">¥0</div>
         </div>
       </div>
-      <div class="bs-meta" id="budget-meta"></div>
+      <div class="bs-meta" id="budget-meta" data-page-node-id="szFmHuDFHAXKy33020R7FF"></div>
     </div>
-    <div class="budget-stats">
-      <div class="budget-stat"><div class="bs-icon">💳</div><div class="bs-amt spent" id="stat-spent">¥0</div><div class="bs-lab">已支付</div></div>
-      <div class="budget-stat"><div class="bs-icon">💰</div><div class="bs-amt left" id="stat-left">¥0</div><div class="bs-lab">剩余预算</div></div>
-      <div class="budget-stat"><div class="bs-icon">📋</div><div class="bs-amt plan" id="stat-plan">¥0</div><div class="bs-lab">计划额度</div></div>
+    <div class="budget-stats" data-page-node-id="BSdqZLCZiTrq3LnnQzn4MW">
+      <div class="budget-stat" data-page-node-id="QbSzvtlS2KB9EtKrPMTbJE"><div class="bs-icon" data-page-node-id="F6FTnpbLxAfYCbKyJwZbAw">💳</div><div class="bs-amt spent" id="stat-spent" data-page-node-id="FNIB4AM3EscRaYUWI0s9Y1">¥0</div><div class="bs-lab" data-page-node-id="fEbYlZqrN80twp77xDPMfR">已支付</div></div>
+      <div class="budget-stat" data-page-node-id="LjgzO4nh7OckTEhbnEam7Y"><div class="bs-icon" data-page-node-id="CmFzoMK60RtrIMq6XQINiB">💰</div><div class="bs-amt left" id="stat-left" data-page-node-id="I2veiGVLQNsQsgM68knSbZ">¥0</div><div class="bs-lab" data-page-node-id="5AG8aYCY8dal8FhGFnEsL5">剩余预算</div></div>
+      <div class="budget-stat" data-page-node-id="An7jmahdqDy1oOjPO20S8e"><div class="bs-icon" data-page-node-id="pW1CxCHFy1RmOI9UZcFJw5">📋</div><div class="bs-amt plan" id="stat-plan" data-page-node-id="BLVdvhgV6Oi4YGppeAhfvN">¥0</div><div class="bs-lab" data-page-node-id="lMN3QXnoWQO8hE21HxSJxx">计划额度</div></div>
     </div>
-    <div class="budget-cat-grid" id="budget-cat-grid"></div>
-    <div id="budget-daily-chart" style="padding:0 18px;margin-bottom:14px;"></div>
-    <div class="home-section">
-      <div class="section-head"><h2>行程安排</h2></div>
-      <div id="budget-trip-list"></div>
+    <div class="budget-cat-grid" id="budget-cat-grid" data-page-node-id="M52me2KnA5fcQhksh7WFJD"></div>
+    <div id="budget-daily-chart" style="padding:0 18px;margin-bottom:14px;" data-page-node-id="0NSYnmiUAvq3Y3PBWNkKr0"></div>
+    <div class="home-section" data-page-node-id="LyRwq0mwbH95nLe7toJAiS">
+      <div class="section-head" data-page-node-id="a1f0aRfNRntsGU5uvoUVVl"><h2 data-page-node-id="5gVvysoaqaQNggah6MuwSN">行程安排</h2></div>
+      <div id="budget-trip-list" data-page-node-id="rR4ch1ISNXfMjRmS7R7nlE"></div>
     </div>
-    <div style="display:flex;gap:8px;padding:0 18px 14px;">
-      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="exportBudgetCsv()">📊 导出 CSV</button>
-      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openYearPoster()">🎴 年度账单</button>
+    <div style="display:flex;gap:8px;padding:0 18px 14px;" data-page-node-id="igKDkb3fb5d37GA8bEDjK7">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="exportBudgetCsv()" data-page-node-id="jbQEjv1iJELGoWYngaQidQ">📊 导出 CSV</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openYearPoster()" data-page-node-id="baJyUG1ywtMGgblszItffI">🎴 年度账单</button>
     </div>
-    <div class="tip-banner">✨ 合理规划每一笔，让旅行更安心</div>
+    <div class="tip-banner" data-page-node-id="DovFCWaeQDh6IMUGnuZfMp">✨ 合理规划每一笔，让旅行更安心</div>
   </section>
 
   <!-- ====== GUIDES ====== -->
-  <section class="page page-trips" id="page-guides">
-    <div class="trips-hero">
-      <svg class="deco" viewBox="0 0 200 200"><circle cx="100" cy="100" r="40" fill="#A78BFA" opacity=".2"/><circle cx="100" cy="100" r="60" fill="#A78BFA" opacity=".15"/></svg>
-      <h1>攻略 & 备忘</h1>
-      <div class="sub">记录旅途中的点点灵感</div>
+  <section class="page page-trips" id="page-guides" data-page-node-id="6t6SL871Wivlwb3nWXzBed">
+    <div class="trips-hero" data-page-node-id="d7VfQK2dFhKH0TV0GCwFBD">
+      <svg class="deco" viewBox="0 0 200 200" data-page-node-id="shKeNUCCj9m03qc6wOrAWm"><circle cx="100" cy="100" r="40" fill="#A78BFA" opacity=".2" data-page-node-id="NQbaADRztzKDyr9zj3SQe4"/><circle cx="100" cy="100" r="60" fill="#A78BFA" opacity=".15" data-page-node-id="ydWuppA2kiSObAjDjzPhEV"/></svg>
+      <h1 data-page-node-id="MO5oUlm5eZCWB5uRu8q3Si">攻略 & 备忘</h1>
+      <div class="sub" data-page-node-id="Mk9RzDuE9o7nnUny9oF35J">记录旅途中的点点灵感</div>
     </div>
-    <div class="trips-tabs">
-      <div class="active" data-tab="all" onclick="guidesTab(this,'all')">全部</div>
-      <div data-tab="guide" onclick="guidesTab(this,'guide')">攻略</div>
-      <div data-tab="note" onclick="guidesTab(this,'note')">备忘</div>
-      <div data-tab="feeling" onclick="guidesTab(this,'feeling')">感受</div>
+    <div class="trips-tabs" data-page-node-id="HO8kwxj64tYAG449QccIT9">
+      <div class="active" data-tab="all" onclick="guidesTab(this,'all')" data-page-node-id="CJQbETsyLDI9uOP2LK1v6i">全部</div>
+      <div data-tab="guide" onclick="guidesTab(this,'guide')" data-page-node-id="PUCFwyNTJSC4WcICz9ItDi">攻略</div>
+      <div data-tab="note" onclick="guidesTab(this,'note')" data-page-node-id="qCAT1Xrs4mZnFFf4k5j2tb">备忘</div>
+      <div data-tab="feeling" onclick="guidesTab(this,'feeling')" data-page-node-id="hhjrmAyeKwcYUPdDsqjEtP">感受</div>
     </div>
-    <div class="trip-list" id="guide-list"></div>
-    <button class="fab" onclick="openGuideModal()" title="新增攻略">＋</button>
+    <div class="trip-list" id="guide-list" data-page-node-id="vP6sf8jvuKuHi7kNqFk7G5"></div>
+    <button class="fab" onclick="openGuideModal()" title="新增攻略" data-page-node-id="SoEeNNq9kkGP9XkMhcpteM">＋</button>
   </section>
 
   <!-- ====== FAVORITES ====== -->
-  <section class="page page-trips" id="page-favorites">
-    <div class="trips-hero">
-      <h1>我的收藏</h1>
-      <div class="sub">喜欢的地点 & 心愿清单</div>
+  <section class="page page-trips" id="page-favorites" data-page-node-id="ciM7kXoqFawBWhsn0o8xFR">
+    <div class="trips-hero" data-page-node-id="ON6dBdn5KO4nRE9Kk9oJdA">
+      <h1 data-page-node-id="jX3OEz9LD62idJ6FLVhsbK">我的收藏</h1>
+      <div class="sub" data-page-node-id="PY3iGS7QhV14hyUHqpWZfq">喜欢的地点 & 心愿清单</div>
     </div>
-    <div class="trips-tabs">
-      <div class="active" data-tab="places" onclick="favTab(this,'places')">地点</div>
-      <div data-tab="wishlist" onclick="favTab(this,'wishlist')">心愿</div>
+    <div class="trips-tabs" data-page-node-id="x9OBw7pVBGwSUEH13jSbj9">
+      <div class="active" data-tab="places" onclick="favTab(this,'places')" data-page-node-id="LrBQCFhfQxXXZWTPhzeoBV">地点</div>
+      <div data-tab="wishlist" onclick="favTab(this,'wishlist')" data-page-node-id="kPu3iry6Din5KAHqX2LSEb">心愿</div>
     </div>
-    <div class="trip-list" id="fav-list"></div>
-    <button class="fab" onclick="openFavModal()" title="新增收藏">＋</button>
+    <div class="trip-list" id="fav-list" data-page-node-id="ex81wGsSCphinjAop3cwkl"></div>
+    <button class="fab" onclick="openFavModal()" title="新增收藏" data-page-node-id="UGDNDX1Esg0DynBUecbQwy">＋</button>
   </section>
 
   <!-- ====== PROFILE ====== -->
-  <section class="page page-profile" id="page-profile">
-    <div class="profile-hero">
-      <div class="profile-avatar">🌿</div>
-      <div class="profile-info">
-        <div class="p-name" id="profile-name">Iris</div>
-        <div class="p-sub">热爱旅行 · 记录生活</div>
-        <div class="p-tags">
-          <span class="p-tag" id="p-tag-cities">🧳 已走过 0 城</span>
-          <span class="p-tag" id="p-tag-photos">📷 0 张照片</span>
+  <section class="page page-profile" id="page-profile" data-page-node-id="W0ozKUoDWvzaGN63kP4pSX">
+    <div class="profile-hero" data-page-node-id="zquQJimcHKUdSYQoZ0UxaL">
+      <div class="profile-avatar" data-page-node-id="BL4ooiAuGeOmAgTkCXF0Pa">🌿</div>
+      <div class="profile-info" data-page-node-id="MmUePEzx3oZm58SaeSfULG">
+        <div class="p-name" id="profile-name" data-page-node-id="ztIwGFgj0JEcGhZj0YoMsb">Iris</div>
+        <div class="p-sub" data-page-node-id="mFn8Z9CMXH6EIrOQBmrVEC">热爱旅行 · 记录生活</div>
+        <div class="p-tags" data-page-node-id="MNp7LZS1DZfnz3qBBIB0PW">
+          <span class="p-tag" id="p-tag-cities" data-page-node-id="tp7NAzU9WuGNonaQMSH2aA">🧳 已走过 0 城</span>
+          <span class="p-tag" id="p-tag-photos" data-page-node-id="L1Ukj1iNGFHxBYBYDqV4ue">📷 0 张照片</span>
         </div>
       </div>
     </div>
-    <div class="pro-stats">
-      <div class="pro-stat"><div class="ps-v" id="ps-trips">0</div><div class="ps-l">次旅行</div></div>
-      <div class="pro-stat"><div class="ps-v" id="ps-photos">0</div><div class="ps-l">张照片</div></div>
-      <div class="pro-stat"><div class="ps-v" id="ps-km">0</div><div class="ps-l">公里足迹</div></div>
+    <div class="pro-stats" data-page-node-id="rziCZMlD1cWAWU2yf9TVUU">
+      <div class="pro-stat" data-page-node-id="UupaSOAxDrg5Eu5FENswxp"><div class="ps-v" id="ps-trips" data-page-node-id="XaUNGZKUursgsnsHNWIuDI">0</div><div class="ps-l" data-page-node-id="7WFdCldaUhJKcwTUgsRn4D">次旅行</div></div>
+      <div class="pro-stat" data-page-node-id="g2dtxbsyAeoul2XOKOrbSw"><div class="ps-v" id="ps-photos" data-page-node-id="7MsQ9zUSez0FNA5VT4mqdV">0</div><div class="ps-l" data-page-node-id="pSOXDnRDdZvGgQN5aQAk2n">张照片</div></div>
+      <div class="pro-stat" data-page-node-id="h93SUOFYSUWWg43U7uJjvN"><div class="ps-v" id="ps-km" data-page-node-id="yslMjFgn16H9TxLS94vpUg">0</div><div class="ps-l" data-page-node-id="WB2GGowjlIpBzvA1YGln3M">公里足迹</div></div>
     </div>
-    <div class="pro-highlights" id="pro-highlights" style="display:none;">
-      <div class="pro-highlight"><div class="ph-v" id="ph-farthest">—</div><div class="ph-l">最远目的地</div></div>
-      <div class="pro-highlight"><div class="ph-v" id="ph-photoday">—</div><div class="ph-l">照片最多的一天</div></div>
+    <div class="pro-highlights" id="pro-highlights" style="display:none;" data-page-node-id="tetEDb5ogqZmX8134uc7Bw">
+      <div class="pro-highlight" data-page-node-id="D4yeg0t5qvEgZZtbJPBJOf"><div class="ph-v" id="ph-farthest" data-page-node-id="SjkIzjyNb5gA0YWpqF5MQ4">—</div><div class="ph-l" data-page-node-id="Scuuf6vtp83hSrWGbvClsG">最远目的地</div></div>
+      <div class="pro-highlight" data-page-node-id="pDmxfcWKwtdpDFP5xVAFLT"><div class="ph-v" id="ph-photoday" data-page-node-id="8j1D7kDk5wsgOtR4CIxQg8">—</div><div class="ph-l" data-page-node-id="SDk2z1yE308nDUcmeNnzUx">照片最多的一天</div></div>
     </div>
-    <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
-    <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
-    <div id="pro-joy-timeline" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;"></div>
-    <div id="pro-menu"></div>
-    <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
-    <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;">薄荷旅行手账 <span id="app-version-footer">v4.0</span> · 记录每一段旅程 ✨</div>
+    <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="ULKeKQtgrC0dLFOpoCNGLx"></div>
+    <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="b7PAshuyyR9eCJqEVpwJxN"></div>
+    <div id="pro-joy-timeline" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="acw5FADFZczTAF8BtqGMnt"></div>
+    <div id="pro-menu" data-page-node-id="05w30KdjUzokWRCOFnrZC4"></div>
+    <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)" data-page-node-id="PAns7x1Ptb5bclx2e4T7pP">
+    <div class="home-section" style="text-align:center;color:var(--text-light);font-size:11px;" data-page-node-id="gs2pRbdDHj2pohB52hFryE">薄荷旅行手账 <span id="app-version-footer" data-page-node-id="hCWV9lFKmaWEJPPk9o6vUW">v4.0</span> · 记录每一段旅程 ✨</div>
   </section>
 
   <!-- ===== Bottom Nav ===== -->
-  <nav class="bottom-nav">
-    <div class="bottom-nav-items">
-      <div class="bn-item active" data-page="home"><div class="bn-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span class="bn-dot" id="dot-home"></span></div>首页</div>
-      <div class="bn-item" data-page="calendar"><div class="bn-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/><path d="M8 14h3M13.5 14h2.5"/></svg><span class="bn-dot" id="dot-calendar"></span></div>日历</div>
-      <div class="bn-item" data-page="trips"><div class="bn-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5 5 6l7-3 7 3 1 13.5"/><path d="M5 6h14"/><path d="M9 9.5h.01M12 9.5h.01M15 9.5h.01"/><path d="M12 6v13.5"/></svg><span class="bn-dot" id="dot-trips"></span></div>行程</div>
-      <div class="bn-item" data-page="budget"><div class="bn-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5a3.5 3.5 0 0 0-3.5-2.5c-2 0-3.5 1.3-3.5 3s1.3 2.6 3.5 3 3.5 1.3 3.5 3-1.5 3-3.5 3a3.5 3.5 0 0 1-3.5-2.5"/><path d="M12 4.5v2M12 17.5v2"/></svg><span class="bn-dot" id="dot-budget"></span></div>预算</div>
-      <div class="bn-item" data-page="profile"><div class="bn-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg><span class="bn-dot" id="dot-profile"></span></div>我的</div>
+  <nav class="bottom-nav" role="navigation" aria-label="主导航" data-page-node-id="NOd2ftW04xLFKn58kqTiBo">
+    <div class="bottom-nav-items" data-page-node-id="omPvgxLrml4IkYWwBJMmC2">
+      <div class="bn-item active" data-page="home" role="button" tabindex="0" aria-label="首页" data-page-node-id="l6SE6BlPq2aOzhUfYoKtlU"><div class="bn-icon" data-page-node-id="otWlaBuuGctiLYHcNetxHr"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="GwDjDRHBdEjxJkSUu1vax4"><path d="M3 10.5 12 3l9 7.5" data-page-node-id="RPHIr9jxxANeWETNetUx7t"/><path d="M5 9.5V21h14V9.5" data-page-node-id="oLmgAX4RKSchyb69C2FrPT"/><path d="M9.5 21v-6h5v6" data-page-node-id="riBPiapnFtktpqAHyXFEyO"/></svg><span class="bn-dot" id="dot-home" data-page-node-id="cUmMs7nyyhRBFbPjFymDlz"></span></div>首页</div>
+      <div class="bn-item" data-page="calendar" role="button" tabindex="0" aria-label="日历" data-page-node-id="y4Bz9BmGDvprmGiFjRW8rQ"><div class="bn-icon" data-page-node-id="MNRhxZltgSWyiWvYefXKAv"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="XTbctGoV5Um0GoGnrdCaUQ"><rect x="3.5" y="5" width="17" height="16" rx="2.5" data-page-node-id="GS22CbTvFdkoBLTnUK6WFb"/><path d="M3.5 10h17" data-page-node-id="CzFZ1nWPUOOFmC17bNvOQz"/><path d="M8 3v4M16 3v4" data-page-node-id="zprj9yXD0ajJ6zgCBvShbm"/><path d="M8 14h3M13.5 14h2.5" data-page-node-id="sxs56ElutyI0JcrJ8TErEa"/></svg><span class="bn-dot" id="dot-calendar" data-page-node-id="Vl5FMTDqpYBQeIsLEtQUXy"></span></div>日历</div>
+      <div class="bn-item" data-page="trips" role="button" tabindex="0" aria-label="行程" data-page-node-id="i5p0epHSEEOF2cWLAlklMo"><div class="bn-icon" data-page-node-id="RUgivvwMCNhFr4kAvcCrQU"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="6P8YuKqMxYNBxOANUsbf6Y"><path d="M4 19.5 5 6l7-3 7 3 1 13.5" data-page-node-id="LIpNk4kWMhFp9WAWjWSirx"/><path d="M5 6h14" data-page-node-id="MsutUP06kMgiMkRpzvr8xe"/><path d="M9 9.5h.01M12 9.5h.01M15 9.5h.01" data-page-node-id="jiLjgAgMQE280LaAM4UfjC"/><path d="M12 6v13.5" data-page-node-id="AhxSjDgwer6XtlYhcC1ah8"/></svg><span class="bn-dot" id="dot-trips" data-page-node-id="oafRHafLNgbAgnPbYGUIbI"></span></div>行程</div>
+      <div class="bn-item" data-page="budget" role="button" tabindex="0" aria-label="预算" data-page-node-id="KykIToHhYqKK02X3d4PieP"><div class="bn-icon" data-page-node-id="UcP2ucMZpOIaocY0CMsqYt"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="n0rhYeRzUmEbbIOgXZ2zZM"><circle cx="12" cy="12" r="9" data-page-node-id="pGHtcY0vHvGGb8S7vAhojB"/><path d="M15.5 8.5a3.5 3.5 0 0 0-3.5-2.5c-2 0-3.5 1.3-3.5 3s1.3 2.6 3.5 3 3.5 1.3 3.5 3-1.5 3-3.5 3a3.5 3.5 0 0 1-3.5-2.5" data-page-node-id="guq2Vl0EDSSdqlQ2QVTsta"/><path d="M12 4.5v2M12 17.5v2" data-page-node-id="wpKLvHeqtdYiDBvkjKVyhf"/></svg><span class="bn-dot" id="dot-budget" data-page-node-id="sAq0YRcAqHc6oh2kFnpFoM"></span></div>预算</div>
+      <div class="bn-item" data-page="profile" role="button" tabindex="0" aria-label="我的" data-page-node-id="o1Ycoxi7VoQZqR34s8ktJJ"><div class="bn-icon" data-page-node-id="jvw0ktRuaue3JP9ZKvmHS9"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="zkcDTlbxxPp1a6Iw5h3U54"><circle cx="12" cy="8" r="4" data-page-node-id="HLJopnDc1vaxIFq3lcqem1"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" data-page-node-id="1PwBE5p5y2HqsifBjBe5yz"/></svg><span class="bn-dot" id="dot-profile" data-page-node-id="eFKE6vByAoMmljcTbN2CSl"></span></div>我的</div>
     </div>
   </nav>
 
   <!-- v73: photo album page (inside .app so layout works) -->
-  <section class="page page-album" id="page-album">
-    <div class="album-hero">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <h1 style="margin:0;">📷 行程相册</h1>
-        <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);">‹</button>
+  <section class="page page-album" id="page-album" data-page-node-id="iwgVAOCfa3CzqBOEeyL4fQ">
+    <div class="album-hero" data-page-node-id="iqZLKyQWKD61fNgfaDU5VK">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;" data-page-node-id="ciYHadKnqOyLLlJSI20irp">
+        <h1 style="margin:0;" data-page-node-id="5FEWfVWenLTK4g4qYqTpNb">📷 行程相册</h1>
+        <button class="btn-icon" onclick="showPage('home')" style="background:var(--pill-glass);color:var(--text);" data-page-node-id="pQ3FS3Sv0KFHL14HvenkJR">‹</button>
       </div>
-      <p id="album-summary">所有行程的照片，按时间倒序</p>
-      <div style="margin-top:6px;"><span class="psync-badge" id="album-photo-sync" style="display:none;">📷 0/0</span></div>
-      <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;">
-        <span class="tpl-btn" onclick="openPolaroid()">🖼️ 拍立得照片墙</span>
-        <span class="tpl-btn" onclick="openDoodle()">✏️ 照片涂鸦</span>
+      <p id="album-summary" data-page-node-id="nNZJkPa7n4fEvSE2AeLBDl">所有行程的照片，按时间倒序</p>
+      <div style="margin-top:6px;" data-page-node-id="gAFl9w9Fo6WGdwOgmB8uzf"><span class="psync-badge" id="album-photo-sync" style="display:none;" data-page-node-id="8ETASryvGBZSKepitHGr1c">📷 0/0</span></div>
+      <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;" data-page-node-id="jlmaPhKOXoAgdNbiekBcoh">
+        <span class="tpl-btn" onclick="openPolaroid()" data-page-node-id="EodZ4KVoBECUCNPmAH1BfI">🖼️ 拍立得照片墙</span>
+        <span class="tpl-btn" onclick="openDoodle()" data-page-node-id="WElAf354ebcBC6b8xo78Hd">✏️ 照片涂鸦</span>
       </div>
     </div>
-    <div class="album-tabs" id="album-tabs"></div>
-    <div id="album-grid-wrap"></div>
+    <div class="album-tabs" id="album-tabs" data-page-node-id="5IctdhPn8HA41nKCKnsBVc"></div>
+    <div id="album-grid-wrap" data-page-node-id="GEgQn79qFuSFRPLK2G2RLX"></div>
   </section>
 </div>
 
 <!-- ===== Modals ===== -->
-<div class="modal-overlay" id="trip-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="trip-modal-title">新建行程</div>
+<div class="modal-overlay" id="trip-modal" data-page-node-id="N7gYEt85QEpMFPXbWYyj4I">
+  <div class="modal" data-page-node-id="GZ8oHDIpFmHd5uoKzP82lr">
+    <div class="modal-handle" data-page-node-id="awBeCzEoUWRsfsi5tRnoLm"></div>
+    <div class="modal-title" id="trip-modal-title" data-page-node-id="DzVYDIgMAh7m8Z97PAyr8T">新建行程</div>
     <!-- v78: trip templates — one tap to scaffold a full itinerary -->
-    <div id="tm-template-row" style="display:none;margin-bottom:4px;">
-      <div style="font-size:11px;color:var(--text-light);margin-bottom:6px;">🧩 用模板快速开始（地点框架可改）</div>
-      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
-        <div class="tpl-chip" onclick="applyTripTemplate('weekend')">🏞 周末 2 日</div>
-        <div class="tpl-chip" onclick="applyTripTemplate('family')">👨‍👩‍👧 亲子 5 日</div>
-        <div class="tpl-chip" onclick="applyTripTemplate('honey')">💑 蜜月 7 日</div>
-        <div class="tpl-chip" onclick="applyTripTemplate('city')">🏙 城市 3 日</div>
-        <span id="tm-my-templates"></span>
+    <div id="tm-template-row" style="display:none;margin-bottom:4px;" data-page-node-id="ws8y9BiXTcEVyfEEbJF9ms">
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:6px;" data-page-node-id="OUAK9eWMkhnebVmZARKye3">🧩 用模板快速开始（地点框架可改）</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;" data-page-node-id="kASQRO8sGez1EeerjKPf2C">
+        <div class="tpl-chip" onclick="applyTripTemplate('weekend')" data-page-node-id="1Fi5GgeTqKJYBSfcTvkWCJ">🏞 周末 2 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('family')" data-page-node-id="ZV37F3nZPdzase72mb3QdJ">👨‍👩‍👧 亲子 5 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('honey')" data-page-node-id="Mac47fSKg9AuedSALVR8kW">💑 蜜月 7 日</div>
+        <div class="tpl-chip" onclick="applyTripTemplate('city')" data-page-node-id="1kkCco7B79G1Itzr6A8CFH">🏙 城市 3 日</div>
+        <span id="tm-my-templates" data-page-node-id="mJ4TzgsibiAgrl45UcvmSj"></span>
       </div>
-      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
-        <span class="tpl-btn" onclick="saveCurrentTripAsTemplate()">💾 当前行程存为模板</span>
-        <span class="tpl-btn" onclick="openTemplateManager()">📚 管理模板</span>
-        <span class="tpl-btn" onclick="openSmartImport()">⚡ 短信/行程智能导入</span>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;" data-page-node-id="JTAVafg3XVnNCT0kDazLrR">
+        <span class="tpl-btn" onclick="saveCurrentTripAsTemplate()" data-page-node-id="5hSI6j55lRrjcTBMtkwaJr">💾 当前行程存为模板</span>
+        <span class="tpl-btn" onclick="openTemplateManager()" data-page-node-id="oeK1zYcKerNEQC4QF8Ow4A">📚 管理模板</span>
+        <span class="tpl-btn" onclick="openSmartImport()" data-page-node-id="jf0CZsIp1lLgYCzFFFKlJO">⚡ 短信/行程智能导入</span>
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">行程标题</label>
-      <input class="form-input" id="tm-title" placeholder="例如：杭州三日游" maxlength="100">
+    <div class="form-row" data-page-node-id="NgkvtE7fJ6JT0u5hv7WFAX">
+      <label class="form-label" data-page-node-id="B2LmzaOI8RSLnA0SU7xhLT">行程标题</label>
+      <input class="form-input" id="tm-title" placeholder="例如：杭州三日游" maxlength="100" data-page-node-id="AEllvKDE2GzAkUvMGGNQwr">
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">目的地</label>
-        <input class="form-input" id="tm-destination" placeholder="例如：杭州" maxlength="100">
+    <div class="form-row form-row-flex" data-page-node-id="y0jgrPeTuvemJ3HhAuKkZP">
+      <div data-page-node-id="61sbY7NNbj3nIydGy0hTHq">
+        <label class="form-label" data-page-node-id="1MzT9QrlL2YNEEZB1HfgMD">目的地</label>
+        <input class="form-input" id="tm-destination" placeholder="例如：杭州" maxlength="100" data-page-node-id="IPExDjNmPIzhwPBSD9Ezur">
       </div>
-      <div>
-        <label class="form-label">状态</label>
-        <select class="form-select" id="tm-status">
-          <option value="upcoming">即将出行</option>
-          <option value="ongoing">进行中</option>
-          <option value="done">已完成</option>
+      <div data-page-node-id="yletACDXxLl4uz624NSy8z">
+        <label class="form-label" data-page-node-id="snrwTqJd2xNAM53bAE4Pqp">状态</label>
+        <select class="form-select" id="tm-status" data-page-node-id="aCnWFyoYQJDll5N7eOkEud">
+          <option value="upcoming" data-page-node-id="gaUnNnnCuL3tvkjVFCubwI">即将出行</option>
+          <option value="ongoing" data-page-node-id="8xsnD4HgAVHuQ8ZsR5qJRx">进行中</option>
+          <option value="done" data-page-node-id="wmvcS9C6QrDyoyBFeXmAde">已完成</option>
         </select>
       </div>
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">开始日期</label>
-        <input class="form-input" id="tm-start" type="date">
+    <div class="form-row form-row-flex" data-page-node-id="ZkF0N2bvTcdbsUD8a9CVmb">
+      <div data-page-node-id="tXEUvJsfSzkejSxi1eMvdf">
+        <label class="form-label" data-page-node-id="mkezDdqvrRG60Sq0JzCQWi">开始日期</label>
+        <input class="form-input" id="tm-start" type="date" data-page-node-id="TkeNSM3ulLFMZTOFW4hGLx">
       </div>
-      <div>
-        <label class="form-label">结束日期</label>
-        <input class="form-input" id="tm-end" type="date">
-      </div>
-    </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">可用预算 (¥)</label>
-        <input class="form-input" id="tm-budget" type="number" step="0.01" placeholder="留空不变，0 表示清零">
-      </div>
-      <div>
-        <label class="form-label">AA 分摊人数</label>
-        <input class="form-input" id="tm-aa" type="number" min="1" step="1" placeholder="1 = 不分摊" value="1">
+      <div data-page-node-id="fOZDvgQttdmHy94W2YiDvM">
+        <label class="form-label" data-page-node-id="CtORxPR7u163CR1BI4rYJB">结束日期</label>
+        <input class="form-input" id="tm-end" type="date" data-page-node-id="b7oMtIgYO3lUxiaTgw15uG">
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">标签（逗号分隔，可空）</label>
-      <input class="form-input" id="tm-tags" placeholder="例如：蜜月, 美食, 海边" maxlength="100">
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">用标签给行程分类，行程页可按标签筛选。常用：蜜月 / 亲子 / 美食 / 海边 / 独自旅行 / 周末游</div>
-    </div>
-    <div class="form-row">
-      <label class="form-label">封面图片（可选）</label>
-      <div class="photo-upload-area" onclick="document.getElementById('tm-cover-input').click()">
-        <div class="pu-icon">📷</div>
-        <div style="font-size:12px;">点击上传封面</div>
-        <input type="file" id="tm-cover-input" accept="image/*" onchange="handleCoverUpload(event)">
+    <div class="form-row form-row-flex" data-page-node-id="nLvqnAxS9B479Gzz2SWL2Q">
+      <div data-page-node-id="0uCryWmNDqaHNqlpu2gjVg">
+        <label class="form-label" data-page-node-id="EP3wLGzumokeIMCVi2nybo">可用预算 (¥)</label>
+        <input class="form-input" id="tm-budget" type="number" step="0.01" placeholder="留空不变，0 表示清零" data-page-node-id="2vlkfdFGSVIfXdbWt5Xu8m">
       </div>
-      <div id="tm-cover-preview" style="margin-top:8px;display:none;">
-        <img id="tm-cover-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:12px;">
-      </div>
-      <div style="font-size:11px;color:var(--text-light);margin-top:8px;">或选一个封面模板（自动生成）</div>
-      <div style="display:flex;gap:8px;margin-top:6px;" id="tm-cover-templates">
-        <div class="cover-tpl" data-tpl="ink" onclick="applyCoverTemplate('ink')"><div class="ct-preview" style="background:linear-gradient(135deg,#7C3AED,#A78BFA);">🖋</div><div style="font-size:10px;">薄荷水墨</div></div>
-        <div class="cover-tpl" data-tpl="journal" onclick="applyCoverTemplate('journal')"><div class="ct-preview" style="background:linear-gradient(135deg,#F97316,#FBBF24);">📖</div><div style="font-size:10px;">旅行手账</div></div>
-        <div class="cover-tpl" data-tpl="minimal" onclick="applyCoverTemplate('minimal')"><div class="ct-preview" style="background:linear-gradient(135deg,#1F182E,#4C1D95);">⬛</div><div style="font-size:10px;">极简黑卡</div></div>
-        <div class="cover-tpl" data-tpl="ocean" onclick="applyCoverTemplate('ocean')"><div class="ct-preview" style="background:linear-gradient(135deg,#0EA5E9,#5BC0DE);">🌊</div><div style="font-size:10px;">海岛蓝天</div></div>
+      <div data-page-node-id="R0IVUM8Rih38ZCBYmYth8d">
+        <label class="form-label" data-page-node-id="YF1ANecpXG0KBOEE7SueyK">AA 分摊人数</label>
+        <input class="form-input" id="tm-aa" type="number" min="1" step="1" placeholder="1 = 不分摊" value="1" data-page-node-id="w2NbMclpNmOouDnmhbdHVl">
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-danger" id="tm-del-btn" style="display:none;" onclick="deleteCurrentTrip()">删除</button>
-      <button class="btn btn-ghost" onclick="closeModal('trip-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveTrip()">保存</button>
+    <div class="form-row" data-page-node-id="iVndcNHQrOAenE1evH4KkL">
+      <label class="form-label" data-page-node-id="PvKiTE2zAH0RvtwZrhy17f">标签（逗号分隔，可空）</label>
+      <input class="form-input" id="tm-tags" placeholder="例如：蜜月, 美食, 海边" maxlength="100" data-page-node-id="0MEGZLc8nIRKR74wbF8Pzg">
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;" data-page-node-id="d7FCAWTqYxyxZo97yelvJV">用标签给行程分类，行程页可按标签筛选。常用：蜜月 / 亲子 / 美食 / 海边 / 独自旅行 / 周末游</div>
+    </div>
+    <div class="form-row" data-page-node-id="ns7FHbClVpIBEemCRAHPwS">
+      <label class="form-label" data-page-node-id="pHnv5enaHR3TG1G2vsPH0t">封面图片（可选）</label>
+      <div class="photo-upload-area" onclick="document.getElementById('tm-cover-input').click()" data-page-node-id="5QxNGWTyZYO7S3kflxUm9C">
+        <div class="pu-icon" data-page-node-id="KlCTtNXLe71zmwRBGWq72R">📷</div>
+        <div style="font-size:12px;" data-page-node-id="QST8rsNjFTFiZXkjC7eNZA">点击上传封面</div>
+        <input type="file" id="tm-cover-input" accept="image/*" onchange="handleCoverUpload(event)" data-page-node-id="BtYX3LxhZoNmWBVeVoukIy">
+      </div>
+      <div id="tm-cover-preview" style="margin-top:8px;display:none;" data-page-node-id="C8JWcCyAp0sBzGFM4yJOea">
+        <img id="tm-cover-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:12px;" data-page-node-id="Zkl5BjimRivgMU0radstIw">
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:8px;" data-page-node-id="9X0IRGjF22u2pF6aMZ8cKg">或选一个封面模板（自动生成）</div>
+      <div style="display:flex;gap:8px;margin-top:6px;" id="tm-cover-templates" data-page-node-id="Xue5x9lHEy20oQmkZPxxGz">
+        <div class="cover-tpl" data-tpl="ink" onclick="applyCoverTemplate('ink')" data-page-node-id="yeWWrHaHA1wBSvyivgaElu"><div class="ct-preview" style="background:linear-gradient(135deg,#7C3AED,#A78BFA);" data-page-node-id="ZQfLZeRUKDKwR4hDxj6RkY">🖋</div><div style="font-size:10px;" data-page-node-id="uDzIiUsK6ad6yHwd7XV9dl">薄荷水墨</div></div>
+        <div class="cover-tpl" data-tpl="journal" onclick="applyCoverTemplate('journal')" data-page-node-id="SSPT3i7Ue6cQnSAnlBzt8p"><div class="ct-preview" style="background:linear-gradient(135deg,#F97316,#FBBF24);" data-page-node-id="sInYFEUUGdRnGFtmtvDGar">📖</div><div style="font-size:10px;" data-page-node-id="b5BuJG4PkAHNT5nfkj6qtR">旅行手账</div></div>
+        <div class="cover-tpl" data-tpl="minimal" onclick="applyCoverTemplate('minimal')" data-page-node-id="lLl1Agh8hKC90wzU0w1x6Q"><div class="ct-preview" style="background:linear-gradient(135deg,#1F182E,#4C1D95);" data-page-node-id="QJNq3nde76Cubw6qat0wzD">⬛</div><div style="font-size:10px;" data-page-node-id="4dDbvJakhHS7DeKkgRqwzB">极简黑卡</div></div>
+        <div class="cover-tpl" data-tpl="ocean" onclick="applyCoverTemplate('ocean')" data-page-node-id="GTSKxkSbrXCuHrRpxtKK2L"><div class="ct-preview" style="background:linear-gradient(135deg,#0EA5E9,#5BC0DE);" data-page-node-id="EwFXyPyRdTTqGGvRfdH5Gn">🌊</div><div style="font-size:10px;" data-page-node-id="Cj2ewDxIeCazNs5SRuBFor">海岛蓝天</div></div>
+      </div>
+    </div>
+    <div class="modal-actions" data-page-node-id="HeIekB3LMMClPLylr7uPyc">
+      <button class="btn btn-danger" id="tm-del-btn" style="display:none;" onclick="deleteCurrentTrip()" data-page-node-id="wDCVOkrAHA55r1hW8lKFpi">删除</button>
+      <button class="btn btn-ghost" onclick="closeModal('trip-modal')" data-page-node-id="YVgB5HYEJsTd43OAxCYoOM">取消</button>
+      <button class="btn btn-primary" onclick="saveTrip()" data-page-node-id="0vSPggRbB96QdTJDatRnM4">保存</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="location-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="location-modal-title">添加地点</div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">时间</label>
-        <input class="form-input" id="lm-time" type="time">
+<div class="modal-overlay" id="location-modal" data-page-node-id="0fNq3nJSGaQtpZJzFi2F2D">
+  <div class="modal" data-page-node-id="SCJTiXpAqbqHeqI1fy8gX7">
+    <div class="modal-handle" data-page-node-id="gQ3EYx1IBVQMqy9XfB08Tz"></div>
+    <div class="modal-title" id="location-modal-title" data-page-node-id="h8V7h1n3mgsCA6KXLuRuXv">添加地点</div>
+    <div class="form-row form-row-flex" data-page-node-id="I8Q293zAs6tjlnWJFbP83X">
+      <div data-page-node-id="0Hehl8esUO3H8MUAfY6qWB">
+        <label class="form-label" data-page-node-id="L6ZGlA37cLIVSTulFmRaCO">时间</label>
+        <input class="form-input" id="lm-time" type="time" data-page-node-id="UlkVFy0FLhVCzCLaXwGhGb">
       </div>
-      <div>
-        <label class="form-label">类型</label>
-        <select class="form-select" id="lm-type">
-          <option value="attraction">🏞 景点</option>
-          <option value="food">🍜 美食</option>
-          <option value="transport">🚇 交通</option>
-          <option value="checkin">📷 打卡</option>
-          <option value="departure">✈️ 出发</option>
-          <option value="return">🏠 返程</option>
-          <option value="stay">🏨 住宿</option>
-          <option value="other">✨ 其他</option>
+      <div data-page-node-id="VDMvPC8X2rUgE9P3miRR8X">
+        <label class="form-label" data-page-node-id="HFMELDEwbsJMHbvpFLjJhU">类型</label>
+        <select class="form-select" id="lm-type" data-page-node-id="84oqh7RcEB0XGeFV5BXyhE">
+          <option value="attraction" data-page-node-id="NdLKK2PePMw4gKexWryty4">🏞 景点</option>
+          <option value="food" data-page-node-id="axYcRgwuu2gzEzT1aDYDtL">🍜 美食</option>
+          <option value="transport" data-page-node-id="xgtAvMIliY8OtjfQQ53uC5">🚇 交通</option>
+          <option value="checkin" data-page-node-id="NDc0E5lmziRtJtK3AFiRe2">📷 打卡</option>
+          <option value="departure" data-page-node-id="XRJMJtF0U9hv1GbSDAH9MV">✈️ 出发</option>
+          <option value="return" data-page-node-id="7mvy0CD33nWtW3KJe4NtwW">🏠 返程</option>
+          <option value="stay" data-page-node-id="YCqebm4wV2WzLobYj0f5r2">🏨 住宿</option>
+          <option value="other" data-page-node-id="UEo6NsvdbkinvRIPkYJH5t">✨ 其他</option>
         </select>
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">地点名称</label>
-      <input class="form-input" id="lm-name" placeholder="例如：西湖游船">
+    <div class="form-row" data-page-node-id="zKK4Ytgsc6QTHQ5iKKgEtt">
+      <label class="form-label" data-page-node-id="osrVpqJbFAelhDUDYinJmu">地点名称</label>
+      <input class="form-input" id="lm-name" placeholder="例如：西湖游船" data-page-node-id="fUhekA8OKiGUkSEEKh3Brk">
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">距离 (km)</label>
-        <input class="form-input" id="lm-distance" type="number" step="0.1" placeholder="3.2">
+    <div class="form-row form-row-flex" data-page-node-id="EyRdCwBzdkuyV3c4oCrcvl">
+      <div data-page-node-id="kvbaS1V3W7Le8jFFK5ZrLd">
+        <label class="form-label" data-page-node-id="AgFWLCAFCK8fwWkww9vGPF">距离 (km)</label>
+        <input class="form-input" id="lm-distance" type="number" step="0.1" placeholder="3.2" data-page-node-id="PXFwg6mORRECJTxI6bj4AT">
       </div>
-      <div>
-        <label class="form-label">时长 (分)</label>
-        <input class="form-input" id="lm-duration" type="number" placeholder="60">
-      </div>
-    </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">纬度 GCJ-02</label>
-        <input class="form-input" id="lm-lat" placeholder="30.2594">
-      </div>
-      <div>
-        <label class="form-label">经度 GCJ-02</label>
-        <input class="form-input" id="lm-lng" placeholder="120.1301">
+      <div data-page-node-id="iCOpk9mgjBhlGGJCGNBTqD">
+        <label class="form-label" data-page-node-id="vwImJYCXjDAMjg0oMdFBXY">时长 (分)</label>
+        <input class="form-input" id="lm-duration" type="number" placeholder="60" data-page-node-id="kAXMHV9WrCHENPDs4Dkv0I">
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">📖 攻略笔记</label>
+    <div class="form-row form-row-flex" data-page-node-id="QMFgvOxZ15V4mL1LgPGGjC">
+      <div data-page-node-id="0qmP4HPLd4rPdvEKGiCYnJ">
+        <label class="form-label" data-page-node-id="HgnVe9L6f0fSOjmy7kh2PR">纬度 GCJ-02</label>
+        <input class="form-input" id="lm-lat" placeholder="30.2594" data-page-node-id="Et7aM0njA4YBhg3sVotJHd">
+      </div>
+      <div data-page-node-id="LR6xd6QsrLXGUcRWb9XiYy">
+        <label class="form-label" data-page-node-id="DiXDKHngEOHa3bJllhQu4R">经度 GCJ-02</label>
+        <input class="form-input" id="lm-lng" placeholder="120.1301" data-page-node-id="Bqhkg2LMJ2FwsTJ9eUXylC">
+      </div>
+    </div>
+    <div class="form-row" data-page-node-id="YFJ4Nq2ur0ODr53Axm63KP">
+      <label class="form-label" data-page-node-id="dRKogh68oeDDpaGYuvtESX">📖 攻略笔记</label>
       <textarea class="form-textarea" id="lm-guide" placeholder="记录这个地点的攻略、注意事项..."></textarea>
     </div>
-    <div class="form-row">
-      <label class="form-label">✨ 旅行感受</label>
+    <div class="form-row" data-page-node-id="qI1M66mTeWFqdCWHrppo7x">
+      <label class="form-label" data-page-node-id="4j8xSQLgwDe13CLGLbDkGa">✨ 旅行感受</label>
       <textarea class="form-textarea" id="lm-feeling" placeholder="写下你在这里的感受..."></textarea>
     </div>
-    <div class="form-row">
-      <label class="form-label">📷 旅行照片</label>
-      <div class="photo-upload-area" onclick="document.getElementById('lm-photo-input').click()">
-        <div class="pu-icon">📷</div>
-        <div style="font-size:12px;">点击上传照片</div>
-        <input type="file" id="lm-photo-input" accept="image/*" multiple style="display:none;" onchange="handleLocationPhotoUpload(event)">
+    <div class="form-row" data-page-node-id="Jzip2p0WZSBYrAnoYFWNrG">
+      <label class="form-label" data-page-node-id="qDmsrFi7R06NiEmgxNpvrZ">📷 旅行照片</label>
+      <div class="photo-upload-area" onclick="document.getElementById('lm-photo-input').click()" data-page-node-id="CzVh9B0jiWJlFbBVdKi799">
+        <div class="pu-icon" data-page-node-id="Eb7PLlWCELsyK3HW3PIKI5">📷</div>
+        <div style="font-size:12px;" data-page-node-id="gUA19SUE7S3xENP3wjJDsh">点击上传照片</div>
+        <input type="file" id="lm-photo-input" accept="image/*" multiple style="display:none;" onchange="handleLocationPhotoUpload(event)" data-page-node-id="3LBhOy6YODNpXQcwCcqvr9">
       </div>
-      <div class="photo-grid" id="lm-photo-grid"></div>
+      <div class="photo-grid" id="lm-photo-grid" data-page-node-id="V920pjOYF2EgaFtoKiBARy"></div>
     </div>
-    <div class="form-row">
-      <label class="form-label">💰 预算明细</label>
-      <div id="lm-budget-list"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <select class="form-select" id="lm-bcat" style="flex:0 0 90px;">
-          <option value="transport">🚇 交通</option>
-          <option value="stay">🏨 住宿</option>
-          <option value="food">🍜 餐饮</option>
-          <option value="ticket">🎫 门票</option>
-          <option value="shop">🛍 购物</option>
-          <option value="other">📦 其他</option>
+    <div class="form-row" data-page-node-id="MCE2pVQPWHAnB7CjDYL8y3">
+      <label class="form-label" data-page-node-id="YtUCIE6jtxZWBMRjUtpAnh">💰 预算明细</label>
+      <div id="lm-budget-list" data-page-node-id="R956cZNw7X16jviYfPo3bM"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;" data-page-node-id="zH0HfYQharl8DoaQXxXUCC">
+        <select class="form-select" id="lm-bcat" style="flex:0 0 90px;" data-page-node-id="mbb3GECzOUvFk03zDYTsHN">
+          <option value="transport" data-page-node-id="ZqhYJ7PPEDSSvp2ExQXjbb">🚇 交通</option>
+          <option value="stay" data-page-node-id="CVCHD27GWgmUPyxD76bgFG">🏨 住宿</option>
+          <option value="food" data-page-node-id="jnsPImBdro28DbgvR7JZnh">🍜 餐饮</option>
+          <option value="ticket" data-page-node-id="r4XHEOMDC9KTaa89Q0apjO">🎫 门票</option>
+          <option value="shop" data-page-node-id="Igs7ObeTHkHGoh0HcLP2CG">🛍 购物</option>
+          <option value="other" data-page-node-id="CmE9jq2o73X7dHSE4hN4g2">📦 其他</option>
         </select>
-        <input class="form-input" id="lm-bnote" placeholder="备注" style="flex:1;">
-        <input class="form-input" id="lm-bamt" type="number" step="0.01" placeholder="金额" style="flex:0 0 90px;">
-        <button class="btn btn-ghost btn-sm" onclick="addLocationBudgetItem()" style="flex:0 0 auto;">＋</button>
+        <input class="form-input" id="lm-bnote" placeholder="备注" style="flex:1;" data-page-node-id="ICxCqjtVk4gYo0wkn9CbWw">
+        <input class="form-input" id="lm-bamt" type="number" step="0.01" placeholder="金额" style="flex:0 0 90px;" data-page-node-id="ff6kYUnZM3ynCQcCwd1PBZ">
+        <button class="btn btn-ghost btn-sm" onclick="addLocationBudgetItem()" style="flex:0 0 auto;" data-page-node-id="1JpHQ0HSSnQWzkMWNGA7mj">＋</button>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('location-modal')">取消</button>
-      <button class="btn btn-primary" id="lm-save-btn" onclick="saveLocation()">添加</button>
+    <div class="modal-actions" data-page-node-id="yaPRksOuT2hVpFBcEAg6oO">
+      <button class="btn btn-ghost" onclick="closeModal('location-modal')" data-page-node-id="F8FB8GFXtsJE0fI6MP0CF3">取消</button>
+      <button class="btn btn-primary" id="lm-save-btn" onclick="saveLocation()" data-page-node-id="pKNLMARdHG1BjlXJMKdooc">添加</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="guide-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="guide-modal-title">新增攻略</div>
-    <div class="form-row">
-      <label class="form-label">标题</label>
-      <input class="form-input" id="gm-title" placeholder="例如：西湖十景游玩攻略">
+<div class="modal-overlay" id="guide-modal" data-page-node-id="YgIzLgPYhRt5G5FD4grKfV">
+  <div class="modal" data-page-node-id="Ruz1MzgF8o0vuWqU8CYXY1">
+    <div class="modal-handle" data-page-node-id="SvHRDdKfEj0fDzu2FycVNU"></div>
+    <div class="modal-title" id="guide-modal-title" data-page-node-id="19DwdM6vFl3Q4BTvYd11tn">新增攻略</div>
+    <div class="form-row" data-page-node-id="vo35Qs46enw443WgJRrp2r">
+      <label class="form-label" data-page-node-id="RGBXyyzawXxZennnjEvLcY">标题</label>
+      <input class="form-input" id="gm-title" placeholder="例如：西湖十景游玩攻略" data-page-node-id="U7oPlQViYTn45pLZZBhhM1">
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">分类</label>
-        <select class="form-select" id="gm-category">
-          <option value="guide">📖 攻略</option>
-          <option value="note">📝 备忘</option>
-          <option value="feeling">✨ 感受</option>
+    <div class="form-row form-row-flex" data-page-node-id="9nixB0AyOOnRJq4NyYP92O">
+      <div data-page-node-id="hhutz7pLViP8wWN51kRdi0">
+        <label class="form-label" data-page-node-id="N81KXwJezsE9FwcZgCYspi">分类</label>
+        <select class="form-select" id="gm-category" data-page-node-id="3ynKEJKnOMt6Ioes1kQpUO">
+          <option value="guide" data-page-node-id="iXEUYSKnAym1fDnnvg67o1">📖 攻略</option>
+          <option value="note" data-page-node-id="WfbsRjW0WRrqfm3BE5Z1T8">📝 备忘</option>
+          <option value="feeling" data-page-node-id="911sSjPyrdIjweJnBixl5J">✨ 感受</option>
         </select>
       </div>
-      <div>
-        <label class="form-label">标签</label>
-        <input class="form-input" id="gm-tags" placeholder="杭州,西湖">
+      <div data-page-node-id="IM3mcLfL7KCvKvdDCjVMoT">
+        <label class="form-label" data-page-node-id="m3UbgogN1FPVHAoAVjMTUB">标签</label>
+        <input class="form-input" id="gm-tags" placeholder="杭州,西湖" data-page-node-id="GbKsrmGqvqtmtMmxm332dw">
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">内容</label>
+    <div class="form-row" data-page-node-id="DuHEK4D97GRy35NWQqd5Vi">
+      <label class="form-label" data-page-node-id="uWXYODDvLvaiPYYq5evk6C">内容</label>
       <textarea class="form-textarea" id="gm-content" placeholder="记录你的攻略、备忘或感受..."></textarea>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-danger" id="gm-del-btn" style="display:none;" onclick="deleteCurrentGuide()">删除</button>
-      <button class="btn btn-ghost" onclick="closeModal('guide-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveGuide()">保存</button>
+    <div class="modal-actions" data-page-node-id="HNlBFkzqXHW4kzd7tiQ7Sk">
+      <button class="btn btn-danger" id="gm-del-btn" style="display:none;" onclick="deleteCurrentGuide()" data-page-node-id="5wShddloG85EyKKUIJpzwU">删除</button>
+      <button class="btn btn-ghost" onclick="closeModal('guide-modal')" data-page-node-id="Bgc2pBGES92hG68DCzUx7F">取消</button>
+      <button class="btn btn-primary" onclick="saveGuide()" data-page-node-id="becNE3dCVQ4nHAl8FaovDY">保存</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="fav-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增收藏</div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">类型</label>
-        <select class="form-select" id="fm-type">
-          <option value="place">📍 地点</option>
-          <option value="wishlist">❤️ 心愿</option>
+<div class="modal-overlay" id="fav-modal" data-page-node-id="1ePtdCEcGIHnvycH4l5Vhe">
+  <div class="modal" data-page-node-id="RFhL1eBlbZChPGuQmSw2X8">
+    <div class="modal-handle" data-page-node-id="w6OqKjaJPGzGQEw6ctIuV9"></div>
+    <div class="modal-title" data-page-node-id="eamqCkveSaEBgFXESCBiSa">新增收藏</div>
+    <div class="form-row form-row-flex" data-page-node-id="B5yY2o9tXEaKM55FkiBl9n">
+      <div data-page-node-id="e4ROCyCRAfQ8ghjxsMlKx9">
+        <label class="form-label" data-page-node-id="NfZPMm6HeUGKk4aoJwYp7A">类型</label>
+        <select class="form-select" id="fm-type" data-page-node-id="OHRhawg20vLIfDC5aCALgm">
+          <option value="place" data-page-node-id="Cylbhr3Zrx2YccBqk5QGpL">📍 地点</option>
+          <option value="wishlist" data-page-node-id="AtfHwv7nevlHtGluvUp8YZ">❤️ 心愿</option>
         </select>
       </div>
-      <div>
-        <label class="form-label">分类</label>
-        <input class="form-input" id="fm-category" placeholder="景点/餐厅/...">
+      <div data-page-node-id="1ftFLELAQV3FmZGNsi8Vox">
+        <label class="form-label" data-page-node-id="EDucowyA6c5t4cLqzot1P3">分类</label>
+        <input class="form-input" id="fm-category" placeholder="景点/餐厅/..." data-page-node-id="6caeuYkDV6huuo74kE9WUA">
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">名称</label>
-      <input class="form-input" id="fm-name" placeholder="例如：西湖">
+    <div class="form-row" data-page-node-id="BayzdzvY8nf9kNDPakLvAa">
+      <label class="form-label" data-page-node-id="1BfNI5Diyi08vx69ivBrsa">名称</label>
+      <input class="form-input" id="fm-name" placeholder="例如：西湖" data-page-node-id="YRYWAGCZh30jcXm8Xhp1af">
     </div>
-    <div class="form-row">
-      <label class="form-label">备注</label>
+    <div class="form-row" data-page-node-id="8M4dEyKkmiQY2pt0LBxZPx">
+      <label class="form-label" data-page-node-id="StaZZgeCmMnemb0DtOXDBY">备注</label>
       <textarea class="form-textarea" id="fm-note" placeholder="为什么收藏它..."></textarea>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('fav-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveFav()">保存</button>
+    <div class="modal-actions" data-page-node-id="BlB76H9Y2jiLeQgrWjKoka">
+      <button class="btn btn-ghost" onclick="closeModal('fav-modal')" data-page-node-id="V3C1zW1qPf0JeINr1DgOLO">取消</button>
+      <button class="btn btn-primary" onclick="saveFav()" data-page-node-id="Y1GAely58p12WfxQudhYR3">保存</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="search-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🔍 全局搜索</div>
-    <div class="srch-input-wrap">
-      <span>🔍</span>
-      <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏…" oninput="runGlobalSearch(this.value)" autocomplete="off">
-      <span style="cursor:pointer;color:var(--text-light);" onclick="document.getElementById('srch-input').value='';runGlobalSearch('')">✕</span>
+<div class="modal-overlay" id="search-modal" data-page-node-id="j2vKsOoYXWrUayUKkN8k0O">
+  <div class="modal" data-page-node-id="zXpqPwaC1mBbzMsRPrWDNk">
+    <div class="modal-handle" data-page-node-id="WOxTPMFKnJxcDK1PADV2gx"></div>
+    <div class="modal-title" data-page-node-id="KMzmT17mY1PfgN5KQ9owfc">🔍 全局搜索</div>
+    <div class="srch-input-wrap" data-page-node-id="378GQ3IuthwE17e5gO2SBo">
+      <span data-page-node-id="mnnvCaRFGE6U8oME1I5rxA">🔍</span>
+      <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏…" oninput="runGlobalSearch(this.value)" autocomplete="off" aria-label="全局搜索行程、地点、攻略、收藏" data-page-node-id="WFTHzif2eQDMFK9Lgr5EaH">
+      <span style="cursor:pointer;color:var(--text-light);" onclick="document.getElementById('srch-input').value='';runGlobalSearch('')" data-page-node-id="rZE1iwmZLFGT51vOujjzYw">✕</span>
     </div>
-    <div id="srch-results" style="max-height:56vh;overflow-y:auto;"><div class="srch-empty">输入关键字开始搜索 ✨</div></div>
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('search-modal')">关闭</button></div>
+    <div id="srch-results" style="max-height:56vh;overflow-y:auto;" data-page-node-id="LK09pCZY4hkXuB5q5aXOID"><div class="srch-empty" data-page-node-id="FEYL3dfys9hxcdhNSjZSED">输入关键字开始搜索 ✨</div></div>
+    <div class="modal-actions" data-page-node-id="k0zoIdHGi5Mn8dBtKJi6Zw"><button class="btn btn-ghost" onclick="closeModal('search-modal')" data-page-node-id="DttCGHGUlJkM5ZIvTBoMNM">关闭</button></div>
   </div>
 </div>
 
-<div class="modal-overlay" id="notif-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🔔 通知中心</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button class="tpl-btn" onclick="markAllNotifRead()">全部标为已读</button>
-      <button class="tpl-btn danger" onclick="clearAllNotif()">清空</button>
+<div class="modal-overlay" id="notif-modal" data-page-node-id="Lyxor5jKup6PdFTKzlyvFk">
+  <div class="modal" data-page-node-id="ZB6BpwMy9Zc0Fbn7uhIFJH">
+    <div class="modal-handle" data-page-node-id="Im8Bb8Vo7zarzMwjfZC7aB"></div>
+    <div class="modal-title" data-page-node-id="TMqs8Uh6jWgydfuJEOjGGw">🔔 通知中心</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;" data-page-node-id="cAMPouHTTVKuv5he86QWGy">
+      <button class="tpl-btn" onclick="markAllNotifRead()" data-page-node-id="dmgfqzgwYlpYEZtTS55lRq">全部标为已读</button>
+      <button class="tpl-btn danger" onclick="clearAllNotif()" data-page-node-id="I3MFgcv3pKw29O8r4gXsP1">清空</button>
     </div>
-    <div id="notif-list" style="max-height:58vh;overflow-y:auto;"></div>
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('notif-modal')">关闭</button></div>
+    <div id="notif-list" style="max-height:58vh;overflow-y:auto;" data-page-node-id="LXr0qyFBHx0hZBSBTyiMsY"></div>
+    <div class="modal-actions" data-page-node-id="R6oesmQP5oVwl1UfPXTgaz"><button class="btn btn-ghost" onclick="closeModal('notif-modal')" data-page-node-id="QMMjrGgYWwMqvENo0JqISx">关闭</button></div>
   </div>
 </div>
 
-<div class="modal-overlay" id="smart-import-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">⚡ 智能导入</div>
-    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;">粘贴机票 / 火车票 / 酒店 / 门票的确认短信或行程文本，自动识别日期、时间、地点，一键加入行程。全部在本机解析，不上传任何内容。</div>
-    <div class="form-row">
-      <label class="form-label">粘贴文本</label>
+<div class="modal-overlay" id="smart-import-modal" data-page-node-id="Tg9LnFQCTXFCl6KvqxA0Z8">
+  <div class="modal" data-page-node-id="dBv2h60q7mR5HfiMxNGq0X">
+    <div class="modal-handle" data-page-node-id="jANJH55hwkezq3TA6hKgCB"></div>
+    <div class="modal-title" data-page-node-id="8wqknZIsy7upLn2huKRDiv">⚡ 智能导入</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;" data-page-node-id="w2gzRaHQB6VxEFWp4awvWP">粘贴机票 / 火车票 / 酒店 / 门票的确认短信或行程文本，自动识别日期、时间、地点，一键加入行程。全部在本机解析，不上传任何内容。</div>
+    <div class="form-row" data-page-node-id="VhzqoMxNkRhkcuzP9XoPX5">
+      <label class="form-label" data-page-node-id="xouZi7yG7oxn6fURoq0jMm">粘贴文本</label>
       <textarea class="form-textarea" id="si-text" style="min-height:110px;" placeholder="例如：&#10;【携程】您已预订 8月12日 09:35 上海虹桥-泉州 G1653 次列车&#10;【Booking】泉州酒店 入住 8月12日 14:00 退房 8月16日 12:00" oninput="previewSmartImport()"></textarea>
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">导入到行程</label>
-        <select class="form-select" id="si-trip"></select>
+    <div class="form-row form-row-flex" data-page-node-id="G4E8OrFWRnKfJFoU49YqtA">
+      <div data-page-node-id="kuGSRj12CKltYhtbJkENpo">
+        <label class="form-label" data-page-node-id="VVdPt3xuLCd5m4m1LLIjpa">导入到行程</label>
+        <select class="form-select" id="si-trip" data-page-node-id="JVVu3tRqD4TFR0qDbXIDNG"></select>
       </div>
-      <div>
-        <label class="form-label">默认年份</label>
-        <input class="form-input" id="si-year" type="number" style="max-width:100px;">
-      </div>
-    </div>
-    <div id="si-preview"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('smart-import-modal')">取消</button>
-      <button class="btn btn-primary" onclick="applySmartImport()">导入选中项</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="tpl-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🧩 我的行程模板</div>
-    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;">把走过的行程存成模板，下次一键生成同款框架（只复制地点结构，不含照片和花费）。</div>
-    <div id="tpl-list"></div>
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('tpl-modal')">关闭</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="year-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🎴 年度旅行账单</div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">年份</label>
-        <select class="form-select" id="year-select" onchange="renderYearPoster()"></select>
-      </div>
-      <div style="display:flex;align-items:flex-end;gap:8px;">
-        <button class="tpl-btn" onclick="openStoryPicker()">🎞 选片影集</button>
+      <div data-page-node-id="quVfq7BU9d9Dici5lHPYGV">
+        <label class="form-label" data-page-node-id="veMxqDiKgEtXh8ZkW20DiY">默认年份</label>
+        <input class="form-input" id="si-year" type="number" style="max-width:100px;" data-page-node-id="6XdrWDihISwaS6q9recU3E">
       </div>
     </div>
-    <div id="year-poster-box" style="margin-top:10px;overflow:auto;-webkit-overflow-scrolling:touch;max-height:55vh;border-radius:14px;background:var(--muted-bg);padding:10px;"></div>
-    <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;">iOS 点保存后会打开分享 sheet，选「存储图像」即可；若失败可长按图片保存</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('year-modal')">关闭</button>
-      <button class="btn btn-primary" onclick="downloadYearPoster()">保存长图</button>
+    <div id="si-preview" data-page-node-id="mBGP2zSehkhGlqqqGhdjPb"></div>
+    <div class="modal-actions" data-page-node-id="QbHCGcyxHpphlgJ0tEhzRQ">
+      <button class="btn btn-ghost" onclick="closeModal('smart-import-modal')" data-page-node-id="dh6vx31f0A1t4jDTJRGzeh">取消</button>
+      <button class="btn btn-primary" onclick="applySmartImport()" data-page-node-id="ANU4e0S9dzyKDVxWRGGlEw">导入选中项</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="story-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🎞 选片影集</div>
-    <div style="font-size:11.5px;color:var(--text-sec);margin-bottom:8px;">挑选照片生成一页影集长图（最多 12 张）。</div>
-    <div class="story-grid" id="story-grid"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('story-modal')">取消</button>
-      <button class="btn btn-primary" onclick="generateStoryPoster()">生成影集</button>
-    </div>
+<div class="modal-overlay" id="tpl-modal" data-page-node-id="XCHcY2xryf3mGjH2Bwb4BA">
+  <div class="modal" data-page-node-id="EXKd1qBVMQrTIx4nsEZ2Hb">
+    <div class="modal-handle" data-page-node-id="3U325uHqF0t4BVnFBz0vfv"></div>
+    <div class="modal-title" data-page-node-id="NAZw1mDqung1BxTtkGD90p">🧩 我的行程模板</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.6;margin-bottom:8px;" data-page-node-id="mQs9LJV6xi2cHsiZizV1X9">把走过的行程存成模板，下次一键生成同款框架（只复制地点结构，不含照片和花费）。</div>
+    <div id="tpl-list" data-page-node-id="g5kHGfESDIJCuuur0wYe1B"></div>
+    <div class="modal-actions" data-page-node-id="sAKZbcViw4aGCQDGXhyDpH"><button class="btn btn-ghost" onclick="closeModal('tpl-modal')" data-page-node-id="IqADs7k0dlnHgDaKAHWNUn">关闭</button></div>
   </div>
 </div>
 
-<div class="modal-overlay" id="map-settings-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🗺️ 地图设置</div>
-    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.7;margin-bottom:10px;">
-      默认显示纯 SVG 路线示意图，<b>完全免费、不依赖任何外部服务</b>。<br>
-      想要真实地图底图，可自行到「腾讯位置服务」开放平台申请 Key（个人开发者免费额度），填入后即可显示 GCJ-02 坐标系的真实地图与路线。<br>
-      <span style="color:var(--text-light);">Key 只保存在你本机浏览器，不会写入云端同步数据。</span>
-    </div>
-    <div class="form-row">
-      <label class="form-label">腾讯地图 Key（可选，留空则用示意图）</label>
-      <input class="form-input" id="map-key-input" placeholder="留空 = 使用免费路线示意图" autocomplete="off">
-    </div>
-    <div id="map-key-status" style="font-size:11px;color:var(--text-sec);margin-bottom:6px;"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="clearMapKey()">清空</button>
-      <button class="btn btn-primary" onclick="saveMapKey()">保存</button>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal-overlay" id="polaroid-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🖼️ 拍立得照片墙</div>
-    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;">选几张照片，套上相框拼成长图，可以直接存下来</p>
-    <div class="pl-filters" id="pl-filters">
-      <span class="pl-f on" data-f="film" onclick="plSetFilter('film')">胶片</span>
-      <span class="pl-f" data-f="retro" onclick="plSetFilter('retro')">复古</span>
-      <span class="pl-f" data-f="macaron" onclick="plSetFilter('macaron')">马卡龙</span>
-    </div>
-    <div class="pl-grid" id="pl-grid"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn-primary" style="flex:1;" onclick="generatePolaroid()">生成照片墙</button>
-      <button class="btn-ghost" onclick="closeModal('polaroid-modal')">关闭</button>
-    </div>
-    <div class="pl-canvas-wrap" id="pl-canvas-wrap" style="display:none;">
-      <canvas class="polaroid-canvas" id="polaroid-canvas"></canvas>
-    </div>
-    <div id="pl-actions" style="display:none;margin-top:10px;">
-      <div style="display:flex;gap:8px;">
-        <button class="btn-ghost" style="flex:1;" onclick="previewPolaroid()">查看大图</button>
-        <button class="btn-primary" style="flex:1;" onclick="downloadPolaroid()">保存到相册</button>
+<div class="modal-overlay" id="year-modal" data-page-node-id="ebDkVJ1qGkR0yaNerOVSwP">
+  <div class="modal" data-page-node-id="xMUrDWOFIMTd2UGaHEcvJe">
+    <div class="modal-handle" data-page-node-id="Wio1W7MjQaMidvoE6KZsfW"></div>
+    <div class="modal-title" data-page-node-id="5Eu31mqIBlffELXbSlbzNG">🎴 年度旅行账单</div>
+    <div class="form-row form-row-flex" data-page-node-id="tC6rx6MRlzTAwPsvENW4t7">
+      <div data-page-node-id="jvruwdb0n9OBxFmw8IP8M0">
+        <label class="form-label" data-page-node-id="9pxPnfSkBBkc1L1VZodD8H">年份</label>
+        <select class="form-select" id="year-select" onchange="renderYearPoster()" data-page-node-id="fseU0nZDbcOJb3bujnhbjE"></select>
       </div>
-      <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;">iOS 会打开分享 sheet，选「存储图像」即可；若失败可点「查看大图」长按保存</div>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal-overlay" id="feature-info-modal" onclick="if(event.target===this)closeFeatureInfo()">
-  <div class="modal" style="max-width:420px;padding:16px 16px 18px;">
-    <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div id="fi-icon" class="mr-icon" style="width:38px;height:38px;font-size:20px;">⚙️</div>
-      <div id="fi-title" style="font-size:16px;font-weight:700;color:var(--text);">—</div>
-    </div>
-    <div id="fi-group" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:10px;">—</div>
-    <div id="fi-desc" style="font-size:13px;line-height:1.7;color:var(--text-sec);">—</div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn-primary" style="flex:1;" id="fi-go-btn" onclick="closeFeatureInfo()">知道啦</button>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal-overlay" id="pl-preview-modal" onclick="if(event.target===this)closePlPreview()">
-  <div class="modal" style="max-width:480px;padding:14px 14px 16px;">
-    <div class="modal-handle"></div>
-    <div id="pl-preview-trip" style="font-size:12px;color:var(--text-sec);margin-bottom:6px;">—</div>
-    <div id="pl-preview-img-wrap" style="width:100%;background:var(--muted-bg);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;max-height:62vh;">
-      <img id="pl-preview-img" style="max-width:100%;max-height:62vh;object-fit:contain;display:block;" alt="预览">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn-ghost" style="flex:1;" onclick="plPreviewPrev()">‹ 上一张</button>
-      <button class="btn-ghost" id="pl-preview-pick-btn" style="flex:1;" onclick="plPreviewTogglePick()">✓ 选入</button>
-      <button class="btn-ghost" style="flex:1;" onclick="plPreviewNext()">下一张 ›</button>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="btn-ghost" style="flex:1;" onclick="closePlPreview()">关闭</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="doodle-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">✏️ 照片涂鸦</div>
-    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;">选一张照片，画画、贴贴纸、写句话</p>
-    <div class="pl-grid" id="dd-grid"></div>
-    <div id="dd-editor" style="display:none;">
-      <div class="dd-stage"><canvas id="dd-canvas"></canvas></div>
-      <div class="dd-tools" id="dd-tools">
-        <span class="dd-tool on" data-t="pen" onclick="ddSetTool('pen')">🖊 画笔</span>
-        <span class="dd-tool" data-t="sticker" onclick="ddSetTool('sticker')">✨ 贴纸</span>
-        <span class="dd-tool" data-t="text" onclick="ddSetTool('text')">🔤 文字</span>
-        <span class="dd-tool" onclick="ddUndo()">↩ 撤销</span>
-        <span class="dd-tool" onclick="ddClear()">🗑 清空</span>
-      </div>
-      <div class="dd-tools" id="dd-colors"></div>
-      <div class="dd-tools" id="dd-stickers" style="display:none;"></div>
-      <input class="dd-textin" id="dd-text" placeholder="写点什么… 然后点画布上想放的位置" style="display:none;">
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn-primary" style="flex:1;" onclick="ddSave()">存成新照片</button>
-        <button class="btn-ghost" onclick="ddBack()">换一张</button>
+      <div style="display:flex;align-items:flex-end;gap:8px;" data-page-node-id="A4MWZTZtw4WAhVXoy2OgXD">
+        <button class="tpl-btn" onclick="openStoryPicker()" data-page-node-id="eRRdrKoaiTNoJSE8EHEqOB">🎞 选片影集</button>
       </div>
     </div>
-    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('doodle-modal')">关闭</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="blindbox-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🎁 回忆盲盒</div>
-    <div class="bb-stage" id="bb-stage">
-      <div style="font-size:44px;">🎁</div>
-      <div class="bb-note">随机抽一张过去的照片<br>看看那天的你在哪儿</div>
-      <button class="bb-btn" onclick="drawBlindBox()">拆开看看</button>
-    </div>
-    <div id="bb-actions" style="display:none;margin-top:10px;">
-      <button class="btn-primary" style="width:100%;" onclick="drawBlindBox()">再抽一张</button>
-    </div>
-    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('blindbox-modal')">关闭</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="footprint-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🗺️ 我的足迹</div>
-    <div class="fp-wrap" id="fp-wrap"></div>
-    <div class="fp-stats" id="fp-stats"></div>
-    <div class="fp-list" id="fp-list"></div>
-    <div class="fp-note">手绘示意图，只用来点亮去过的地方，不作导航或测绘用途。</div>
-    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" onclick="closeModal('footprint-modal')">关闭</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="personality-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🌸 我的旅行人格</div>
-    <div class="ps-card" id="ps-card"></div>
-    <canvas class="polaroid-canvas" id="ps-canvas" style="display:none;"></canvas>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn-primary" style="flex:1;" onclick="downloadPersonality()">保存卡片</button>
-      <button class="btn-ghost" onclick="closeModal('personality-modal')">关闭</button>
+    <div id="year-poster-box" style="margin-top:10px;overflow:auto;-webkit-overflow-scrolling:touch;max-height:55vh;border-radius:14px;background:var(--muted-bg);padding:10px;" data-page-node-id="qCgIDjlBYdxzZxMCCABuPv"></div>
+    <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;" data-page-node-id="NFJvrcyF45FuYUwA3VDple">iOS 点保存后会打开分享 sheet，选「存储图像」即可；若失败可长按图片保存</div>
+    <div class="modal-actions" data-page-node-id="d4AI6TxUqA3yImEQePJ90r">
+      <button class="btn btn-ghost" onclick="closeModal('year-modal')" data-page-node-id="DvSYFGGMjzIxz6DwIOHB6o">关闭</button>
+      <button class="btn btn-primary" onclick="downloadYearPoster()" data-page-node-id="zJEAt2uGtF5B4sGEcG5Cia">保存长图</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">偏好设置</div>
-    <div class="form-row">
-      <label class="form-label">显示名称</label>
-      <input class="form-input" id="set-name" placeholder="Iris" maxlength="100">
+<div class="modal-overlay" id="story-modal" data-page-node-id="Cpe2zxY1OdKcVN0nFpWxkF">
+  <div class="modal" data-page-node-id="xYuDN7enmKHDPYowgAZ3R4">
+    <div class="modal-handle" data-page-node-id="R92cvIG1ZFh8wdjFmev48A"></div>
+    <div class="modal-title" data-page-node-id="hNsHEWcbWxZMziZ2sf3vV7">🎞 选片影集</div>
+    <div style="font-size:11.5px;color:var(--text-sec);margin-bottom:8px;" data-page-node-id="PrvRPKDyBTF3SKJZXy0ixQ">挑选照片生成一页影集长图（最多 12 张）。</div>
+    <div class="story-grid" id="story-grid" data-page-node-id="wlp0F2Iw3RCZvzHotibdHB"></div>
+    <div class="modal-actions" data-page-node-id="IwpWCzWnVSZE2qdamA0hvj">
+      <button class="btn btn-ghost" onclick="closeModal('story-modal')" data-page-node-id="oxRfBfTtfyCG1AXqRgkG0z">取消</button>
+      <button class="btn btn-primary" onclick="generateStoryPoster()" data-page-node-id="9PCMDmeoXAfT2OYW5lfxt6">生成影集</button>
     </div>
-    <div class="form-row">
-      <label class="form-label">签名</label>
-      <input class="form-input" id="set-slogan" placeholder="让每一次出行都值得期待" maxlength="100">
+  </div>
+</div>
+
+<div class="modal-overlay" id="map-settings-modal" data-page-node-id="vd7nj0GX0lRaaR9oiBNKkt">
+  <div class="modal" data-page-node-id="DehiakG26lcaB2g46m54Wv">
+    <div class="modal-handle" data-page-node-id="qJJUEE9JHGkjUTcYD3xRDg"></div>
+    <div class="modal-title" data-page-node-id="oIEJFS2shFiFDrbsD1AUS8">🗺️ 地图设置</div>
+    <div style="font-size:11.5px;color:var(--text-sec);line-height:1.7;margin-bottom:10px;" data-page-node-id="fSYAaeWZBcZsPx4izKpaCz">
+      默认显示纯 SVG 路线示意图，<b data-page-node-id="6msDHTpXlJn2eqFZ8hs5hM">完全免费、不依赖任何外部服务</b>。<br data-page-node-id="roFnIrb9ZGr8XLCER2MEPm">
+      想要真实地图底图，可自行到「腾讯位置服务」开放平台申请 Key（个人开发者免费额度），填入后即可显示 GCJ-02 坐标系的真实地图与路线。<br data-page-node-id="zy2EzRc5blZQNvkc4ZTtql">
+      <span style="color:var(--text-light);" data-page-node-id="4wmpev8HcOZJN9f6BJVMPZ">Key 只保存在你本机浏览器，不会写入云端同步数据。</span>
     </div>
-    <div class="form-row">
-      <label class="form-label">默认城市</label>
-      <input class="form-input" id="set-city" placeholder="城市" maxlength="100">
+    <div class="form-row" data-page-node-id="8Xa8XZRYP6xSUE5dgpOu77">
+      <label class="form-label" data-page-node-id="p35Mn33dVGeBnJsVBqAxUT">腾讯地图 Key（可选，留空则用示意图）</label>
+      <input class="form-input" id="map-key-input" placeholder="留空 = 使用免费路线示意图" autocomplete="off" data-page-node-id="SYp6kJh1Y6zqwpfn7mwUKD">
     </div>
-    <div class="form-row form-row-flex">
-      <div>
-        <label class="form-label">主题</label>
-        <select class="form-select" id="set-dark" onchange="setDarkMode(this.value)" oninput="setDarkMode(this.value)" onblur="setDarkMode(this.value)">
-          <option value="auto">跟随系统</option>
-          <option value="on">深色</option>
-          <option value="off">浅色</option>
+    <div id="map-key-status" style="font-size:11px;color:var(--text-sec);margin-bottom:6px;" data-page-node-id="R3KzjW06g2ojmq4QcUuHtK"></div>
+    <div class="modal-actions" data-page-node-id="EUQ62uEpg2gS6FLUvGn3Jc">
+      <button class="btn btn-ghost" onclick="clearMapKey()" data-page-node-id="ssqdl4JDTnJSYXdjzqPed1">清空</button>
+      <button class="btn btn-primary" onclick="saveMapKey()" data-page-node-id="h4H2sd0jExXyEWlqoLtTQu">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="polaroid-modal" data-page-node-id="x8z9L8K5hizmnBj8nnOUFe">
+  <div class="modal" data-page-node-id="DHySEnYr2rFszjFPwPfHHq">
+    <div class="modal-handle" data-page-node-id="cp3Asna3JkguTvyToXll93"></div>
+    <div class="modal-title" data-page-node-id="NUguocWv6wJhHLLNoncgm2">🖼️ 拍立得照片墙</div>
+    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;" data-page-node-id="j5l4mpHd2DAtY5CpmvGZec">选几张照片，套上相框拼成长图，可以直接存下来</p>
+    <div class="pl-filters" id="pl-filters" data-page-node-id="rkAz8FgMSa0qTkP8IVRCE3">
+      <span class="pl-f on" data-f="film" onclick="plSetFilter('film')" data-page-node-id="NrAzKS6bWq5EEwTNabwfWZ">胶片</span>
+      <span class="pl-f" data-f="retro" onclick="plSetFilter('retro')" data-page-node-id="Qq901Uz4FbeX2HiBDzBys9">复古</span>
+      <span class="pl-f" data-f="macaron" onclick="plSetFilter('macaron')" data-page-node-id="IHFd0piCwd8elaHPuITHMY">马卡龙</span>
+    </div>
+    <div class="pl-grid" id="pl-grid" data-page-node-id="sevc1DvrHhKlyfltfjQZKT"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;" data-page-node-id="CRNMxOJBJgdp71DvqMv7Hf">
+      <button class="btn-primary" style="flex:1;" onclick="generatePolaroid()" data-page-node-id="BIpJlUMuKEW3SjEZkc7F63">生成照片墙</button>
+      <button class="btn-ghost" onclick="closeModal('polaroid-modal')" data-page-node-id="m8JWvee5ax1VQMDUFeM7H7">关闭</button>
+    </div>
+    <div class="pl-canvas-wrap" id="pl-canvas-wrap" style="display:none;" data-page-node-id="MQhVOtp14otCNWQphpJVHa">
+      <canvas class="polaroid-canvas" id="polaroid-canvas" data-page-node-id="s8wLW68HIH5ZOhFBLlhVqB"></canvas>
+    </div>
+    <div id="pl-actions" style="display:none;margin-top:10px;" data-page-node-id="exM6tUh0r0vKHRpY3l95Fq">
+      <div style="display:flex;gap:8px;" data-page-node-id="G3E4bk2Au8UuDT1sUek4sc">
+        <button class="btn-ghost" style="flex:1;" onclick="previewPolaroid()" data-page-node-id="lbcBzYOegXR95jyKg6UKW8">查看大图</button>
+        <button class="btn-primary" style="flex:1;" onclick="downloadPolaroid()" data-page-node-id="xaeyHxbP4zPblwqHEZci0E">保存到相册</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;" data-page-node-id="apjC3z7Gr24JvZEjyGOEIK">iOS 会打开分享 sheet，选「存储图像」即可；若失败可点「查看大图」长按保存</div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="feature-info-modal" onclick="if(event.target===this)closeFeatureInfo()" data-page-node-id="EGVy6j1J1WsnCvdAnEcUfK">
+  <div class="modal" style="max-width:420px;padding:16px 16px 18px;" data-page-node-id="E2fXqvNrYHEcPQmTMRQkXm">
+    <div class="modal-handle" data-page-node-id="2fNGDaFFkJPOaICHWes50Z"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;" data-page-node-id="sqzJMaaU1ibASPVM1ar15V">
+      <div id="fi-icon" class="mr-icon" style="width:38px;height:38px;font-size:20px;" data-page-node-id="euACOmZ0u5wPPdt9xLi2Hz">⚙️</div>
+      <div id="fi-title" style="font-size:16px;font-weight:700;color:var(--text);" data-page-node-id="S0NYcRzcfBy2n2H2BGRNZe">—</div>
+    </div>
+    <div id="fi-group" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:10px;" data-page-node-id="mNrucefBia0ezh2g5dCd5y">—</div>
+    <div id="fi-desc" style="font-size:13px;line-height:1.7;color:var(--text-sec);" data-page-node-id="zviI8YWdBseghzkEVYh3oN">—</div>
+    <div style="display:flex;gap:8px;margin-top:14px;" data-page-node-id="BE3tH725JNne58zjcet2Fm">
+      <button class="btn-primary" style="flex:1;" id="fi-go-btn" onclick="closeFeatureInfo()" data-page-node-id="PGfDOcQe7iVPoo1zRflFxT">知道啦</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="pl-preview-modal" onclick="if(event.target===this)closePlPreview()" data-page-node-id="RYFqlC4dMbMMIqBUGmRxYT">
+  <div class="modal" style="max-width:480px;padding:14px 14px 16px;" data-page-node-id="F8pJn4oHrPICQA9Yaogaf7">
+    <div class="modal-handle" data-page-node-id="156bdRfDXM8LY8CM2rcqN4"></div>
+    <div id="pl-preview-trip" style="font-size:12px;color:var(--text-sec);margin-bottom:6px;" data-page-node-id="7JXnwLVcRnlG49GQn8iJE7">—</div>
+    <div id="pl-preview-img-wrap" style="width:100%;background:var(--muted-bg);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;max-height:62vh;" data-page-node-id="B4CR8lFWgw2vUZFUhTMSjc">
+      <img id="pl-preview-img" style="max-width:100%;max-height:62vh;object-fit:contain;display:block;" alt="预览" data-page-node-id="LWUFRgEZ3W8E5A9K6PoIGC">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;" data-page-node-id="ptpQJHWYad9nidLrXWC0qi">
+      <button class="btn-ghost" style="flex:1;" onclick="plPreviewPrev()" data-page-node-id="mpHyskyHjSVCaWFP4lqBu7">‹ 上一张</button>
+      <button class="btn-ghost" id="pl-preview-pick-btn" style="flex:1;" onclick="plPreviewTogglePick()" data-page-node-id="Zx9AUXvOROWWjgrPx1qQ39">✓ 选入</button>
+      <button class="btn-ghost" style="flex:1;" onclick="plPreviewNext()" data-page-node-id="qdBv8gF2uxJMf4AFoHPV1A">下一张 ›</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;" data-page-node-id="EHPz6BFw5XHSiGAXTKquvA">
+      <button class="btn-ghost" style="flex:1;" onclick="closePlPreview()" data-page-node-id="S8qjHQnoao1NCoGYGjZ4bQ">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="doodle-modal" data-page-node-id="nTFSKAsloNZMjf883pFqxG">
+  <div class="modal" data-page-node-id="KL9bBKry97WGHhdaVhBCWv">
+    <div class="modal-handle" data-page-node-id="QpZbKceAKH190Eej7nGAP6"></div>
+    <div class="modal-title" data-page-node-id="l7ngX0h1plXei2uWvfj2md">✏️ 照片涂鸦</div>
+    <p style="font-size:11.5px;color:var(--text-sec);margin-bottom:2px;" data-page-node-id="vM2NXVBl8VZqsRhRaQVYuQ">选一张照片，画画、贴贴纸、写句话</p>
+    <div class="pl-grid" id="dd-grid" data-page-node-id="HQLKVVFlVTGTeQpxcWdb10"></div>
+    <div id="dd-editor" style="display:none;" data-page-node-id="ua3cIZhq6qlEzDrTHU9Hpc">
+      <div class="dd-stage" data-page-node-id="juTRdCnBFCqBIo0wUx28AI"><canvas id="dd-canvas" data-page-node-id="hhyyczAyaV9xnj2R89ZOsK"></canvas></div>
+      <div class="dd-tools" id="dd-tools" data-page-node-id="UjjLwVgYYXIITEZUP6cR8U">
+        <span class="dd-tool on" data-t="pen" onclick="ddSetTool('pen')" data-page-node-id="YCLmWiHE1VPcco6XDdBffl">🖊 画笔</span>
+        <span class="dd-tool" data-t="sticker" onclick="ddSetTool('sticker')" data-page-node-id="2a7v3NIp2x3m6GcqrPm2S4">✨ 贴纸</span>
+        <span class="dd-tool" data-t="text" onclick="ddSetTool('text')" data-page-node-id="IB3LQCfMUxjBxllMpYOQEM">🔤 文字</span>
+        <span class="dd-tool" onclick="ddUndo()" data-page-node-id="VGciV0t74mZFanGirfG5ta">↩ 撤销</span>
+        <span class="dd-tool" onclick="ddClear()" data-page-node-id="sJg35wTdmsC53m9QKjqhHE">🗑 清空</span>
+      </div>
+      <div class="dd-tools" id="dd-colors" data-page-node-id="QSUnarqa0DM4msNfTgq50s"></div>
+      <div class="dd-tools" id="dd-stickers" style="display:none;" data-page-node-id="qlXED442V6VsLZA4nxxwMv"></div>
+      <input class="dd-textin" id="dd-text" placeholder="写点什么… 然后点画布上想放的位置" style="display:none;" data-page-node-id="cS3K6dUbIY4IM8EL53cfdk">
+      <div style="display:flex;gap:8px;margin-top:12px;" data-page-node-id="NjeYHxYAjkV8uUrG9ebC52">
+        <button class="btn-primary" style="flex:1;" onclick="ddSave()" data-page-node-id="yr4oh2K6GLBSdwnaUPbp9g">存成新照片</button>
+        <button class="btn-ghost" onclick="ddBack()" data-page-node-id="SKoNvsPxVV1wDoGBpoEgfU">换一张</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;" data-page-node-id="E5M0kX6cy3es6wh4oE1DDe"><button class="btn-ghost" style="width:100%;" onclick="closeModal('doodle-modal')" data-page-node-id="Ck6vRBriDTyWvBN8ly4X4H">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="blindbox-modal" data-page-node-id="UnErPMaegBduC27KT6qsLJ">
+  <div class="modal" data-page-node-id="vczDg6Y55UDwAFuAdg2lWB">
+    <div class="modal-handle" data-page-node-id="pSoulNMK5M5PHK7A9UytRv"></div>
+    <div class="modal-title" data-page-node-id="7FwLfegscFYg10rilkwuBZ">🎁 回忆盲盒</div>
+    <div class="bb-stage" id="bb-stage" data-page-node-id="zEvPlbhuziJABblnhJ1OFv">
+      <div style="font-size:44px;" data-page-node-id="TjMy9CTuydF6uLg7xB0eIG">🎁</div>
+      <div class="bb-note" data-page-node-id="BFL50TC4hW0GUAhwC9GFDt">随机抽一张过去的照片<br data-page-node-id="Co3ESDlhUFfanhtfUgiRXi">看看那天的你在哪儿</div>
+      <button class="bb-btn" onclick="drawBlindBox()" data-page-node-id="8ORuFDVtGvQ8Avc0ckC93N">拆开看看</button>
+    </div>
+    <div id="bb-actions" style="display:none;margin-top:10px;" data-page-node-id="Q9np5sH4LGnfEkjkaLnvHh">
+      <button class="btn-primary" style="width:100%;" onclick="drawBlindBox()" data-page-node-id="5eVLUrVa2wLJVwoAZlpGNG">再抽一张</button>
+    </div>
+    <div style="margin-top:10px;" data-page-node-id="lYVcvkkTU3DuD2UUHcgF6R"><button class="btn-ghost" style="width:100%;" onclick="closeModal('blindbox-modal')" data-page-node-id="ykAoHcEagEjfZq0stCbNIF">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="footprint-modal" data-page-node-id="ZC9QhcqeBYNSQto6QBOfB3">
+  <div class="modal" data-page-node-id="6MoNQa5DTvvC6zIjpSEPJ7">
+    <div class="modal-handle" data-page-node-id="FLq4WwQ0JMfPi9cUy9848W"></div>
+    <div class="modal-title" data-page-node-id="X1VwbZDuMRrOCJIHuBTvrW">🗺️ 我的足迹</div>
+    <div class="fp-wrap" id="fp-wrap" data-page-node-id="zjHfGSaB12CZk16mXYXrdC"></div>
+    <div class="fp-stats" id="fp-stats" data-page-node-id="MaNKfxgWV1RVcm2H0QM6va"></div>
+    <div class="fp-list" id="fp-list" data-page-node-id="FatK9lCxM34uuBsUU4FAqx"></div>
+    <div class="fp-note" data-page-node-id="uLFwGxdPCaWXGgx316io5x">手绘示意图，只用来点亮去过的地方，不作导航或测绘用途。</div>
+    <div style="margin-top:10px;" data-page-node-id="HHw3BSN6T1HW9Czyi7aHZX"><button class="btn-ghost" style="width:100%;" onclick="closeModal('footprint-modal')" data-page-node-id="Mmtxo4kzxdj1USHafIY18C">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="personality-modal" data-page-node-id="CoPgPEQe7ZBdG79HktwmNY">
+  <div class="modal" data-page-node-id="Cwth1XgE0UQbnhBoHtivnS">
+    <div class="modal-handle" data-page-node-id="I2YmOIHVwRpNWPertsAL1P"></div>
+    <div class="modal-title" data-page-node-id="hFPIdcgKdq6fkT7x0CRB14">🌸 我的旅行人格</div>
+    <div class="ps-card" id="ps-card" data-page-node-id="HbTIOL0fMWo6Tyg8Gpx4Ky"></div>
+    <canvas class="polaroid-canvas" id="ps-canvas" style="display:none;" data-page-node-id="FDJAQAKK5UjkmXeH2vUCi1"></canvas>
+    <div style="display:flex;gap:8px;margin-top:12px;" data-page-node-id="20bmKXiegHQSAbJwx3Jzra">
+      <button class="btn-primary" style="flex:1;" onclick="downloadPersonality()" data-page-node-id="iGtaO9Fpd0ihGcxIMxvOPm">保存卡片</button>
+      <button class="btn-ghost" onclick="closeModal('personality-modal')" data-page-node-id="B23GAtOYE2zDdGYDR1fGGb">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal" data-page-node-id="DHBxJVqTpd4c3JMlUYGGTy">
+  <div class="modal" data-page-node-id="bMg6LCvF6icRstZ22vhNlu">
+    <div class="modal-handle" data-page-node-id="SSjrX01QCfASRAVv54bwDf"></div>
+    <div class="modal-title" data-page-node-id="zKVCysJF1YtICdtt2fksXs">偏好设置</div>
+    <div class="form-row" data-page-node-id="FKEafD2HQo31Bq69DRv6Zu">
+      <label class="form-label" data-page-node-id="A8rO6dOBLoRqqpXDxYZ8ss">显示名称</label>
+      <input class="form-input" id="set-name" placeholder="Iris" maxlength="100" data-page-node-id="kuknq73IWmzi41D0WQJZc1">
+    </div>
+    <div class="form-row" data-page-node-id="kMR1GEi7Anh4xqWZaMzUof">
+      <label class="form-label" data-page-node-id="a14gNDJhdvRAQscZy1z4l8">签名</label>
+      <input class="form-input" id="set-slogan" placeholder="让每一次出行都值得期待" maxlength="100" data-page-node-id="rfAjn0DJSUp3Z1gWOa8bId">
+    </div>
+    <div class="form-row" data-page-node-id="LHoKeGkIbvLCmUIU9iZLKx">
+      <label class="form-label" data-page-node-id="G2BOmcdskD9fhDFwFTra1h">默认城市</label>
+      <input class="form-input" id="set-city" placeholder="城市" maxlength="100" data-page-node-id="68AocdSV2EWWrT2yUGF5ic">
+    </div>
+    <div class="form-row form-row-flex" data-page-node-id="SmhNSQgCPB5nDHRLnYH5zB">
+      <div data-page-node-id="mNgLFVyBWuMRwOCw4ETTjz">
+        <label class="form-label" data-page-node-id="UypXTSTsfSJZfaCdOOsG3f">主题</label>
+        <select class="form-select" id="set-dark" onchange="setDarkMode(this.value)" oninput="setDarkMode(this.value)" onblur="setDarkMode(this.value)" data-page-node-id="FF8grKcfbicSAOJM8Z5fsO">
+          <option value="auto" data-page-node-id="K7PZgR7w4mrqcR4jsIvZz5">跟随系统</option>
+          <option value="on" data-page-node-id="oteS293dGQW3Sp1sb9xpO7">深色</option>
+          <option value="off" data-page-node-id="tVSvEUwnupgi5Sw04BH4li">浅色</option>
         </select>
       </div>
-      <div>
-        <label class="form-label">字号</label>
-        <select class="form-select" id="set-fontscale" onchange="setFontScale(this.value)" oninput="setFontScale(this.value)" onblur="setFontScale(this.value)">
-          <option value="0.85">小</option>
-          <option value="1">标准</option>
-          <option value="1.15">大</option>
-          <option value="1.3">特大</option>
+      <div data-page-node-id="eAqQ7Fx6kA7Q2pdaG0SgkJ">
+        <label class="form-label" data-page-node-id="OvLqOkEpfmgBXCzT8l62yu">字号</label>
+        <select class="form-select" id="set-fontscale" onchange="setFontScale(this.value)" oninput="setFontScale(this.value)" onblur="setFontScale(this.value)" data-page-node-id="EbYl4iauUQLGfhPdoh4AmA">
+          <option value="0.85" data-page-node-id="oT6lHsBtCYVz3pB7hqPkEV">小</option>
+          <option value="1" data-page-node-id="MzpGxyrfFAzsxM9YQajQc8">标准</option>
+          <option value="1.15" data-page-node-id="kBrjfGMydBj8iv2uYurWC3">大</option>
+          <option value="1.3" data-page-node-id="rfazmGRyncXRAqZ9ME5yNb">特大</option>
         </select>
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">照片同步画质</label>
-      <select class="form-select" id="set-photoq" onchange="setPhotoQuality(this.value)" oninput="setPhotoQuality(this.value)" onblur="setPhotoQuality(this.value)">
-        <option value="balanced">均衡（默认）· 1000px · 体积约为原来的 8 折</option>
-        <option value="high">高清 · 1280px · 保留更多细节，上传更慢</option>
+    <div class="form-row" data-page-node-id="uoipe878UK0Od2sbD4Xz9g">
+      <label class="form-label" data-page-node-id="KfgNxAjIeZP1ZJtm3EyY6U">照片同步画质</label>
+      <select class="form-select" id="set-photoq" onchange="setPhotoQuality(this.value)" oninput="setPhotoQuality(this.value)" onblur="setPhotoQuality(this.value)" data-page-node-id="Rl5yxRFBX9udGpTbEWHO8s">
+        <option value="balanced" data-page-node-id="888WWnAalp6vTcf91XdVWs">均衡（默认）· 1000px · 体积约为原来的 8 折</option>
+        <option value="high" data-page-node-id="PFDDpkytH7ypASyVUBSi6B">高清 · 1280px · 保留更多细节，上传更慢</option>
       </select>
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;">只影响<b>切换之后新拍/新传</b>的照片，已经传过的不会被重新压缩或重传。画质设置<b>每台设备独立</b>，不会同步给别人。</div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.5;" data-page-node-id="j49MovZkmOrHd7mBmtWCHk">只影响<b data-page-node-id="USJthLnYyHToYJTWxLYBlW">切换之后新拍/新传</b>的照片，已经传过的不会被重新压缩或重传。画质设置<b data-page-node-id="xZnOVNwSw6VxjIjP0inLz7">每台设备独立</b>，不会同步给别人。</div>
     </div>
-    <div class="form-row">
-      <label class="form-label">首页背景（选一个或上传自己的图）</label>
-      <div class="bg-picker" id="bg-picker"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('bg-upload-input').click()">📷 上传自定义</button>
-        <button class="btn btn-ghost" style="flex:1;" onclick="setHeroBg('')">🗑 恢复默认</button>
-        <input type="file" id="bg-upload-input" accept="image/*" style="display:none;" onchange="uploadHeroBg(event)">
+    <div class="form-row" data-page-node-id="LFpseQeRbDUTwjdQvflhir">
+      <label class="form-label" data-page-node-id="UmJs0kGFEzbdMyxpe8xWjV">首页背景（选一个或上传自己的图）</label>
+      <div class="bg-picker" id="bg-picker" data-page-node-id="xrGN3RTyenYPGn5ShGx1cm"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;" data-page-node-id="ofUiAn7DwHmOBCpWitj3HL">
+        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('bg-upload-input').click()" data-page-node-id="8pyDoFP3kzve00HB9XUQne">📷 上传自定义</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="setHeroBg('')" data-page-node-id="DeysC6kimj440lqivpX6Pe">🗑 恢复默认</button>
+        <input type="file" id="bg-upload-input" accept="image/*" style="display:none;" onchange="uploadHeroBg(event)" data-page-node-id="S6Yo4IKnJSnBZ4Uy3uXXFo">
       </div>
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;">选预设后立即应用；自定义图会压缩到 800px 保存在云端，跨设备同步</div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;" data-page-node-id="0AuNBZOiOac5jYBBZcY97l">选预设后立即应用；自定义图会压缩到 800px 保存在云端，跨设备同步</div>
     </div>
-    <div class="form-row">
-      <label class="form-label">协作 Token（用于数据同步）</label>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌" style="flex:1;font-family:monospace;">
-        <button type="button" class="btn btn-ghost" style="font-weight:600;padding:8px 12px;flex:none;" onclick="toggleTokenVisibility()" title="显示/隐藏密码（v72.1：上次你看到「Token 无效」但你的 token 我 curl 验证仍 200 OK——大概率是你 App 里存的不是有效那个，眼睛看到原始值最安全）">👁</button>
+    <div class="form-row" data-page-node-id="LTqC58edKOuLMpEEG3pCpO">
+      <label class="form-label" data-page-node-id="sCu6tuDy5kkKOHDpH6gtgH">协作 Token（用于数据同步）</label>
+      <div style="display:flex;gap:6px;align-items:center;" data-page-node-id="RpxcMUhnq9h7N9WvSICWa3">
+        <input class="form-input" id="set-token" type="password" placeholder="Gitee 私人令牌" style="flex:1;font-family:monospace;" data-page-node-id="tgTeXGsyWwZaGxBA2eEBpr">
+        <button type="button" class="btn btn-ghost" style="font-weight:600;padding:8px 12px;flex:none;" onclick="toggleTokenVisibility()" title="显示/隐藏密码（v72.1：上次你看到「Token 无效」但你的 token 我 curl 验证仍 200 OK——大概率是你 App 里存的不是有效那个，眼睛看到原始值最安全）" data-page-node-id="2mJAxtRGdki7KBgfmjE19a">👁</button>
       </div>
-      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;">填入后即可多人同步行程（云端：Gitee 私有仓库，国内访问快）。留空则只读模式。<a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank" style="color:var(--primary);">去 Gitee 生成令牌</a></div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;line-height:1.6;" data-page-node-id="mbqK8kTX4vODyHXmTRmb1d">填入后即可多人同步行程（云端：Gitee 私有仓库，国内访问快）。留空则只读模式。<a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank" style="color:var(--primary);" data-page-node-id="hdoBGN7a3ejokwSN2Sqy2e">去 Gitee 生成令牌</a></div>
     </div>
-    <div class="form-row" style="display:flex;gap:8px;align-items:center;">
-      <span id="token-status" style="flex:1;font-size:12px;color:var(--text-light);">⌛ 未测试</span>
-      <button class="btn btn-ghost" style="flex:1;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="testCurrentToken()">🔍 测试 Token</button>
+    <div class="form-row" style="display:flex;gap:8px;align-items:center;" data-page-node-id="Qid3M9gh35TyQXkISuUKL6">
+      <span id="token-status" style="flex:1;font-size:12px;color:var(--text-light);" data-page-node-id="CnM7gRCmrwowQntZTNOAxL">⌛ 未测试</span>
+      <button class="btn btn-ghost" style="flex:1;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="testCurrentToken()" data-page-node-id="weG4Fhy7E0uHJGXznihW0d">🔍 测试 Token</button>
     </div>
-    <div class="form-row" style="display:flex;gap:8px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()">🔄 立即从云端拉取</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()">☁️ 立即推送本地</button>
+    <div class="form-row" style="display:flex;gap:8px;" data-page-node-id="3yFZvBjKGAn2338m3oG7c7">
+      <button class="btn btn-ghost" style="flex:1;" onclick="forceResync()" data-page-node-id="3Nt1ZN6pK9M4wGxB1wYKhn">🔄 立即从云端拉取</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="forcePush()" data-page-node-id="eSqGsamhj7mP9OC2J5ntpN">☁️ 立即推送本地</button>
     </div>
 
     <!-- v77: settings accordion — collapse rarely-used / advanced buttons to keep
          the main modal clean. Each <details> is independently toggleable. -->
-    <details class="set-acc" style="margin-top:6px;">
-      <summary>🛠 高级修复工具</summary>
-      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="onlyPullPhotos()">📷 仅拉取照片（不重置行程数据）</button>
-        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="reconcileManual()">🔄 补传本地照片到云端（对账）</button>
-        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="restoreFromSnapshot()">💾 从本地备份恢复（最后一条安全快照）</button>
-        <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
-        <div style="font-size:11px;color:var(--text-light);line-height:1.5;">正常用 App 不需要打开这个组。遇到「照片不显示」「文字乱码」「云端拉不下来」再展开按提示处理。</div>
+    <details class="set-acc" style="margin-top:6px;" data-page-node-id="ghG6s9a1Rh8qV58eLFMCRh">
+      <summary data-page-node-id="ZOoGYyMX1sB20rJKUiGjHB">🛠 高级修复工具</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;" data-page-node-id="cG0jnG7MvaIn2IC8uOyUEj">
+        <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="onlyPullPhotos()" data-page-node-id="Hf7gfM3VrCZhj8F7BE4yOV">📷 仅拉取照片（不重置行程数据）</button>
+        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="reconcileManual()" data-page-node-id="FIu4BirmmdTVIhQGX8qZDh">🔄 补传本地照片到云端（对账）</button>
+        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="restoreFromSnapshot()" data-page-node-id="Oxq6mt95Fk6ihgJC7anP6D">💾 从本地备份恢复（最后一条安全快照）</button>
+        <button class="btn btn-danger" style="width:100%;" onclick="forceRescue()" data-page-node-id="4X0or9QbFhtddnHH3yN6ks">🗑 清空本地缓存并从云端恢复（乱码修复）</button>
+        <div style="font-size:11px;color:var(--text-light);line-height:1.5;" data-page-node-id="LFan0nb4y3z3ahPBf02eW7">正常用 App 不需要打开这个组。遇到「照片不显示」「文字乱码」「云端拉不下来」再展开按提示处理。</div>
       </div>
     </details>
-    <details class="set-acc">
-      <summary>💾 数据导入导出</summary>
-      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost" style="flex:1;" onclick="copyLocalState()">📋 复制本地数据</button>
-          <button class="btn btn-ghost" style="flex:1;" onclick="exportLocalState()">⬇️ 导出本地</button>
+    <details class="set-acc" data-page-node-id="jr1gBzytHkLNtQO6sEbG1r">
+      <summary data-page-node-id="gQutTo0FiEoHmuMYVXljCw">💾 数据导入导出</summary>
+      <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;" data-page-node-id="bwkUmmwUelElbIxAlhh3Nm">
+        <div style="display:flex;gap:8px;" data-page-node-id="d0dh0CQpWVH9JC8Ce04WwN">
+          <button class="btn btn-ghost" style="flex:1;" onclick="copyLocalState()" data-page-node-id="3p62lOLSdi8sP02zSwfK2E">📋 复制本地数据</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="exportLocalState()" data-page-node-id="yfoT5bBPislBzY2qC1z9Z6">⬇️ 导出本地</button>
         </div>
-        <div style="font-size:11px;color:var(--text-light);margin-top:0;line-height:1.5;">遇到数据异常时，把这份数据贴给我，我能立刻看到 days/locations 真实分布并精确定位 bug。</div>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button class="btn btn-ghost" style="flex:1;background:var(--success-bg);color:var(--success-fg);font-weight:600;" onclick="exportFullBackup()">💾 导出完整备份（含照片）</button>
-          <button class="btn btn-ghost" style="flex:1;background:var(--info-bg);color:var(--info-fg);font-weight:600;" onclick="document.getElementById('import-backup-input').click()">📥 导入备份</button>
+        <div style="font-size:11px;color:var(--text-light);margin-top:0;line-height:1.5;" data-page-node-id="GbOwJF7E7oTTWzXLFTOpCl">遇到数据异常时，把这份数据贴给我，我能立刻看到 days/locations 真实分布并精确定位 bug。</div>
+        <div style="display:flex;gap:8px;margin-top:4px;" data-page-node-id="ACGIfD6YEY2U9Fj1CO7hA1">
+          <button class="btn btn-ghost" style="flex:1;background:var(--success-bg);color:var(--success-fg);font-weight:600;" onclick="exportFullBackup()" data-page-node-id="ANPcH1Q3C6PVtGq2Pd1JE0">💾 导出完整备份（含照片）</button>
+          <button class="btn btn-ghost" style="flex:1;background:var(--info-bg);color:var(--info-fg);font-weight:600;" onclick="document.getElementById('import-backup-input').click()" data-page-node-id="rYM39CEb9cZeWiZEefiwd4">📥 导入备份</button>
         </div>
-        <input type="file" id="import-backup-input" accept=".json,application/json" style="display:none;" onchange="importFullBackup(this)">
-        <div style="font-size:11px;color:var(--text-light);line-height:1.5;">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
+        <input type="file" id="import-backup-input" accept=".json,application/json" style="display:none;" onchange="importFullBackup(this)" data-page-node-id="BNarqcS0c51GLDeDMWc8wZ">
+        <div style="font-size:11px;color:var(--text-light);line-height:1.5;" data-page-node-id="71udY9wOn3Ij54zuobQH7f">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
       </div>
     </details>
-    <div class="modal-actions">
-      <button class="btn btn-danger" onclick="clearAll()">清空所有</button>
-      <button class="btn btn-ghost" onclick="closeModal('settings-modal')">取消</button>
-      <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+    <div class="modal-actions" data-page-node-id="HvkSwwhwLjkDgNaljKVKxY">
+      <button class="btn btn-danger" onclick="clearAll()" data-page-node-id="GO2elKIb0oprEvtKSpR4tG">清空所有</button>
+      <button class="btn btn-ghost" onclick="closeModal('settings-modal')" data-page-node-id="S2vCiH6kFxCtNcCitXvsvm">取消</button>
+      <button class="btn btn-primary" onclick="saveSettings()" data-page-node-id="mMQNsqrpYy865C14TaxY3t">保存</button>
     </div>
   </div>
 </div>
 
-<div class="photo-viewer" id="photo-viewer">
-  <button class="pv-close" onclick="closePhotoViewer()">✕</button>
-  <button class="pv-prev" onclick="pvNav(-1)">‹</button>
-  <button class="pv-next" onclick="pvNav(1)">›</button>
-  <img id="pv-img">
-  <div class="pv-counter" id="pv-counter"></div>
+<div class="photo-viewer" id="photo-viewer" data-page-node-id="JAApRmlV8y2mlajCZvD0zP">
+  <button class="pv-close" onclick="closePhotoViewer()" data-page-node-id="mGgA14iimNnQzdVtKUXLPe">✕</button>
+  <button class="pv-prev" onclick="pvNav(-1)" data-page-node-id="o1kMGzVeh9L2594o3dlqBu">‹</button>
+  <button class="pv-next" onclick="pvNav(1)" data-page-node-id="IVIJbyPPvoM37K7iYq2pAm">›</button>
+  <img id="pv-img" data-page-node-id="IwgLNQfJvE5jbUvGzCSNZ5">
+  <div class="pv-counter" id="pv-counter" data-page-node-id="bFlHC5q8LX6uisG0KtwOWF"></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" data-page-node-id="XeAgXSixr0I3hEfMOZAdpO"></div>
 
 <script>
 // ============ Service Worker + version self-check ============
@@ -2123,7 +2139,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v139';
+var APP_VERSION='v140';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2149,7 +2165,13 @@ function loadData(){
     var parsedOk=false;
     if(raw){
       try{
-        var d=JSON.parse(raw);
+        var d=null;
+        // v140: 兼容 LZ1: 压缩格式与明文 JSON 两种存储（前缀自愈）
+        if(raw.indexOf('LZ1:')===0){
+          try{var _dec=LZString.decompressFromUTF16(raw.slice(4));if(_dec)d=JSON.parse(_dec);}catch(_){d=null;}
+        }else{
+          d=JSON.parse(raw);
+        }
         if(d&&d.trips){Object.assign(data,d);parsedOk=true;}
       }catch(pe){console.warn('[load] localStorage corrupt, trying IndexedDB snapshot');}
     }
@@ -2461,7 +2483,17 @@ function _persistLocal(){
         if(t.cover)t.cover='';
         (t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){l.photos=[];});});
       });
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(slim));
+      // v140: localStorage 配额压缩。条件压缩——仅当压缩后更小才用 LZ1: 前缀存储，
+      // 否则仍存明文 JSON（向后兼容 + 极小数据不退化）。loadData 据此前缀自愈解压。
+      var jsonStr=JSON.stringify(slim);
+      var storeStr=jsonStr;
+      if(typeof LZString!=='undefined'){
+        try{
+          var _c=LZString.compressToUTF16(jsonStr);
+          if(_c&&_c.length<jsonStr.length)storeStr='LZ1:'+_c;
+        }catch(_){storeStr=jsonStr;}
+      }
+      localStorage.setItem(STORAGE_KEY,storeStr);
       // v76: second copy into IndexedDB so a localStorage wipe/overflow can't
       // take the text data with it.
       snapPut(slim);
@@ -4711,11 +4743,21 @@ function renderAll(){
   _renderQueued=true;
   setTimeout(function(){
     _renderQueued=false;
-    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-home')renderHome();
-    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-calendar')renderCalendar();
-    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-trips')renderTrips();
-    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-budget')renderBudget();
-    if(document.querySelector('.page.active')&&document.querySelector('.page.active').id==='page-profile')renderProfile();
+    try{
+      var active=document.querySelector('.page.active');
+      var id=active?active.id:'';
+      if(id==='page-home')renderHome();
+      else if(id==='page-calendar')renderCalendar();
+      else if(id==='page-trips')renderTrips();
+      else if(id==='page-budget')renderBudget();
+      else if(id==='page-profile')renderProfile();
+      // v140: 首页强提醒横幅（临近出发的行程）
+      if(typeof renderReminderBanner==='function')renderReminderBanner();
+    }catch(err){
+      // v140: 错误边界，避免单个页面渲染异常导致整页白屏
+      console.error('[renderAll] 渲染异常:',err);
+      try{showToast('页面渲染遇到问题，已自动恢复');}catch(e){}
+    }
   },0);
 }
 
@@ -5314,6 +5356,17 @@ function updateOfflineBanner(){
   try{
     var b=document.getElementById('offline-banner');
     if(b)b.style.display=navigator.onLine?'none':'block';
+  }catch(e){}
+}
+// v140: 离线横幅的「立即同步」入口——恢复网络后手动触发一次 pull+push
+function offlineRetrySync(){
+  try{
+    if(!navigator.onLine){showToast('仍处于离线状态，请先恢复网络');return;}
+    showToast('正在同步…');
+    syncPull(true).then(function(){
+      if(ghHasToken())syncPushNow();
+    }).catch(function(){if(ghHasToken())syncPushNow();});
+    updateOfflineBanner();
   }catch(e){}
 }
 // v77: hero background — preset names (bg-mint, bg-ocean, ...) or a custom
@@ -6278,6 +6331,7 @@ function openTrip(id){
 function renderOpenTripChrome(t){
   // v124: viewer role removed. Everyone sees the full toolbar — edit/share/export.
   var actions='<button class="btn-icon" onclick="exportTripPdf()" title="导出 PDF">📄</button>'+
+    '<button class="btn-icon" onclick="exportTripICS()" title="导出日历(.ics)">📅</button>'+
     '<button class="btn-icon" onclick="shareTripPoster()" title="生成海报">🎨</button>'+
     '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
     '<button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>'+
@@ -8218,6 +8272,59 @@ function exportData(){
   URL.revokeObjectURL(url);
   showToast('已导出');
 }
+// v140: 导出单个行程为 .ics 日历文件（可导入系统日历 / Google Calendar / Apple 日历）。
+// 整段行程按日期跨度生成一个全天事件，每个带时间的地点再生成独立时间点事件。
+function icsEscape(s){
+  return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+}
+function icsStamp(){
+  return new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+}
+function exportTripICS(tripId){
+  var id=tripId||currentTripId;
+  var t=data.trips.find(function(x){return x.id===id;});
+  if(!t){showToast('请先打开一个行程');return;}
+  try{
+    var typeLabel={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+    var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//lattiao//MintTravel//CN','CALSCALE:GREGORIAN','X-WR-CALNAME:'+icsEscape(t.title||'旅行计划')];
+    var s=t.startDate?sanitizeDateStr(t.startDate):'';
+    var e=t.endDate?sanitizeDateStr(t.endDate):'';
+    if(s){
+      if(e&&e>s)e=addDaysStr(e,1); else e=addDaysStr(s,1);
+      lines.push('BEGIN:VEVENT','UID:trip-'+t.id+'@lattiao','DTSTAMP:'+icsStamp(),'DTSTART;VALUE=DATE:'+s.replace(/-/g,''),'DTEND;VALUE=DATE:'+e.replace(/-/g,''),'SUMMARY:'+icsEscape(t.title||'旅行计划'),'LOCATION:'+icsEscape(t.destination||''));
+      if(t.tags&&t.tags.length)lines.push('CATEGORIES:'+icsEscape(t.tags.join(',')));
+      lines.push('END:VEVENT');
+    }
+    (t.days||[]).forEach(function(d,di){
+      (d.locations||[]).forEach(function(l){
+        var dt=sanitizeDateStr(d.date||t.startDate||'');
+        if(!dt)return;
+        var hasTime=/^\d{1,2}:\d{2}$/.test(l.time||'');
+        lines.push('BEGIN:VEVENT','UID:loc-'+(l.id||uid())+'-'+t.id+'@lattiao','DTSTAMP:'+icsStamp());
+        if(hasTime){
+          var hhmm=l.time.split(':');
+          var hh=('0'+hhmm[0]).slice(-2),mm=('0'+hhmm[1]).slice(-2);
+          lines.push('DTSTART:'+dt.replace(/-/g,'')+'T'+hh+mm+'00','DTEND:'+dt.replace(/-/g,'')+'T'+hh+mm+'00');
+        }else{
+          lines.push('DTSTART;VALUE=DATE:'+dt.replace(/-/g,''),'DTEND;VALUE=DATE:'+addDaysStr(dt,1).replace(/-/g,''));
+        }
+        var tl=(typeLabel[l.type]||'');
+        lines.push('SUMMARY:'+icsEscape((l.name||'地点')+(tl?' · '+tl:'')));
+        if(l.guide)lines.push('DESCRIPTION:'+icsEscape(l.guide));
+        if(d.date)lines.push('LOCATION:'+icsEscape((t.destination||'')+' D'+(di+1)));
+        lines.push('END:VEVENT');
+      });
+    });
+    lines.push('END:VCALENDAR');
+    var blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download=(t.title||'trip')+'.ics';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    showToast('已导出「'+(t.title||'行程')+'」日历文件 📅');
+  }catch(err){showToast('导出失败：'+(err&&err.message||err));}
+}
 function importData(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
@@ -9136,6 +9243,28 @@ function collectNotifEvents(){
       }
     });
   }catch(e){}
+}
+// v140: 首页强提醒横幅——出发前 7 天内给出醒目提示（独立计算，不依赖通知中心）
+function renderReminderBanner(){
+  var el=document.getElementById('reminder-banner');
+  if(!el)return;
+  try{
+    var tk=dateKey(new Date());
+    var best=null,bestDays=999;
+    (data.trips||[]).forEach(function(t){
+      if(!t||t.status==='archived'||!t.startDate)return;
+      var d=daysBetween(tk,t.startDate);
+      if(d<0)return; // 已出发
+      if(d<=7&&d<bestDays){bestDays=d;best=t;}
+    });
+    if(!best){el.style.display='none';return;}
+    var label=bestDays===0?'今天出发':(bestDays===1?'明天出发':('还有 '+bestDays+' 天出发'));
+    el.innerHTML='<div class="rb-ico">✈️</div>'+
+      '<div class="rb-body"><div class="rb-t">'+label+'：'+escapeHTML(best.title||'未命名')+'</div>'+
+      '<div class="rb-s">📍 '+(best.destination||'—')+(best.endDate?(' · '+fmtDate(best.startDate)+' ~ '+fmtDate(best.endDate)):(' · '+fmtDate(best.startDate)))+'</div></div>'+
+      '<button class="rb-btn" onclick="openTrip(\''+best.id+'\');showPage(\'trip-detail\');">查看 ›</button>';
+    el.style.display='flex';
+  }catch(e){el.style.display='none';}
 }
 // v102: merge remote notifications (union by id, cap at 80)
 // v134: 清空通知需在「我这一端」持久生效——云端仍可能残留旧通知，每次 pull 会
@@ -11154,6 +11283,8 @@ function init(){
   // v74: departure reminder — check on launch, then every 6h
   setTimeout(function(){maybeEnableDepartureReminders();},4000);
   setInterval(function(){checkDepartureReminders(true);},6*3600000);
+  // v140: 每 30 分钟重新收集提醒事件（跨零点/临近出发时保证横幅与通知及时出现）
+  setInterval(function(){try{collectNotifEvents();renderReminderBanner();}catch(e){}},30*60000);
   var params=new URLSearchParams(location.search);
   // v124: ?readonly=<token> guest entry was removed. Anyone landing on the
   // app is the owner — the readonly flow no longer exists.
