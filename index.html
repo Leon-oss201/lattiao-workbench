@@ -471,6 +471,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .trips-tabs div.active{color:var(--primary);font-weight:700;border-color:var(--primary);}
 /* v75: tag chips + archived card style */
 .tc-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.tc-collab{font-size:11px;color:var(--text-sec);margin-top:7px;display:flex;align-items:center;gap:4px;border-top:1px dashed var(--border);padding-top:7px;}
 .tc-tag{font-size:10px;font-weight:600;color:var(--primary);background:rgba(124,58,237,.08);padding:2px 8px;border-radius:10px;}
 .trip-card.tc-archived{opacity:.7;filter:saturate(.6);}
 .trip-card.tc-archived .tc-cover{filter:grayscale(.4);}
@@ -639,6 +640,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-cat .bc-icon{font-size:24px;}
 .budget-cat .bc-amt{font-size:12px;font-weight:700;margin-top:4px;}
 .budget-cat .bc-lab{font-size:10px;color:var(--text-light);margin-top:2px;}
+
+/* v142: 分类花销柱状图（实际金额占比，区别于按 plan 比例的甜甜圈图） */
+.budget-cat-chart{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
+.cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.cat-bar-row:last-child{margin-bottom:0;}
+.cat-bar-lab{width:52px;font-size:13px;font-weight:600;color:var(--text-sec);display:flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap;}
+.cat-bar-track{flex:1;height:18px;background:var(--primary-light);border-radius:9px;overflow:hidden;}
+.cat-bar-fill{height:100%;border-radius:9px;transition:width .8s ease;min-width:2px;}
+.cat-bar-val{width:104px;text-align:right;font-size:12px;color:var(--text-light);flex-shrink:0;}
+.cat-bar-val b{color:var(--primary-dark);font-size:13px;}
 
 .tip-banner{margin:14px 18px;background:var(--warn-bg);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--warn-fg);text-align:center;font-weight:600;}
 
@@ -1381,6 +1392,10 @@ setTimeout(function(){
       <div class="budget-stat" data-page-node-id="An7jmahdqDy1oOjPO20S8e"><div class="bs-icon" data-page-node-id="pW1CxCHFy1RmOI9UZcFJw5">📋</div><div class="bs-amt plan" id="stat-plan" data-page-node-id="BLVdvhgV6Oi4YGppeAhfvN">¥0</div><div class="bs-lab" data-page-node-id="lMN3QXnoWQO8hE21HxSJxx">计划额度</div></div>
     </div>
     <div class="budget-cat-grid" id="budget-cat-grid" data-page-node-id="M52me2KnA5fcQhksh7WFJD"></div>
+    <div class="home-section" style="padding:0 18px 14px;">
+      <div class="section-head"><h2>花销占比</h2><span class="sh-sub" id="cat-chart-sub"></span></div>
+      <div class="budget-cat-chart" id="budget-cat-chart"></div>
+    </div>
     <div id="budget-daily-chart" style="padding:0 18px;margin-bottom:14px;" data-page-node-id="0NSYnmiUAvq3Y3PBWNkKr0"></div>
     <div class="home-section" data-page-node-id="LyRwq0mwbH95nLe7toJAiS">
       <div class="section-head" data-page-node-id="a1f0aRfNRntsGU5uvoUVVl"><h2 data-page-node-id="5gVvysoaqaQNggah6MuwSN">行程安排</h2></div>
@@ -2234,7 +2249,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v141';
+var APP_VERSION='v142';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -4211,13 +4226,13 @@ function syncPushNow(){
   // "B pushed but cloud only has the template defaults" bug.
   if(GH.pushing){
     GH.pushPending=true;
-    // v117: 被锁挡下时也要标记「待上传」。之前这里直接 return，UI 不显示待同步、
-    // localStorage 也没标记，于是上一轮推送的重试链路（v117 的 CAS 让 409 重试变多，
-    // 锁占用时间随之变长）进行中时，用户的新编辑看起来像「已同步」其实还压在本地。
-    try{localStorage.setItem('lattiao_pending_push','1');}catch(e){}
-    if(typeof showPendingBanner==='function')showPendingBanner();
-    return Promise.resolve();
-  }
+  // v117: 被锁挡下时也要标记「待上传」。之前这里直接 return，UI 不显示待同步、
+  // localStorage 也没标记，于是上一轮推送的重试链路（v117 的 CAS 让 409 重试变多，
+  // 锁占用时间随之变长）进行中时，用户的新编辑看起来像「已同步」其实还压在本地。
+  try{localStorage.setItem('lattiao_pending_push','1');}catch(e){}
+  if(typeof showPendingBanner==='function')showPendingBanner();
+  return Promise.resolve();
+}
   // Incremental push: if nothing changed since the last successful upload, skip
   // the whole round-trip (avoids re-uploading a 2MB+ photo payload for no reason).
   // v92: fingerprint must include settings (heroBg/city/title/slogan/fontScale),
@@ -5323,7 +5338,7 @@ function clearWeatherMood(){
 function startWeatherMood(alertEl){
   if(!alertEl)return;
   clearWeatherMood();
-  // Show the first line immediately, then rotate every 5s. Never leave the slot
+  // Show the first line immediately, then rotate. Never leave the slot
   // empty. Lines are drawn from a shuffled queue so nothing repeats within a
   // full pass; when the queue is exhausted we reshuffle.
   var show=function(){
@@ -5337,7 +5352,12 @@ function startWeatherMood(alertEl){
     alertEl.innerHTML='<span class="weather-alert mood">💬 '+line+'</span>';
   };
   show();
-  weatherMoodTimer=setInterval(show,5000);
+  // v142: 轮播降频 5s→25s，避免低端机频繁重绘/耗电；尊重 prefers-reduced-motion，
+  // 用户在系统开启「减少动态效果」时静态显示一行、不自动轮播。
+  try{
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){ return; }
+  }catch(e){}
+  weatherMoodTimer=setInterval(show,25000);
 }
 function updateTripDayWeatherUI(w){
   // Weather header shows the day+city (e.g. "08.13 泉州天气") and the current reading.
@@ -6071,6 +6091,7 @@ function renderTrips(){
             '<span>📅 '+dur+'</span>'+
           '</div>'+
           tagHtml+
+          (t.updatedBy&&t.updatedBy!==ghUserId()?('<div class="tc-collab">🖊 '+escapeHTML(peerName(t.updatedBy))+' 编辑于 '+relTimeAgo(new Date(t.updatedAt).getTime())+'</div>'):'')+
         '</div></div>';
     });
   }
@@ -6264,6 +6285,7 @@ function saveTrip(){
     photos:[],
     guide:'',
     feeling:'',
+    updatedBy:ghUserId(),
     budget:{total:tripBudget||0,items:[]},
     aaPeople:Math.max(1,parseInt(document.getElementById('tm-aa').value,10)||1),
     tags:document.getElementById('tm-tags').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean),
@@ -6918,6 +6940,7 @@ function saveLocation(){
     }
   }
   day.locations.sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+  t.updatedBy=ghUserId();
   t.updatedAt=new Date().toISOString();
   saveDataLocal();
   closeModal('location-modal');
@@ -7558,6 +7581,7 @@ function renderBudget(){
     document.getElementById('stat-left').textContent='¥0';
     document.getElementById('stat-plan').textContent='¥0';
     document.getElementById('budget-cat-grid').innerHTML='';
+    renderCatBarChart({},0,function(r){return '¥'+Math.round(r);});
     return;
   }
   // sum
@@ -7622,6 +7646,8 @@ function renderBudget(){
     catHtml+='<div class="budget-cat"><div class="bc-icon">'+icons[c]+'</div><div class="bc-amt">¥'+(catTotals[c]||0).toFixed(0)+'</div><div class="bc-lab">'+({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物'}[c])+'</div></div>';
   });
   document.getElementById('budget-cat-grid').innerHTML=catHtml;
+  // v142: 分类花销柱状图（按实际花费展示各分类占比，区别于按 plan 比例的甜甜圈图）
+  renderCatBarChart(catTotals, paid, fmt);
   // v75: daily spend bar chart
   renderDailyChart(trips);
   // trip list with budget detail
@@ -7681,6 +7707,39 @@ function renderBudget(){
   });
   if(!html)html='<div class="empty"><div class="e-icon">💰</div><div class="e-title">还没有预算记录</div></div>';
   document.getElementById('budget-trip-list').innerHTML=html;
+}
+// v142: 分类花销柱状图 — 按实际花费展示各分类占比（与按 plan 比例的甜甜圈图互补）。
+// catTotals: {transport,stay,food,ticket,shop,other} 实际金额；paid: 总花费；fmt: 金额格式化函数。
+function renderCatBarChart(catTotals, paid, fmt){
+  var box=document.getElementById('budget-cat-chart');
+  if(!box)return;
+  var defs=[
+    {k:'transport',n:'交通',c:'#5BC0DE'},
+    {k:'stay',n:'住宿',c:'#A78BFA'},
+    {k:'food',n:'餐饮',c:'#FF8C42'},
+    {k:'ticket',n:'门票',c:'#B07AB8'},
+    {k:'shop',n:'购物',c:'#F4A940'},
+    {k:'other',n:'其他',c:'#9CA3AF'}
+  ];
+  var rows=defs.map(function(d){return {n:d.n,c:d.c,val:catTotals[d.k]||0};}).filter(function(r){return r.val>0;});
+  rows.sort(function(a,b){return b.val-a.val;});
+  var sub=document.getElementById('cat-chart-sub');
+  if(sub)sub.textContent= paid>0?('合计 '+fmt(paid)+' 已花费'):'';
+  if(!rows.length){
+    box.innerHTML='<div style="font-size:12px;color:var(--text-light);text-align:center;padding:12px 0;">还没有花销记录，记一笔就有占比啦 💕</div>';
+    return;
+  }
+  var html='';
+  rows.forEach(function(r){
+    var p=paid?Math.round(r.val/paid*100):0;
+    var w=paid?Math.max(2,r.val/paid*100):0; // 最小 2% 可见
+    html+='<div class="cat-bar-row">'+
+      '<div class="cat-bar-lab"><span style="color:'+r.c+'">●</span>'+r.n+'</div>'+
+      '<div class="cat-bar-track"><div class="cat-bar-fill" style="width:'+w+'%;background:'+r.c+';"></div></div>'+
+      '<div class="cat-bar-val"><b>'+fmt(r.val)+'</b> · '+p+'%</div>'+
+    '</div>';
+  });
+  box.innerHTML=html;
 }
 
 // ============ Guides ============
