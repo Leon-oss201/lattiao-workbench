@@ -2249,7 +2249,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v142';
+var APP_VERSION='v143';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2315,6 +2315,7 @@ function loadData(){
     // the user always lands on the populated copy when opening the trip.
     dedupeTrips();
     repairTrips();
+    data.trips=enforceTripInvariants(data.trips); // v143: 启动时即强制地点 id 唯一不变量（清历史损坏）
     // v47 migration: if localStorage still holds full-size photos (from before
     // photo separation), move them into IndexedDB and slim the localStorage copy.
     // This happens once per device; afterwards localStorage stays text-only.
@@ -2564,6 +2565,50 @@ function repairTrips(){
     return true;
   });
 }
+// v143: 核心不变量强制执行 —— 行程内「地点 id 全局唯一」。
+// 背景：常规合并路径（mergeTrips / mergeLocationsById / repairTrips / saveLocation）
+// 都已按 id 去重，但满回归高负载下曾偶发云端出现 ~35× 地点复制（lostpush 测试 313 例）。
+// 该竞态极罕见（<1/40）且纯靠读代码无法稳定复现，故在「落盘边界」结构性兜底：
+// 任何路径（含未来新增的合并/导入）只要在 trip 内制造了重复 id，都会在写入
+// localStorage / 序列化上云前被清掉，使「地点复制」类数据损坏在数据层面不可能持久。
+// 仅删除严格重复的 id 副本，正常数据零影响（地点 id 本就由 uid() 保证唯一）。
+function enforceTripInvariants(trips){
+  if(!Array.isArray(trips))return trips;
+  // 1) 行程级去重：同一 id 只留一份，把重复副本的天/地点合并进保留副本（不丢数据）
+  var byId={};
+  trips.forEach(function(t){
+    if(!t||!t.id){return;}
+    if(!byId[t.id]){byId[t.id]=t;return;}
+    var keep=byId[t.id];
+    var dmap={};
+    (keep.days||[]).forEach(function(d){if(d&&d.date)dmap[d.date]=d;});
+    (t.days||[]).forEach(function(d){
+      if(!d||!d.date)return;
+      if(!dmap[d.date]){keep.days.push(JSON.parse(JSON.stringify(d)));dmap[d.date]=keep.days[keep.days.length-1];}
+      else{(d.locations||[]).forEach(function(l){if(l&&l.id&&!dmap[d.date].locations.some(function(x){return x&&x.id===l.id;}))dmap[d.date].locations.push(JSON.parse(JSON.stringify(l)));});}
+    });
+    if(tsOf(t.updatedAt)>tsOf(keep.updatedAt))keep.updatedAt=t.updatedAt;
+  });
+  var deduped=Object.keys(byId).map(function(k){return byId[k];});
+  // 2) 地点级去重：同一 trip 内 location id 全局唯一（跨天重复只留首天，同日重复丢弃多余副本）
+  deduped.forEach(function(t){
+    if(!t||!Array.isArray(t.days))return;
+    var seenGlobal={};
+    t.days.forEach(function(d){
+      if(!d||!Array.isArray(d.locations))return;
+      var seenDay={};
+      d.locations=d.locations.filter(function(l){
+        if(!l||!l.id)return true; // 无 id 的保留，repairTrips 会补 uid()
+        if(seenDay[l.id])return false;
+        seenDay[l.id]=true;
+        if(seenGlobal[l.id])return false; // 跨天重复：丢弃（保留首次出现的那天）
+        seenGlobal[l.id]=true;
+        return true;
+      });
+    });
+  });
+  return deduped;
+}
 // v136: 显式脏标记。任何「本地用户改动」落盘时打标，使同步层能 100% 只对真实改动
 // 放行上传，而不再单纯依赖整包指纹（指纹会被 updatedAt/排序等无意义变化骗到，误触发
 // 一次小传）。标记即 localStorage['lattiao_pending_push']，与 syncPushNow 入口的
@@ -2588,6 +2633,7 @@ function _persistLocal(){
     // into localStorage (that overflowed and forced a slow fallback before).
     try{
       var slim=JSON.parse(JSON.stringify(data));
+      slim.trips=enforceTripInvariants(slim.trips); // v143: 落盘边界强制地点 id 唯一不变量
       (slim.trips||[]).forEach(function(t){
         t.photos=[];
         if(t.cover)t.cover='';
@@ -3297,7 +3343,7 @@ function syncPull(force){
       var _prevTripSig={};
       data.trips.forEach(function(t){_prevTripSig[t.id]=tripContentSig(t);});
       var merged=mergeTrips(data.trips,remote.trips);
-      data.trips=merged; // assign before repair so repair normalizes dates/days
+      data.trips=enforceTripInvariants(merged); // v143: 合并回写即强制不变量
       dedupeTrips();     // collapse dupes created by independent trip ids on different devices
       repairTrips();
       // v80: merge display settings (title/slogan/city/heroBg) so collaborators
@@ -4311,6 +4357,7 @@ function pushMergeCloud(){
     data.trips=mergeTrips(data.trips,remote.trips);
     dedupeTrips();
     repairTrips();
+    data.trips=enforceTripInvariants(data.trips); // v143: 推送前强制不变量
     // v128: 对账时也合并对端的攻略/收藏。否则并发推送触发 409 重试时，本端用「纯本地
     // 状态」重新打包，会把对方新增的攻略/收藏整段覆盖（S3 并发场景 B 拉不到 A 的攻略）。
     // 与 trips/joys 同口径：merge 进本地后 buildTextPayload 自然带上，重试 PUT 即收敛。
@@ -10658,6 +10705,7 @@ function renderRouteMap(t,day){
   if(!mapKey()){
     if(real)real.innerHTML='';
     if(fb)fb.style.display='';
+    if(label)label.textContent='🗺 未配置地图 Key · 路线示意图（设置页可填腾讯位置服务 Key）';
     return;
   }
   loadTMap(function(ok){
@@ -10670,6 +10718,7 @@ function renderRouteMap(t,day){
     if(withCoord.length<2){
       if(fb)fb.style.display='';
       if(setup)setup.classList.add('on');
+      if(label)label.textContent='🗺 需给至少 2 个地点填写 GCJ-02 经纬度才显示真实地图（当前 '+withCoord.length+' 个带坐标）';
       return;
     }
     try{
@@ -11765,7 +11814,9 @@ function init(){
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
-  maybeCloudBackup(); // v76: daily cloud safety backup
+  // v143: 每日云备份是网络 I/O，与首屏渲染无关 —— 延后到首屏骨架撤掉之后再跑，
+  // 避免启动时被网络往返拖慢（备份本身不影响任何 UI 展示）。
+  setTimeout(function(){ try{maybeCloudBackup();}catch(e){} }, 0);
   applyHeroBg();      // v77: apply saved hero background
   maybeShowInstallHint(); // v79: one-time PWA install hint
   // v82: if a previous push was left pending (e.g. the user killed the app
