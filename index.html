@@ -2249,7 +2249,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143';
+var APP_VERSION='v143.1';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2396,28 +2396,45 @@ function countLocations(t){
   return n;
 }
 function mergeLocationsById(a,b){
-  // Union two location arrays, dedupe by id (keep richer copy). v88 used to
-  // skip locations with no id, which let two near-identical trips survive
-  // merge and double the count on screen. Now anything with a matching id (or
-  // matching name+time when both lack ids) collapses.
+  // Union two location arrays. v88 deduped by id (keep richer copy) so two
+  // near-identical trips wouldn't double their count — but a trip created
+  // TWICE（模板被套两次 / 并发保存 / 满负载下 autosync 反复合并）会携带同一份
+  // 模板地点，而每次套模板都重新 mint 了不同的 uid，于是 id 去重永远不命中 →
+  // 地点数在 dedupeTrips 反复合并（异步合并循环）时被反复 +N 放大到 ~349（lostpush
+  // 满回归偶发）。修复：叠加一层「同日内容签名」去重——name+type+time+坐标 完全一致
+  // 即视为同一地点（无论 uid 是否不同），合并进已存在的副本。幂等：重复合并不再增长，
+  // 且仍保留 v88「合并更丰富副本」（照片更多/字段更新者胜），不丢数据。
   var out=[];
-  var seen={};
+  var seenById={};
+  function sig(l){
+    // v143.1: 仅当确有可比对字段时才返回签名；全空字段（纯 id 地点）返回 ''，
+    // 否则空字段拼出的 '||||' 会被当成「内容一致」误把不同 uid 的合法地点合并掉。
+    var n=(l.name||''),t=(l.type||''),ti=(l.time||''),la=(l.lat!=null?l.lat:''),lo=(l.lng!=null?l.lng:'');
+    if(!n&&!t&&!ti&&!la&&!lo)return '';
+    return n+'|'+t+'|'+ti+'|'+la+'|'+lo;
+  }
+  var seenBySig={};
+  function mergeInto(old,l){
+    if((l.photos||[]).length>(old.photos||[]).length)old.photos=l.photos.slice();
+    // v103 item 8: per-field merge（falls back to "keep longer" when neither side has a timestamp）
+    ['name','guide','feeling'].forEach(function(f){
+      var lt=fieldTs(l,f),ot=fieldTs(old,f);
+      if(lt>ot)old[f]=l[f];
+      else if(lt===ot&&(l[f]||'').length>(old[f]||'').length)old[f]=l[f];
+    });
+  }
   function add(l){
     if(!l)return;
-    var key=l.id||('n:'+(l.name||'')+':'+(l.time||''));
-    if(seen[key]){
-      var old=seen[key];
-      if((l.photos||[]).length>(old.photos||[]).length)old.photos=l.photos.slice();
-      // v103 item 8: per-field merge (falls back to "keep longer" when neither side has a timestamp)
-      ['name','guide','feeling'].forEach(function(f){
-        var lt=fieldTs(l,f),ot=fieldTs(old,f);
-        if(lt>ot)old[f]=l[f];
-        else if(lt===ot&&(l[f]||'').length>(old[f]||'').length)old[f]=l[f];
-      });
-      return;
-    }
-    seen[key]=JSON.parse(JSON.stringify(l));
-    out.push(seen[key]);
+    var idKey=l.id?('id:'+l.id):null;
+    if(idKey&&seenById[idKey]){ mergeInto(seenById[idKey],l); return; }
+    var s=sig(l);
+    // v143.1: 仅当内容签名非空（确有可比对字段）才按内容去重。否则纯 id 地点
+    //（无 name/type/time/坐标）会被空签名 '' 误伤——不同 uid 的合法地点被错合并成一份。
+    if(s && seenBySig[s]){ mergeInto(seenBySig[s],l); return; }
+    var copy=JSON.parse(JSON.stringify(l));
+    if(idKey)seenById[idKey]=copy;
+    if(s)seenBySig[s]=copy;
+    out.push(copy);
   }
   (a||[]).forEach(add);
   (b||[]).forEach(add);
@@ -2603,6 +2620,15 @@ function enforceTripInvariants(trips){
         seenDay[l.id]=true;
         if(seenGlobal[l.id])return false; // 跨天重复：丢弃（保留首次出现的那天）
         seenGlobal[l.id]=true;
+        // v143.1: 同日「内容签名」一致也视作重复（模板被套两次 / 并发保存 → 两份
+        // 不同 uid 但内容一致的地点）。仅当签名非空（确有可比对字段）时生效，
+        // 否则纯 id 地点（无 name/type/time/坐标）会被空签名 '' 误伤成重复而被丢弃。
+        // v143.1: 仅当确有可比对字段时才按内容签名去重；纯 id 地点（name/type/time/
+        // 坐标全空）签名 ''，退化回「仅按 id 去重」，不会被空签名 '||||' 误伤。
+        var sName=(l.name||''),sType=(l.type||''),sTime=(l.time||''),sLat=(l.lat!=null?l.lat:''),sLng=(l.lng!=null?l.lng:'');
+        var sig=(sName||sType||sTime||sLat||sLng)?(sName+'|'+sType+'|'+sTime+'|'+sLat+'|'+sLng):'';
+        if(sig && seenDay['s:'+sig])return false;
+        if(sig)seenDay['s:'+sig]=true;
         return true;
       });
     });
@@ -6394,8 +6420,22 @@ function saveTrip(){
     // v78: if a template scaffold was prepared, use its days instead of the
     // empty-date-based skeleton
     if(window._templateDays&&window._templateDays.length){
-      t.days=window._templateDays;
+      // v143.1: 深拷贝模板天，让每个新建行程独占自己的 days 数组。
+      // 旧代码直接引用全局 window._templateDays —— 多次触发 saveTrip（负载下异步
+      // 交错会放大）会造出多个「共享同一 days 数组」的别名行程；saveLocation /
+      // repairTrips / ensureTripDays 对该数组的任一改动会同时作用到所有别名行程，
+      // 计数时 1 个 8 地点数组被 N 个行程各算一遍 → 云端/本地地点数暴涨到 ~313
+      //（lostpush 满回归偶发）。深拷贝切断共享引用，使重复触发只会产生「无模板天的
+      // 空行程」，不再膨胀地点数。
+      t.days=JSON.parse(JSON.stringify(window._templateDays));
     }
+    // v143.1: 消费后立即清空，避免后续无关的新建行程继承陈旧模板天（旧代码不重置，
+    // 残留的 _templateDays 会被下一个 saveTrip 再次共享/复用，是 313 膨胀的温床）。
+    window._templateDays=null;
+    // v143.1: 新建完成后把当前编辑目标指向本行程，使任何「重复触发」的 saveTrip
+    // 走编辑分支（更新既有行程）而非再 push 一个新行程——从根上消灭「39 个重复行程」
+    // 这种负载下异步交错放大的副产物。下一次真正新建会经 openTripModal() 把该值清零。
+    currentEditingTripId=t.id;
     t.updatedAt=new Date().toISOString();
     data.trips.push(t);
   }
