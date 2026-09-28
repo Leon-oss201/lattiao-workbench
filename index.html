@@ -2249,7 +2249,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.1';
+var APP_VERSION='v143.2';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3923,7 +3923,24 @@ function ghReadPhotoChunk(path){
     if(!m||!m.content)return null;
     var raw=atob(m.content.replace(/\s/g,''));
     var json=decodeURIComponent(escape(raw));
-    try{return JSON.parse(json);}catch(e){return null;}
+    try{
+      var chunk=JSON.parse(json);
+      // v143.2 根因修复：从云端成功读回的 chunk = 「这份内容已在云端得到确认」。
+      // 此前只有上传路径才写 photoChunkFp/photoChunkSha，读者端把朋友照片拉回内存后，
+      // buildPhotoChunks 会为同路径派生 chunk 而 fp 为空 → photoChunksAllSynced() 恒 false
+      // → 每次打开 App 都把几十张已同步照片整段重传，任何一片失败就把 lattiao_pending_push
+      // 顶成常驻 → 启动横幅每次都弹「N 张照片待上传」（假警报）。
+      // 读回时同步记录 fp+sha（内容以云端为准），读者端不再重传自己下载来的照片。
+      try{
+        if(chunk&&chunk.photos&&chunk.photos.length){
+          if(!GH.photoChunkFp)GH.photoChunkFp={};
+          GH.photoChunkFp[path]=JSON.stringify(chunk);
+          if(m.sha){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[path]=m.sha;}
+          try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+        }
+      }catch(e2){}
+      return chunk;
+    }catch(e){return null;}
   });
 }
 // Load all photo chunks for a trip (used after a pull / on trip open) and
@@ -4648,34 +4665,41 @@ var PENDING_BANNER_DISMISS_KEY='lattiao_pb_dismissed';
 function showPendingBanner(){
   var b=document.getElementById('pending-banner');
   if(!b)return;
-  // count unsynced items: photos with _photoCount, plus any trips with locations added since last push
+  // v143.2: 真实统计未同步照片——逐 chunk 用 fp/sha 判定（与 photoChunksAllSynced 同一标准），
+  // 不再把「内存里有照片」全部当待上传。旧逻辑把读者端从云端拉回的照片也计入，
+  // 造成「90 张照片待上传」的假警报横幅每次启动都弹。
   var photoPending=0;
-  (data.trips||[]).forEach(function(t){
-    (t.days||[]).forEach(function(d){
-      (d.locations||[]).forEach(function(l){
-        var inMem=(l.photos||[]).length;
-        if(inMem>0)photoPending+=inMem;
-        else if(l._photoCount)photoPending+=l._photoCount;
+  try{
+    (data.trips||[]).forEach(function(t){
+      buildPhotoChunks(t).forEach(function(c){
+        var ok=GH.photoChunkFp&&GH.photoChunkFp[c.path]===JSON.stringify(c.data)
+             &&GH.photoChunkSha&&GH.photoChunkSha[c.path];
+        if(!ok)photoPending+=(c.data.photos||[]).length;
       });
     });
-  });
+  }catch(e){}
+  var marker=false;
+  try{marker=!!localStorage.getItem('lattiao_pending_push');}catch(e){}
+  // v143.2: 照片实为已同步且无 pending 标记 → 没有任何真实待传内容，绝不弹横幅。
+  if(photoPending===0&&!marker)return;
   var detail='部分行程/照片暂存在本机，正在自动重试…';
   if(photoPending>0)detail=photoPending+' 张照片待上传云端（朋友看不到），可点下方「立即重试」或「导出本地备份」手动分享给朋友';
   var dEl=document.getElementById('pending-banner-detail');
   if(dEl)dEl.textContent=detail;
-  // respect the user's previous "知道了" for this session only
-  if(sessionStorage.getItem(PENDING_BANNER_DISMISS_KEY)==='1')return;
+  // v143.2: 「知道了」改为持久化（原 sessionStorage 冷启动即失效 = 每次打开都弹），
+  // 直到下一次成功同步由 hidePendingBannerOnSync 复位——新的失败回合仍会提醒。
+  try{if(localStorage.getItem(PENDING_BANNER_DISMISS_KEY)==='1')return;}catch(e){}
   b.style.display='block';
 }
 function dismissPendingBanner(){
   var b=document.getElementById('pending-banner');
   if(b)b.style.display='none';
-  try{sessionStorage.setItem(PENDING_BANNER_DISMISS_KEY,'1');}catch(e){}
+  try{localStorage.setItem(PENDING_BANNER_DISMISS_KEY,'1');}catch(e){}
 }
 function hidePendingBannerOnSync(){
   var b=document.getElementById('pending-banner');
   if(b)b.style.display='none';
-  try{sessionStorage.removeItem(PENDING_BANNER_DISMISS_KEY);}catch(e){}
+  try{localStorage.removeItem(PENDING_BANNER_DISMISS_KEY);}catch(e){}
 }
 // ============ Photo reconciliation (v63) ============
 // Background task: compare LOCAL photos (IndexedDB) against CLOUD photo chunks.
@@ -4750,6 +4774,19 @@ function reconcileLocalPhotos(){
                   var remote=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\s/g,'')))));
                   var remoteN=(remote&&remote.photos||[]).length;
                   var localN=(chunk.data.photos||[]).length;
+                  // v143.2: 云端照片数 ≥ 本地 = 内容已得到云端确认 → 补记 fp+sha。
+                  // 存量设备（修复前下载的照片没有指纹）靠这一步在一轮对账后自动归位，
+                  // 不再被 photoChunksAllSynced 判为「待上传」而反复重传。计数比对与
+                  // uploadPhotoChunk.markOk 同一标准（v136）；remoteN>localN 时本地偏少、
+                  // 云端更权威，同样视为已确认，绝不回写。
+                  if(remoteN>=localN){
+                    try{
+                      if(!GH.photoChunkFp)GH.photoChunkFp={};
+                      GH.photoChunkFp[chunk.path]=JSON.stringify(chunk.data);
+                      if(m.sha){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=m.sha;}
+                      try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+                    }catch(e2){}
+                  }
                   // v137: 增量原则——云端照片更多则不动（云端更权威），绝不回写覆盖。
                   // 否则读者端会把从云端读回的瞬态偏少快照写回，截断作者已传照片。
                   if(remoteN<localN){ return ghWriteFile(chunk.path,chunk.data,'sync: reconcile photo '+chunk.path,sha).then(function(){
