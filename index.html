@@ -242,6 +242,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 :root.light .btn-danger{background:#fff;color:var(--danger-solid);border:1px solid #F4D7D7;}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-icon{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary-light);color:var(--primary-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
+/* v143.5 工具箱 */
+.tools-cta .cta-arrow{opacity:.7;}
+.tools-badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:10px;background:var(--danger-solid,#E24B4A);color:#fff;font-size:11px;line-height:16px;text-align:center;vertical-align:middle;}
+.tools-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:nowrap;}
+.tools-tabs .tt{flex:1;text-align:center;padding:8px 4px;border-radius:12px;background:var(--primary-light);color:var(--primary-dark);font-size:12px;cursor:pointer;white-space:nowrap;}
+.tools-tabs .tt.active{background:var(--primary);color:#fff;}
+.tools-body{max-height:52vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.tools-btnrow{display:flex;gap:8px;margin-top:8px;}
+.tools-btnrow .btn-sm{flex:0 0 auto;}
+.pomo-display{text-align:center;padding:10px 0;}
+.pomo-display #pomo-time{font-size:44px;font-weight:600;letter-spacing:2px;color:var(--primary);font-variant-numeric:tabular-nums;}
+.pomo-today{text-align:center;font-size:12px;color:var(--text-light);margin:8px 0 4px;}
+.tools-empty{font-size:12px;color:var(--text-light);text-align:center;padding:14px 8px;line-height:1.6;}
+.tools-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;background:var(--muted-bg);font-size:13px;margin-bottom:6px;}
+.tools-note{padding:10px;border-radius:12px;background:var(--muted-bg);margin-bottom:8px;}
+.tools-note.high{border-left:3px solid var(--danger-solid,#E24B4A);}
+.tools-note.mid{border-left:3px solid var(--accent-solid,#FF8C42);}
+.tools-note .tn-text{font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
+.tools-note .tn-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;}
+.tools-dim{color:var(--text-light);font-size:12px;}
+.tools-note .tn-del{color:var(--danger-solid,#E24B4A);cursor:pointer;}
+.tools-note .rl-go{color:var(--primary);cursor:pointer;font-size:12px;}
+.aa-sum{font-size:14px;padding:8px 10px;border-radius:12px;background:var(--primary-light);margin-bottom:8px;text-align:center;}
+.aa-h{font-size:13px;font-weight:500;margin:12px 0 6px;}
+.aa-diff{color:var(--text-light);}
+.aa-diff.plus{color:var(--success,#16a34a);}
+.aa-diff.minus{color:var(--danger-solid,#E24B4A);}
+.sr-payer{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:8px;background:var(--primary-light);color:var(--primary-dark);font-size:11px;}
 
 /* Bottom Nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--nav-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:100;padding:6px 0 calc(6px + env(safe-area-inset-bottom));-webkit-transform:translate3d(-50%,0,0);transform:translate3d(-50%,0,0);}/* transform:translate3d forces GPU compositor layer on iOS Safari so the fixed nav stays put while inner .page scrolls */
@@ -1197,6 +1225,15 @@ setTimeout(function(){
 
     <div id="joy-card-host" data-page-node-id="XNycscFF948Jay4HlunS5t"></div>
 
+    <!-- v143.5: 工具箱入口（番茄钟 / 速记 / 提醒 / 备份回滚） -->
+    <div class="cta-card tools-cta" onclick="openTools()" style="margin-top:10px;">
+      <div class="cta-text">
+        <div class="cta-title">🛠 工具箱 <span id="tools-remind-badge" class="tools-badge" style="display:none;"></span></div>
+        <div class="cta-desc">番茄钟 · 速记 · 到期提醒 · 备份回滚</div>
+      </div>
+      <div class="cta-arrow">→</div>
+    </div>
+
     <div class="home-section" data-page-node-id="YK2X4xLC3bDJKJ3mn5J2sO">
       <div class="section-head" data-page-node-id="N9fJrXnvCvIBEz2A2mzGQ2"><h2 data-page-node-id="6v0hG27FtUAW7BaxWdEPDC">即将出行</h2><span class="more" onclick="showPage('trips')" data-page-node-id="cBPiRKJ7JSfw1F6YdU4de9">查看全部 →</span></div>
       <div id="home-upcoming" data-page-node-id="nfkjIkzcgOZDVBMLVC4wZ3"></div>
@@ -1211,8 +1248,73 @@ setTimeout(function(){
     <button class="fab" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" data-page-node-id="0wQ4pfa5mH2M0dvAa1cv72" title="新增行程">＋</button>
   </section>
 
-  <!-- ====== CALENDAR ====== -->
-  <section class="page page-calendar" id="page-calendar" data-page-node-id="XNbTsSPlM2yiXyK7KHBKBM">
+<!-- ====== v143.5 TOOLS MODAL ====== -->
+<div class="modal-overlay" id="tools-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛠 工具箱</div>
+    <div class="tools-tabs">
+      <div class="tt active" id="tools-tab-pomo" onclick="switchToolsTab('pomo')">🍅 专注</div>
+      <div class="tt" id="tools-tab-note" onclick="switchToolsTab('note')">✍️ 速记</div>
+      <div class="tt" id="tools-tab-remind" onclick="switchToolsTab('remind')">⏰ 提醒</div>
+      <div class="tt" id="tools-tab-aa" onclick="switchToolsTab('aa')">💰 AA</div>
+      <div class="tt" id="tools-tab-backup" onclick="switchToolsTab('backup')">🗂 备份</div>
+    </div>
+
+    <div id="tools-body-pomo" class="tools-body">
+      <div class="pomo-display"><div id="pomo-time">25:00</div><div id="pomo-state" class="tools-dim">未开始</div></div>
+      <div class="tools-btnrow">
+        <button class="btn btn-ghost btn-sm" onclick="pomoSet(25,'focus')">专注 25</button>
+        <button class="btn btn-ghost btn-sm" onclick="pomoSet(5,'break')">休息 5</button>
+        <button class="btn btn-ghost btn-sm" onclick="pomoSet(15,'focus')">短专注 15</button>
+      </div>
+      <div class="tools-btnrow">
+        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="pomoStart()">▶ 开始</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="pomoPause()">⏸ 暂停</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="pomoReset()">↺ 重置</button>
+      </div>
+      <div id="pomo-today" class="pomo-today">今天 0 段 · 0 分钟</div>
+      <div id="pomo-history"></div>
+    </div>
+
+    <div id="tools-body-note" class="tools-body" style="display:none;">
+      <textarea class="form-textarea" id="tools-note-input" placeholder="想到什么随手记一句…（自动同步到所有设备）"></textarea>
+      <div class="tools-btnrow" style="margin-top:8px;">
+        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="noteQuickSave()">保存速记</button>
+      </div>
+      <div id="tools-note-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="tools-body-remind" class="tools-body" style="display:none;">
+      <div class="tools-dim" style="margin-bottom:8px;">到期强提醒（当天/明天出行会周期性提醒）：</div>
+      <div class="tools-btnrow">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="toggleStrongRemind()">切换强提醒开关</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="strongRemindTick(true)">立即测试提醒</button>
+      </div>
+      <div id="tools-remind-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="tools-body-aa" class="tools-body" style="display:none;">
+      <div class="tools-dim" style="margin-bottom:8px;">选择行程结算（记账时可指定「谁付的」，结算才准）：</div>
+      <select class="form-select" id="aa-trip-select" onchange="if(this.value)openAASettle(this.value)">
+        <option value="">选择行程…</option>
+      </select>
+      <div id="aa-body" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="tools-body-backup" class="tools-body" style="display:none;">
+      <div class="tools-dim" style="margin-bottom:8px;">云端每日备份（按天留档，可一键回滚）：</div>
+      <div id="tools-backup-list"></div>
+    </div>
+
+    <div class="tools-btnrow" style="margin-top:12px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="closeTools()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== CALENDAR ====== -->
+<section class="page page-calendar" id="page-calendar" data-page-node-id="XNbTsSPlM2yiXyK7KHBKBM">
     <div class="cal-hero" data-page-node-id="lgyPFa6u22lT3kvd3N1b1V">
       <svg class="willow" viewBox="0 0 60 200" preserveAspectRatio="xMidYMid slice" data-page-node-id="bA55B2MhRQflYp5hfOOu1c">
         <g stroke="#7C3AED" stroke-width="1.2" fill="none" opacity=".7" data-page-node-id="FcrvZzxlGoSggCEtK2emff">
@@ -1341,6 +1443,8 @@ setTimeout(function(){
     <div class="td-section" data-page-node-id="6nKEHTtKxHZB6Pr0GaS8wO">
       <h3 data-page-node-id="bWbcso0tIknqJ9IfC1T6je">💰 预算明细</h3>
       <div class="td-budget-summary" id="td-budget" data-page-node-id="kxzu1zyBbyJM7gtuHmStlF"></div>
+      <!-- v143.5: AA 结算入口 -->
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="openAASettle(currentTripId)">💰 AA 结算 / 分账</button>
     </div>
   </section>
 
@@ -1697,6 +1801,11 @@ setTimeout(function(){
         <input class="form-input" id="lm-bnote" placeholder="备注" style="flex:1;" data-page-node-id="ICxCqjtVk4gYo0wkn9CbWw">
         <input class="form-input" id="lm-bamt" type="number" step="0.01" placeholder="金额" style="flex:0 0 90px;" data-page-node-id="ff6kYUnZM3ynCQcCwd1PBZ">
         <button class="btn btn-ghost btn-sm" onclick="addLocationBudgetItem()" style="flex:0 0 auto;" data-page-node-id="1JpHQ0HSSnQWzkMWNGA7mj">＋</button>
+      </div>
+      <!-- v143.5: 付款人 —— AA 分账依据。单人行程自动隐藏 -->
+      <div id="lm-bpayer-row" style="display:flex;gap:8px;align-items:center;margin-top:8px;display:none;">
+        <span style="font-size:12px;color:var(--text-light);flex:0 0 auto;">谁付的</span>
+        <select class="form-select" id="lm-bpayer" style="flex:1;"></select>
       </div>
     </div>
     <div class="modal-actions" data-page-node-id="yaPRksOuT2hVpFBcEAg6oO">
@@ -2252,7 +2361,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.4';
+var APP_VERSION='v143.5';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -2811,7 +2920,12 @@ function fieldTs(loc,field){
 // (previously the newer trip.updatedAt won the whole location — losing one side).
 function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   var out=JSON.parse(JSON.stringify(localLoc));
-  var fields=['name','guide','feeling','time','type','lat','lng'];
+  // v143.5: 补上 distance/duration —— 之前只合并上面 7 个字段，导致一端改「时长」
+  // 另一端永远看不到（merge 时被引擎保留的本地旧值覆盖）。硬规则：给 location 增加
+  // 需同步的字段，必须同时改这里和 saveLocation 的 _fts 列表，否则改动会丢。
+  // distance 自 v143.4 起由坐标自动算出（各端一致），进白名单只是兜底防旧设备的
+  // 手填值把新设备的自动值顶掉。
+  var fields=['name','guide','feeling','time','type','lat','lng','distance','duration'];
   fields.forEach(function(f){
     var rv=remoteLoc[f], lv=out[f];
     var rTs=fieldTs(remoteLoc,f)||remoteTripTs;
@@ -4869,6 +4983,8 @@ function syncStart(){
       // v63: periodic photo reconciliation — re-upload any local photo whose
       // cloud chunk is missing (throttled to 15 min inside the function).
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
+      // v143.5: 到期强提醒（函数内部自带 15 分钟节流）
+      if(typeof strongRemindTick==='function')strongRemindTick();
     },30000);
   }else if(ghHasToken()&&GH.tokenInvalid){
     if(GH.syncTimer)clearInterval(GH.syncTimer);
@@ -4887,6 +5003,9 @@ function syncStart(){
       syncPull();
       // v63: also reconcile photos when the app comes back to foreground
       if(typeof reconcileLocalPhotos==='function')reconcileLocalPhotos();
+      // v143.5: 回到前台立刻提醒一次到期事项（不等下一个节流窗口）
+      if(typeof strongRemindTick==='function')strongRemindTick();
+      if(typeof updateRemindBadge==='function')updateRemindBadge();
     }
   });
   // If the user closes the app with a pending debounced write, flush it immediately
@@ -4998,6 +5117,8 @@ function renderAll(){
       else if(id==='page-profile')renderProfile();
       // v140: 首页强提醒横幅（临近出发的行程）
       if(typeof renderReminderBanner==='function')renderReminderBanner();
+      // v143.5: 首页工具箱提醒角标
+      if(typeof updateRemindBadge==='function')updateRemindBadge();
     }catch(err){
       // v140: 错误边界，避免单个页面渲染异常导致整页白屏
       console.error('[renderAll] 渲染异常:',err);
@@ -6806,16 +6927,32 @@ function sortLocations(mode){
   var day=t.days[currentTripDay]||t.days[0];
   if(!day||!day.locations)return;
   if(mode==='smart'){
-    // v75: route planning — sort by distance (closest first); fall back to time
-    // when distance is missing so the order still feels natural.
+    // v143.5: v143.4 起 l.distance 的语义是「与上一站的里程」，不再是「距起点距离」，
+    // 直接拿它排序只会得到链式相邻关系、顺序没有意义（且链条任意一环改动都会打乱全天）。
+    // 改为以「当天时间最早的有坐标地点」为基准点，按到基准点的直线距离由近到远排序 ——
+    // 这才是用户点「按路线排序」时真正想要的顺序。没有坐标的地点按时间排在后面。
+    var byTime=day.locations.slice().sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+    var anchor=null;
+    for(var i=0;i<byTime.length;i++){
+      if(byTime[i].lat!=null&&byTime[i].lng!=null){anchor=byTime[i];break;}
+    }
+    var rank={};
+    day.locations.forEach(function(l){
+      var k=l.id||l.name;
+      if(anchor&&l.lat!=null&&l.lng!=null)rank[k]=haversineKm(anchor.lat,anchor.lng,l.lat,l.lng);
+    });
     day.locations.sort(function(a,b){
-      var da=parseFloat(a.distance),db=parseFloat(b.distance);
-      if(!isNaN(da)&&!isNaN(db)&&(da!==db))return da-db;
+      var ka=rank[a.id||a.name], kb=rank[b.id||b.name];
+      if(ka!=null&&kb!=null&&ka!==kb)return ka-kb;
+      if(ka!=null&&kb==null)return -1;
+      if(ka==null&&kb!=null)return 1;
       return (a.time||'').localeCompare(b.time||'');
     });
     saveData();
     renderTimeline();
-    showToast('已按路线排序（距离由近到远）');
+    showToast(anchor
+      ? ('已按路线排序（距「'+(anchor.name||'首站')+'」由近到远）')
+      : '已按时间排序：当天还没有坐标，补齐后可自动按距离排');
   }else{
     showToast('点击地点卡片上的 ↑ ↓ 手动调整顺序');
   }
@@ -6907,6 +7044,7 @@ function addLocationToCurrentDay(){
   document.getElementById('location-modal-title').textContent='添加地点';
   document.getElementById('lm-save-btn').textContent='添加';
   resetLocationModal();
+  renderBudgetPayerSelect();
   document.getElementById('location-modal').classList.add('active');
 }
 function editLocation(idx){
@@ -6927,6 +7065,7 @@ function editLocation(idx){
   var ln=document.getElementById('lm-lng');if(ln)ln.value=l.lng||'';
   document.getElementById('lm-guide').value=l.guide||'';
   document.getElementById('lm-feeling').value=l.feeling||'';
+  renderBudgetPayerSelect(l.budget&&l.budget.items&&l.budget.items[0]?l.budget.items[0].payer:'');
   document.getElementById('lm-bcat').value='food';
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
@@ -6987,10 +7126,28 @@ function addLocationBudgetItem(){
   var note=document.getElementById('lm-bnote').value.trim();
   var amt=parseFloat(document.getElementById('lm-bamt').value)||0;
   if(amt<=0){showToast('请输入金额'); return;}
-  lmBudgetItems.push({id:uid(), cat:cat, note:note, amt:amt, time:Date.now()});
+  // v143.5: 记账带「付款人」—— AA 分账需要知道这笔钱是谁垫的。缺省为当前用户，
+  // 行程没有协作成员时下拉隐藏（单人行程不需要选）。
+  lmBudgetItems.push({id:uid(), cat:cat, note:note, amt:amt, time:Date.now(),
+    payer:document.getElementById('lm-bpayer')?document.getElementById('lm-bpayer').value:ghUserId()});
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
   renderLocationModalBudget();
+}
+// v143.5: 记账付款人下拉 —— 只在有协作成员（>1人）时显示，单人行程记在自己名下即可
+function renderBudgetPayerSelect(defPayer){
+  var row=document.getElementById('lm-bpayer-row'), sel=document.getElementById('lm-bpayer');
+  if(!row||!sel)return;
+  try{
+    var t=(data.trips||[]).find(function(x){return x.id===currentTripId;});
+    var members=t?tripMembers(t):[ghUserId()];
+    if(members.length<2){row.style.display='none';return;}
+    row.style.display='flex';
+    sel.innerHTML=members.map(function(u){
+      return '<option value="'+u+'">'+escapeHTML(peerName(u))+'</option>';
+    }).join('');
+    sel.value=(defPayer&&members.indexOf(defPayer)>=0)?defPayer:ghUserId();
+  }catch(e){row.style.display='none';}
 }
 function renderLocationModalBudget(){
   var el=document.getElementById('lm-budget-list');
@@ -6999,9 +7156,17 @@ function renderLocationModalBudget(){
   var catIcons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
   if(lmBudgetItems.length===0){el.innerHTML='<div style="font-size:12px;color:var(--text-light);padding:6px 0;">暂无预算明细</div>'; return;}
   el.innerHTML=lmBudgetItems.map(function(it,i){
+    // v143.5: 显示这笔钱是谁垫的（AA 结算要对得上账）
+    var payerTag='';
+    try{
+      if(it.payer){
+        var t=(data.trips||[]).find(function(x){return x.id===currentTripId;});
+        if(t&&(t.collaborators||[]).length>1)payerTag='<span class="sr-payer">'+escapeHTML(peerName(it.payer))+'</span>';
+      }
+    }catch(e){}
     return '<div class="spend-row">'+
       '<span class="sr-cat">'+catIcons[it.cat]+'</span>'+
-      '<span class="sr-label">'+(it.note||catNames[it.cat])+'</span>'+
+      '<span class="sr-label">'+(it.note||catNames[it.cat])+payerTag+'</span>'+
       '<span class="sr-amt">¥'+it.amt.toFixed(2)+'</span>'+
       '<button class="sr-del" onclick="deleteLocationModalBudgetItem('+i+')">×</button>'+
     '</div>';
@@ -7077,6 +7242,379 @@ function lmAutoDistance(day,loc,prevLoc){
     return Math.round(haversineKm(p.lat,p.lng,loc.lat,loc.lng)*10)/10;
   }catch(e){return (prevLoc&&prevLoc.distance!=null)?prevLoc.distance:null;}
 }
+/* ===== v143.5 工具箱：番茄钟 / 速记 / 提醒中心 / 云端备份回滚 =====
+   数据落在 settings.tools（随 settings 同步，不新增顶层 data 字段，
+   避免触碰 hard-rule #12 的 data 重建字段清单和同步合并逻辑）。 */
+function toolsState(){
+  try{
+    data.settings=data.settings||{};
+    var s=data.settings;
+    if(!s.tools||typeof s.tools!=='object')s.tools={};
+    if(!Array.isArray(s.tools.pomo))s.tools.pomo=[];
+    if(!Array.isArray(s.tools.notes))s.tools.notes=[];
+    if(!Array.isArray(s.tools.remindDone))s.tools.remindDone=[];
+    return s.tools;
+  }catch(e){return {pomo:[],notes:[],remindDone:[]};}
+}
+function toolsSave(push){
+  try{
+    data.settings=data.settings||{};
+    saveDataLocalQuiet?saveDataLocalQuiet():(typeof saveDataLocal==='function'?saveDataLocal():null);
+  }catch(e){}
+  if(push!==false){
+    try{ if(typeof window.syncPushNow==='function')window.syncPushNow(); }catch(e){}
+  }
+}
+function closeTools(){ try{ closeModal('tools-modal'); }catch(e){ var m=document.getElementById('tools-modal'); if(m)m.classList.remove('active'); } }
+var TOOLS_TABS=['pomo','note','remind','aa','backup'];
+function openTools(tab){
+  if(document.getElementById('tools-modal')){
+    document.getElementById('tools-modal').classList.add('active');
+    switchToolsTab(tab||'pomo');
+    renderTools();
+  }
+}
+function switchToolsTab(tab){
+  TOOLS_TABS.forEach(function(t){
+    var b=document.getElementById('tools-tab-'+t); if(b)b.classList.toggle('active',t===tab);
+    var p=document.getElementById('tools-body-'+t); if(p)p.style.display=(t===tab)?'block':'none';
+  });
+  if(tab==='backup')loadCloudBackups();
+  if(tab==='aa')renderAATripSelect();
+  if(tab==='remind')renderRemindCenter();
+  if(tab==='pomo')renderPomoHistory();
+  if(tab==='note')renderNoteList();
+}
+function renderTools(){ renderPomoHistory(); renderNoteList(); renderRemindCenter(); }
+
+/* --- 番茄钟 --- */
+var POMO={timer:null,left:0,total:0,running:false,mode:'focus'};
+function pomoFmt(s){ var m=Math.floor(s/60),ss=s%60; return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+function pomoSet(minutes,mode){
+  POMO.mode=mode||'focus'; POMO.total=Math.round(minutes*60); POMO.left=POMO.total;
+  pomoStop(); renderPomoDisplay();
+}
+function pomoStart(){
+  if(POMO.running)return;
+  if(POMO.left<=0)pomoSet(POMO.mode==='focus'?25:5,POMO.mode);
+  POMO.running=true;
+  POMO.timer=setInterval(function(){
+    POMO.left--;
+    if(POMO.left<=0){ pomoComplete(); return; }
+    renderPomoDisplay();
+  },1000);
+  renderPomoDisplay();
+}
+function pomoPause(){ if(POMO.timer)clearInterval(POMO.timer); POMO.timer=null; POMO.running=false; renderPomoDisplay(); }
+function pomoReset(){ pomoStop(); POMO.left=POMO.total; renderPomoDisplay(); }
+function pomoStop(){ if(POMO.timer)clearInterval(POMO.timer); POMO.timer=null; POMO.running=false; }
+function pomoComplete(){
+  pomoStop(); POMO.left=0; renderPomoDisplay();
+  var st=toolsState();
+  st.pomo.push({id:uid(),minutes:Math.round(POMO.total/60),mode:POMO.mode,ts:Date.now(),by:ghUserId()});
+  if(st.pomo.length>300)st.pomo=st.pomo.slice(-300);
+  toolsSave();
+  pomoDing();
+  try{ if(navigator.vibrate)navigator.vibrate([200,120,200]); }catch(e){}
+  showToast((POMO.mode==='focus'?'专注完成，休息一下 ✨':'休息结束，继续出发 🍅'));
+  notifyDesktop('番茄钟',POMO.mode==='focus'?'专注结束，起来活动一下':'休息结束，回到专注吧');
+  renderPomoHistory();
+}
+function pomoDing(){
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(!ctx)return;
+    [880,660,880].forEach(function(f,i){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.frequency.value=f; o.type='sine';
+      g.gain.setValueAtTime(0.0001,ctx.currentTime+i*0.18);
+      g.gain.exponentialRampToValueAtTime(0.25,ctx.currentTime+i*0.18+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+i*0.18+0.16);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime+i*0.18); o.stop(ctx.currentTime+i*0.18+0.18);
+    });
+  }catch(e){}
+}
+function renderPomoDisplay(){
+  var el=document.getElementById('pomo-time'); if(!el)return;
+  el.textContent=pomoFmt(POMO.left>0?POMO.left:POMO.total);
+  var st=document.getElementById('pomo-state'); if(st)st.textContent=POMO.running?(POMO.mode==='focus'?'专注中…':'休息中…'):'已暂停';
+  document.title=POMO.running?('('+pomoFmt(POMO.left)+') 薄荷旅行手账'):'薄荷旅行手账';
+}
+function renderPomoHistory(){
+  var st=toolsState(), host=document.getElementById('pomo-history'); if(!host)return;
+  var today=dateKey(new Date());
+  var todayList=st.pomo.filter(function(p){return p && dateKey(new Date(p.ts))===today;});
+  var mins=todayList.reduce(function(s,p){return s+(p.minutes||0);},0);
+  var box=document.getElementById('pomo-today');
+  if(box)box.textContent='今天 '+todayList.length+' 段 · '+mins+' 分钟';
+  if(!todayList.length){host.innerHTML='<div class="tools-empty">今天还没有专注记录，点上面的 25 分钟开始吧 🌱</div>';return;}
+  host.innerHTML=todayList.slice(-6).reverse().map(function(p){
+    return '<div class="tools-row"><span>'+(p.mode==='focus'?'🍅':'🌿')+' '+p.minutes+' 分钟</span>'+
+      '<span class="tools-dim">'+new Date(p.ts).toTimeString().slice(0,5)+'</span></div>';
+  }).join('');
+}
+function notifyDesktop(title,body){
+  try{
+    if(!window.Notification||Notification.permission!=='granted')return;
+    new Notification(title,{body:body||'',tag:'lattiao-tools'});
+  }catch(e){}
+}
+
+/* --- 速记 --- */
+function noteQuickSave(){
+  var el=document.getElementById('tools-note-input'); if(!el)return;
+  var txt=(el.value||'').trim();
+  if(!txt){showToast('写点什么再保存吧');return;}
+  var st=toolsState();
+  st.notes.unshift({id:uid(),text:txt,ts:Date.now(),by:ghUserId()});
+  if(st.notes.length>500)st.notes=st.notes.slice(0,500);
+  el.value='';
+  toolsSave();
+  renderNoteList();
+  showToast('已记下 ✍️');
+}
+function noteQuickDel(id){
+  var st=toolsState();
+  st.notes=st.notes.filter(function(n){return n.id!==id;});
+  toolsSave(); renderNoteList();
+}
+function renderNoteList(){
+  var st=toolsState(), host=document.getElementById('tools-note-list'); if(!host)return;
+  if(!st.notes.length){host.innerHTML='<div class="tools-empty">还没有速记。想到什么随手记一句，自动同步到所有设备 ✍️</div>';return;}
+  host.innerHTML=st.notes.slice(0,40).map(function(n){
+    return '<div class="tools-note"><div class="tn-text">'+escapeHTML(n.text)+'</div>'+
+      '<div class="tn-foot"><span class="tools-dim">'+new Date(n.ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span>'+
+      '<span class="tn-del" onclick="noteQuickDel(\''+n.id+'\')">删除</span></div></div>';
+  }).join('');
+}
+
+/* --- 提醒中心：集中展示所有待办/到期事项 --- */
+function dueItems(){
+  var out=[], tk=dateKey(new Date());
+  (data.trips||[]).forEach(function(t){
+    if(!t||t.status==='archived')return;
+    if(t.startDate){
+      var d=daysBetween(tk,t.startDate);
+      if(d>=0&&d<=7)out.push({id:'dep|'+t.id,days:d,level:d<=1?'high':(d<=3?'mid':'low'),
+        title:(d===0?'今天出发':(d===1?'明天出发':'还有 '+d+' 天出发'))+'：'+(t.title||'未命名'),
+        detail:'📍 '+(t.destination||'—')+(t.flightNo?(' · '+t.flightNo):''),tripId:t.id});
+    }
+    if(t.visaDate){
+      var vd=daysBetween(tk,t.visaDate);
+      if(vd>=0&&vd<=30)out.push({id:'visa|'+t.id,days:vd,level:vd<=1?'high':(vd<=7?'mid':'low'),
+        title:'签证还有 '+vd+' 天到期'+(vd===0?'（今天）':''),detail:'「'+(t.title||'')+'」'+(t.visaDate||''),tripId:t.id});
+    }
+    if(t.endDate&&t.endDate===tk)out.push({id:'end|'+t.id,days:0,level:'mid',title:'今天是最后一天：'+(t.title||''),detail:'别忘了写旅行感受 💜',tripId:t.id});
+  });
+  out.sort(function(a,b){return a.days-b.days;});
+  return out;
+}
+function renderRemindCenter(){
+  var host=document.getElementById('tools-remind-list'); if(!host)return;
+  var items=dueItems(), done=toolsState().remindDone||[];
+  var undone=items.filter(function(i){return done.indexOf(i.id)<0;});
+  if(!undone.length){host.innerHTML='<div class="tools-empty">近 7 天没有到期事项，安心享受当下 ☕</div>';return;}
+  host.innerHTML=undone.map(function(i){
+    return '<div class="tools-note tools-remind '+i.level+'"><div class="tn-text">'+escapeHTML(i.title)+'</div>'+
+      '<div class="tools-dim">'+escapeHTML(i.detail||'')+'</div>'+
+      '<div class="tn-foot"><span class="rl-go" onclick="openTrip(\''+i.tripId+'\');closeTools();showPage(\'trip-detail\');">查看详情 ›</span>'+
+      '<span class="tn-del" onclick="markRemindDone(\''+i.id+'\')">知道了</span></div></div>';
+  }).join('');
+}
+function markRemindDone(id){
+  var st=toolsState();
+  if(st.remindDone.indexOf(id)<0)st.remindDone.push(id);
+  if(st.remindDone.length>200)st.remindDone=st.remindDone.slice(-200);
+  toolsSave(); renderRemindCenter(); updateRemindBadge();
+}
+function updateRemindBadge(){
+  var el=document.getElementById('tools-remind-badge'); if(!el)return;
+  var n=dueItems().filter(function(i){return (toolsState().remindDone||[]).indexOf(i.id)<0;}).length;
+  el.textContent=n?String(n):'';
+  el.style.display=n?'inline-block':'none';
+}
+
+/* --- 到期强提醒：当天/明天出行时周期性重复提醒 --- */
+var STRONG_REMIND_KEY='lattiao_strong_remind';
+function strongRemindOn(){
+  try{
+    if(localStorage.getItem(STRONG_REMIND_KEY)==='off')return false;
+  }catch(e){}
+  return true;
+}
+function toggleStrongRemind(){
+  try{
+    var off=localStorage.getItem(STRONG_REMIND_KEY)==='off';
+    localStorage.setItem(STRONG_REMIND_KEY,off?'on':'off');
+    showToast(off?'已开启到期强提醒 🔔':'已关闭到期强提醒');
+    renderTools();
+  }catch(e){}
+}
+var _lastStrongRemind=0;
+function strongRemindTick(force){
+  try{
+    if(!strongRemindOn())return;
+    var now=Date.now();
+    if(!force&&(now-_lastStrongRemind)<15*60*1000)return;
+    var urgent=dueItems().filter(function(i){
+      if((toolsState().remindDone||[]).indexOf(i.id)>=0)return false;
+      return !force && i.days>1 ? false : true;   // 静默 tick 只打扰 ≤1 天的
+    });
+    if(!urgent.length)return;
+    _lastStrongRemind=now;
+    var i=urgent[0];
+    showToast('⏰ '+i.title);
+    notifyDesktop(i.title,i.detail||'');
+    try{ if(navigator.vibrate)navigator.vibrate([120,80,120]); }catch(e){}
+    pomoDing();
+  }catch(e){}
+}
+
+/* --- 云端备份历史 + 一键回滚 --- */
+function loadCloudBackups(){
+  var host=document.getElementById('tools-backup-list'); if(!host)return;
+  host.innerHTML='<div class="tools-empty">正在读取云端备份…</div>';
+  if(!ghHasToken()){host.innerHTML='<div class="tools-empty">未连接云端（设置里填 Token 后可查看每日备份）</div>';return;}
+  ghFetchTimeout(geUrl('data/backup')+'?ref=master',{headers:geHeaders()},20000,'GET backup dir')
+    .then(function(r){ if(!r.ok)throw new Error('HTTP_'+r.status); return r.json(); })
+    .then(function(list){
+      var rows=(Array.isArray(list)?list:[]).filter(function(x){return x&&x.type==='file'&&/\.json$/.test(x.name||'');})
+        .map(function(x){return (x.name||'').replace('.json','');})
+        .filter(function(n){return /^\d{4}-\d{2}-\d{2}$/.test(n);})
+        .sort().reverse();
+      if(!rows.length){host.innerHTML='<div class="tools-empty">云端还没有每日备份（联网后第二天自动生成）</div>';return;}
+      host.innerHTML=rows.slice(0,14).map(function(d){
+        return '<div class="tools-row"><span>🗂 '+d+'</span>'+
+          '<span class="rl-go" onclick="restoreCloudBackup(\''+d+'\')">回滚到这天 ›</span></div>';
+      }).join('');
+    })
+    .catch(function(e){ host.innerHTML='<div class="tools-empty">读取备份列表失败：'+escapeHTML((e&&e.message)||'网络异常')+'</div>'; });
+}
+function renderAATripSelect(){
+  var sel=document.getElementById('aa-trip-select'); if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">选择行程…</option>'+(data.trips||[]).map(function(t){
+    return '<option value="'+t.id+'">'+escapeHTML(t.title||t.destination||'未命名')+'</option>';
+  }).join('');
+  sel.value=cur;
+}
+/* ===== v143.5 AA 分账结算 =====
+   规则：①有 payer 的账目 → 计入该人垫付；②所有（含无 payer 的）金额都算总支出，
+   按成员数平均分摊（粒度够用，不强求逐条指定分摊人）；③每人差额 = 垫付 - 应摊，
+   +应收 / -应付；④用贪心撮合生成最少笔数的结清转账清单。 */
+function tripMembers(t){
+  var ids=[];
+  (t.collaborators||[]).forEach(function(c){ if(c&&c.uid&&ids.indexOf(c.uid)<0)ids.push(c.uid); });
+  var me=ghUserId();
+  if(ids.indexOf(me)<0)ids.push(me);
+  return ids;
+}
+function collectTripItems(t){
+  var out=[];
+  try{
+    (((t.budget||{}).items)||[]).forEach(function(it){ if(it&&it.amt>0)out.push(it); });
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        (((l.budget||{}).items)||[]).forEach(function(it){ if(it&&it.amt>0)out.push(it); });
+      });
+    });
+  }catch(e){}
+  return out;
+}
+function computeSettle(tripId){
+  var t=(data.trips||[]).find(function(x){return x.id===tripId;});
+  if(!t)return null;
+  var members=tripMembers(t);
+  var items=collectTripItems(t);
+  var total=items.reduce(function(s,it){return s+(parseFloat(it.amt)||0);},0);
+  var paid={},unassigned=0;
+  members.forEach(function(m){paid[m]=0;});
+  items.forEach(function(it){
+    var p=it.payer;
+    if(p&&paid.hasOwnProperty(p))paid[p]+=(parseFloat(it.amt)||0);
+    else unassigned+=(parseFloat(it.amt)||0);
+  });
+  // v143.5-修正：只有「认领了付款人」的金额参与 AA 撮合。未认领的钱没有债权人，
+  // 若摊进 transfer 会凭空生成一笔「某人应收」（没人垫过这笔钱），结算账单就不可信了。
+  // 未认领金额仍计入总支出展示，并单独提示用户去补标付款人。
+  var claimed=0;
+  members.forEach(function(m){claimed+=paid[m];});
+  var n=members.length||1;
+  var share=claimed/n;
+  var rows=members.map(function(m){
+    var diff=paid[m]-share;
+    return {uid:m,name:peerName(m),paid:paid[m],share:share,diff:diff};
+  });
+  // 贪心撮合：债主(应收) vs 欠款人(应付)
+  var creditors=rows.filter(function(r){return r.diff>0.005;}).map(function(r){return {uid:r.uid,name:r.name,amt:r.diff};}).sort(function(a,b){return b.amt-a.amt;});
+  var debtors=rows.filter(function(r){return r.diff<-0.005;}).map(function(r){return {uid:r.uid,name:r.name,amt:-r.diff};}).sort(function(a,b){return b.amt-a.amt;});
+  var transfers=[];
+  var i=0,j=0;
+  while(i<creditors.length&&j<debtors.length){
+    var c=creditors[i],d=debtors[j];
+    var amt=Math.min(c.amt,d.amt);
+    if(amt>0.005)transfers.push({from:d.name,to:c.name,amt:Math.round(amt*100)/100});
+    c.amt-=amt; d.amt-=amt;
+    if(c.amt<=0.005)i++;
+    if(d.amt<=0.005)j++;
+  }
+  return {trip:t,members:members,items:items,total:total,claimed:claimed,unassigned:unassigned,share:share,rows:rows,transfers:transfers};
+}
+function openAASettle(tripId){
+  var r=computeSettle(tripId);
+  if(!r){showToast('未找到该行程');return;}
+  var host=document.getElementById('aa-body'); if(!host)return;
+  var doneList=[];
+  host.innerHTML=
+    '<div class="aa-sum">总支出 <b>¥'+r.total.toFixed(2)+'</b> · 参与分账 ¥'+r.claimed.toFixed(2)+' · 成员 '+r.members.length+' 人 · 人均 ¥'+r.share.toFixed(2)+'</div>'+
+    (r.unassigned>0.005?'<div class="tools-dim">有 ¥'+r.unassigned.toFixed(2)+' 未标注付款人，未计入分账（补标后会自动重算）</div>':'')+
+    r.rows.map(function(x){
+      var tag=x.diff>0.005?('<span class="aa-diff plus">应收 ¥'+x.diff.toFixed(2)+'</span>'):
+              (x.diff<-0.005?('<span class="aa-diff minus">应付 ¥'+(-x.diff).toFixed(2)+'</span>'):'<span class="aa-diff">已平</span>');
+      return '<div class="tools-row"><span>'+escapeHTML(x.name)+' <span class="tools-dim">垫 ¥'+x.paid.toFixed(2)+'</span></span>'+tag+'</div>';
+    }).join('')+
+    '<div class="aa-h">结清方案</div>'+
+    (r.transfers.length?r.transfers.map(function(tr){
+      return '<div class="tools-row"><span>'+escapeHTML(tr.from)+' → '+escapeHTML(tr.to)+'</span><span class="aa-diff">¥'+tr.amt.toFixed(2)+'</span></div>';
+    }).join(''):'<div class="tools-empty">大家已经平了，不用转账 🎉</div>')+
+    '<div class="tools-btnrow"><button class="btn btn-ghost btn-sm" style="flex:1;" onclick="copySettleText(\''+tripId+'\')">复制结算清单</button></div>';
+  openTools('aa');
+}
+function copySettleText(tripId){
+  var r=computeSettle(tripId); if(!r)return;
+  var txt='【'+(r.trip.title||'行程')+'】AA 结算\n总支出 ¥'+r.total.toFixed(2)+' · 人均 ¥'+r.share.toFixed(2)+'\n\n'+
+    r.rows.map(function(x){return '· '+x.name+' 垫付 ¥'+x.paid.toFixed(2)+' / 应摊 ¥'+x.share.toFixed(2)+' → '+(x.diff>0.005?('应收 ¥'+x.diff.toFixed(2)):(x.diff<-0.005?('应付 ¥'+(-x.diff).toFixed(2)):'已平'));}).join('\n')+
+    '\n\n结清转账：\n'+(r.transfers.length?r.transfers.map(function(t){return '· '+t.from+' 给 '+t.to+' ¥'+t.amt.toFixed(2);}).join('\n'):'无需转账');
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt);
+    else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+    showToast('结算清单已复制 📋');
+  }catch(e){showToast('复制失败，请手动截图');}
+}
+function restoreCloudBackup(day){
+  if(!confirm('回滚到 '+day+' 的备份？\n\n这会覆盖当前所有文字数据（行程/攻略/记账），照片不会被删除。确定继续？'))return;
+  showToast('正在下载 '+day+' 的备份…');
+  geGetRaw('data/backup/'+day+'.json',30000).then(function(m){
+    if(!m||!m.content)throw new Error('EMPTY');
+    var obj=JSON.parse(decodeURIComponent(escape(atob(m.content.replace(/\n/g,'')))));
+    var d=obj&&obj.data?obj.data:obj;
+    if(!d||!Array.isArray(d.trips))throw new Error('BAD');
+    data.trips=d.trips;
+    data.guides=d.guides||[];
+    data.favorites=d.favorites||[];
+    data.tombstones=d.tombstones||{};
+    data.locTombstones=d.locTombstones||{};
+    data.budgetTombstones=d.budgetTombstones||{};
+    if(d.settings)data.settings=d.settings;
+    try{ saveDataLocal(); }catch(e){}
+    renderAll(); closeTools();
+    showToast('已回滚到 '+day+' ✓');
+    try{ if(typeof window.syncPushNow==='function')window.syncPushNow(); }catch(e){}
+  }).catch(function(e){
+    showToast('回滚失败：'+((e&&e.message)||'网络异常'));
+  });
+}
 function saveLocation(){
   if(blockIfReadOnly(currentTripId,'编辑地点'))return;
   var t=data.trips.find(function(x){return x.id===currentTripId;});
@@ -7122,7 +7660,8 @@ function saveLocation(){
   // falsely claiming it was merged. Always inherit _prev._fts first.
   var _prev=(isEdit&&day.locations[currentEditingLocationIdx])?day.locations[currentEditingLocationIdx]:null;
   loc._fts=(_prev&&_prev._fts)?JSON.parse(JSON.stringify(_prev._fts)):(loc._fts||{});
-  ['name','guide','feeling','time','type','lat','lng'].forEach(function(f){
+  // v143.5: 补 duration/distance 时间戳（与 mergeLocationPair 白名单必须一致，否则丢失）
+  ['name','guide','feeling','time','type','lat','lng','distance','duration'].forEach(function(f){
     if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
   });
   // v143.4: 距离自动计算（同一天时间序上一站 haversine），替代原手动「距离(km)」输入框
@@ -8597,11 +9136,11 @@ function testCurrentToken(){
       // fetch is interrupted (background→foreground, WiFi↔4G switch, SW hiccup).
       // navigator.onLine tells us whether to blame the device vs. Gitee.
       if(msg.indexOf('TIMEOUT')>=0){
-        code='请求超时（网络慢或 Safari 中断）';
+        code='请求超时（网络慢或' + browserLabel() + '中断）';
       }else if(e&&e.offline){
         code='设备当前离线';
       }else if(msg.indexOf('Load failed')>=0||msg==='Failed to fetch'||msg.indexOf('NetworkError')>=0||/TypeError.*fetch/i.test(msg)){
-        code=navigator.onLine?'Safari 中断了请求，再试一次':'设备离线，请连 WiFi';
+        code=navigator.onLine?(browserLabel()+'中断了请求，再试一次'):'设备离线，请连 WiFi';
       }else{
         code=msg;
       }
@@ -8609,6 +9148,24 @@ function testCurrentToken(){
     if(el){el.textContent='❌ '+code;el.style.color='#dc2626';}
     showToast('Token 无效：'+code);
   });
+}
+// v143.5: 错误提示不要再写死 Safari —— 安卓/Chrome/微信内置浏览器用户看到
+// 「Safari 中断了请求」会觉得莫名其妙（之前 Safari PWA 客户端才是主要反馈来源，
+// 文案就照着写死了）。这里按 UA 给出用户真正在用的那个「浏览器」名字。
+function browserLabel(){
+  try{
+    var ua=navigator.userAgent||'';
+    var isApple=/iPhone|iPad|iPod/.test(ua);
+    if(/MicroMessenger/.test(ua))return '微信';
+    if(/Edg\//.test(ua))return 'Edge';
+    if(/OPR\//.test(ua))return 'Opera';
+    if(/Firefox\//.test(ua))return 'Firefox';
+    if(isApple&&/CriOS/.test(ua))return 'Chrome';
+    if(isApple)return 'Safari';
+    if(/UCBrowser|QQBrowser|Quark|MQQBrowser|MiuiBrowser|HeyTapBrowser|VivoBrowser|baiduboxapp/.test(ua))return '手机浏览器';
+    if(/Chrome\//.test(ua))return 'Chrome';
+    return '浏览器';
+  }catch(e){return '浏览器';}
 }
 function saveSettings(){
   var name=document.getElementById('set-name').value.trim()||'Iris';
