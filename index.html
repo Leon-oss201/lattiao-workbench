@@ -2249,7 +2249,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.2';
+var APP_VERSION='v143.3';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
 var calDate=new Date();
@@ -3934,9 +3934,10 @@ function ghReadPhotoChunk(path){
       try{
         if(chunk&&chunk.photos&&chunk.photos.length){
           if(!GH.photoChunkFp)GH.photoChunkFp={};
-          GH.photoChunkFp[path]=JSON.stringify(chunk);
+          // v143.3: 存短哈希而非全量 JSON（全量会撑爆 localStorage 配额）
+          GH.photoChunkFp[path]=chunkFpCalc(JSON.stringify(chunk));
           if(m.sha){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[path]=m.sha;}
-          try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+          persistPhotoChunkMeta();
         }
       }catch(e2){}
       return chunk;
@@ -4128,9 +4129,9 @@ function uploadPhotoChunk(chunk,retries){
       var cloudN=cloud&&cloud.photos?cloud.photos.length:0;
       if(cloudN===nPhotos){
         if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}
-        if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=fp2;
+        if(!GH.photoChunkFp)GH.photoChunkFp={};GH.photoChunkFp[chunk.path]=chunkFpCalc(fp2); // v143.3 短哈希
         if(typeof photoSyncTick==='function')photoSyncTick(true);
-        try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+        persistPhotoChunkMeta();
         return true;
       }
       // 云端内容不一致 → 视为未同步，清掉 sha（若有），让下次 push 重试补齐
@@ -4158,7 +4159,7 @@ function uploadPhotoChunk(chunk,retries){
     if(cached){
       return geWrite(chunk.path,chunk.data,'sync: photo '+chunk.path,cached).then(markOk).catch(function(e){
         if(String(e).indexOf('409')>=0&&retries>0){
-          return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;}return uploadPhotoChunk(chunk,retries-1);});
+          return ghGetSha(chunk.path).then(function(s){if(s){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=s;persistPhotoChunkMeta();}return uploadPhotoChunk(chunk,retries-1);});
         }
         throw e;
       });
@@ -4174,6 +4175,7 @@ function uploadPhotoChunk(chunk,retries){
           if(!s)throw e; // 文件确实不存在 → 保留原始错误，不要无意义重试
           if(!GH.photoChunkSha)GH.photoChunkSha={};
           GH.photoChunkSha[chunk.path]=s;
+          persistPhotoChunkMeta(); // v143.3: sha 落盘，重启不再丢
           return uploadPhotoChunk(chunk,retries-1);
         });
       }
@@ -4279,6 +4281,23 @@ function sha1hex(str){
     return hx(h0)+hx(h1)+hx(h2)+hx(h3)+hx(h4);
   }catch(e){ return ''; }
 }
+// v143.3: 分片指纹改存「短哈希」。旧版 photoChunkFp 直接存 JSON.stringify(chunk.data)
+// （含全部 base64 照片的完整 JSON），90 张照片的指纹 map 高达几十 MB，远超 localStorage
+// ~5MB 配额 → setItem 静默失败（try/catch 吞掉）→ 重启后指纹全丢。叠加 photoChunkSha
+// 只在内存、从不持久化 → 每次退出再打开，photoChunksAllSynced() 对所有分片都返回 false
+// → 每次启动都全量重推全部照片分片、徽标常驻「N/90 张待同步」（用户实测：每次打开都在同步）。
+// 改存 'h:'+sha1hex（42 字符）后指纹 map 只有几 KB，可持久化；sha map 同样落盘。
+function chunkFpCalc(contentStr){ return 'h:'+sha1hex(contentStr); }
+// 兼容旧格式：存量 localStorage 里可能还有旧的全量 JSON 指纹，直接等值也算命中
+//（init 时会就地迁移为哈希格式，这里只是双保险）。
+function chunkFpMatch(rec,contentStr){
+  try{ return !!rec&&(rec===chunkFpCalc(contentStr)||rec===contentStr); }catch(e){ return false; }
+}
+// v143.3: fp + sha 一起持久化（sha 此前从不落盘，是「重启即全量重推」的另一半根因）。
+function persistPhotoChunkMeta(){
+  try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp||{}));}catch(e){}
+  try{localStorage.setItem('lattiao_photoChunkSha',JSON.stringify(GH.photoChunkSha||{}));}catch(e){}
+}
 // v135: 判断当前所有照片 chunk 是否都已同步到云端。照片分片指纹不进
 // syncStateFingerprint（那是文本指纹）—— 若某 chunk 云端缺失/陈旧，本地 data 不变 →
 // 文本指纹相同 → 会走 syncPushNow 的跳过早返回，失败 chunk 永不被补传（弱网丢的照片卡死）。
@@ -4296,7 +4315,7 @@ function photoChunksAllSynced(){
       var c=all[i];
       var rec=GH.photoChunkFp[c.path];
       if(!rec) return false;                       // 该 chunk 从未成功上传过
-      if(rec!==JSON.stringify(c.data)) return false; // 内容变了（陈旧）→ 需重传
+      if(!chunkFpMatch(rec,JSON.stringify(c.data))) return false; // 内容变了（陈旧）→ 需重传（v143.3 兼容哈希/旧全量两种指纹格式）
       // v135 fix: 只检查 photoChunkSha 是否存在。真实 Gitee blob sha ≠ sha1hex(content)，
       // 之前用等值比较导致这里永远返回 false，每次 syncPushNow 都重传全部照片。
       if(!GH.photoChunkSha||!GH.photoChunkSha[c.path]) return false;
@@ -4485,7 +4504,8 @@ function doPushNowInner(triesLeft){
         var fp2=JSON.stringify(chunk.data);
         // v135: 跳过「本地 fp 匹配 且 服务端已确认存在(photoChunkSha 非空)」的 chunk。
         // 注意：Gitee 返回的 blob sha 不等于 sha1hex(content)，所以只检查存在性。
-        if(GH.photoChunkFp&&GH.photoChunkFp[chunk.path]===fp2 && GH.photoChunkSha && GH.photoChunkSha[chunk.path]) return false;
+        // v143.3: fp 匹配改走 chunkFpMatch（哈希/旧全量双格式兼容）。
+        if(chunkFpMatch(GH.photoChunkFp&&GH.photoChunkFp[chunk.path],fp2) && GH.photoChunkSha && GH.photoChunkSha[chunk.path]) return false;
         return true;
       });
       if(toUpload.length>0){
@@ -4672,7 +4692,7 @@ function showPendingBanner(){
   try{
     (data.trips||[]).forEach(function(t){
       buildPhotoChunks(t).forEach(function(c){
-        var ok=GH.photoChunkFp&&GH.photoChunkFp[c.path]===JSON.stringify(c.data)
+        var ok=chunkFpMatch(GH.photoChunkFp&&GH.photoChunkFp[c.path],JSON.stringify(c.data))
              &&GH.photoChunkSha&&GH.photoChunkSha[c.path];
         if(!ok)photoPending+=(c.data.photos||[]).length;
       });
@@ -4782,9 +4802,9 @@ function reconcileLocalPhotos(){
                   if(remoteN>=localN){
                     try{
                       if(!GH.photoChunkFp)GH.photoChunkFp={};
-                      GH.photoChunkFp[chunk.path]=JSON.stringify(chunk.data);
+                      GH.photoChunkFp[chunk.path]=chunkFpCalc(JSON.stringify(chunk.data)); // v143.3 短哈希
                       if(m.sha){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[chunk.path]=m.sha;}
-                      try{localStorage.setItem('lattiao_photoChunkFp',JSON.stringify(GH.photoChunkFp));}catch(e){}
+                      persistPhotoChunkMeta();
                     }catch(e2){}
                   }
                   // v137: 增量原则——云端照片更多则不动（云端更权威），绝不回写覆盖。
@@ -9473,8 +9493,31 @@ function photoChunkAllUploaded(tripId,loc){
   var cc=loc&&loc._chunkCount||0;
   if(cc<=0)return false;
   if(!GH.photoChunkFp)return false;
-  for(var i=0;i<cc;i++){
-    if(!GH.photoChunkFp[photoChunkPathForIdx(tripId,loc.id,i)])return false;
+  // v143.3 重写。旧版两个 bug：
+  // ① 路径用 photoChunkPathForIdx 的 floor(idx/3) 映射 —— 那是「三张一片」老方案的
+  //    遗迹；_chunkCount 是分片【文件】数，实际路径就是 _0.._(cc-1)，floor 映射会把
+  //    cc>3 时的 _2/_3… 永远查不到，且与 photoChunksAllSynced 检查的路径集不一致，
+  //    徽标和横幅/推送各说各话。
+  // ② 照片未懒加载的地点（l.photos 为空、只有 _photoCount）本机没有任何照片字节、
+  //    无从上传，却因 fp 缺失被计入「待同步」——新设备/刚重启时是纯假警报。
+  var have=(loc.photos&&loc.photos.length)||0;
+  if(!have){
+    // 未加载：只要每个分片都曾被云端读回/上传确认过（fp+sha 都在）即视为已同步；
+    // 否则不展示为「待上传」，等 prefetch 拉回后再按真实内容判定。
+    if(!GH.photoChunkSha)return false;
+    for(var i=0;i<cc;i++){
+      var p='data/photos/'+tripId+'/'+loc.id+'_'+i+'.json';
+      if(!GH.photoChunkFp[p]||!GH.photoChunkSha[p])return false;
+    }
+    return true;
+  }
+  // 已加载：与 photoChunksAllSynced 完全同一标准（内容 fp 匹配 + 服务端 sha 存在）
+  var chunks=buildPhotoChunksForLoc(tripId,loc);
+  if(!chunks.length)return false;
+  for(var j=0;j<chunks.length;j++){
+    var c=chunks[j];
+    if(!chunkFpMatch(GH.photoChunkFp[c.path],JSON.stringify(c.data)))return false;
+    if(!GH.photoChunkSha||!GH.photoChunkSha[c.path])return false;
   }
   return true;
 }
@@ -9886,7 +9929,7 @@ function runPhotoSelfCheck(){
           if(!chunks.length){missChunks+=1;return;}
           chunks.forEach(function(c){
             var fp=JSON.stringify(c.data);
-            var ok=GH.photoChunkFp&&GH.photoChunkFp[c.path]===fp&&GH.photoChunkSha&&GH.photoChunkSha[c.path];
+            var ok=chunkFpMatch(GH.photoChunkFp&&GH.photoChunkFp[c.path],fp)&&GH.photoChunkSha&&GH.photoChunkSha[c.path]; // v143.3
             if(ok)syncedPhotos+=(c.data.photos||[]).length; else missChunks+=1;
           });
         });
@@ -11888,6 +11931,19 @@ function init(){
   migrateAllCollaborators(); // v106: string[] collaborators → object[] with role
   // v124: 恢复已上传的照片分片指纹。原先只在内存，刷新后清零 → done 永远是 0
   try{GH.photoChunkFp=JSON.parse(localStorage.getItem('lattiao_photoChunkFp')||'{}')||{};}catch(e){GH.photoChunkFp={};}
+  // v143.3: 同步恢复分片 sha 缓存（此前只在内存，重启即丢 → photoChunksAllSynced
+  // 对所有分片返回 false → 每次打开都全量重推照片、徽标常驻「N/90 张待同步」）。
+  try{GH.photoChunkSha=JSON.parse(localStorage.getItem('lattiao_photoChunkSha')||'{}')||{};}catch(e){GH.photoChunkSha={};}
+  // v143.3: 旧版指纹是全量 JSON（几十 MB 级，撑爆 localStorage 配额导致根本存不下），
+  // 就地迁移为等价短哈希（内容未变则语义不变），迁移后指纹 map 只有几 KB。
+  try{
+    var _fpDirty=false;
+    for(var _fk in GH.photoChunkFp){
+      var _fv=GH.photoChunkFp[_fk];
+      if(typeof _fv==='string'&&_fv.charAt(0)==='{'){GH.photoChunkFp[_fk]=chunkFpCalc(_fv);_fpDirty=true;}
+    }
+    if(_fpDirty)persistPhotoChunkMeta();
+  }catch(e){}
   autoArchiveTrips(); // v75/77: archive trips that ended before today
   applyNavOrder();    // v75: restore custom tab order
   updateOfflineBanner();
