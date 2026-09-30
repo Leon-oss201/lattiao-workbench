@@ -737,6 +737,9 @@ body.guest-mode{padding-top:34px;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;align-items:flex-end;justify-content:center;}
 .modal-overlay.active{display:flex;}
 .modal{background:var(--card);width:100%;max-width:480px;border-top-left-radius:24px;border-top-right-radius:24px;padding:18px;max-height:88vh;overflow-y:auto;animation:slideUp .3s ease;}
+/* v144.1: 长弹窗（添加地点/行程、设置）内容超过一屏时，底部「保存/添加」要滑到
+   最底才看得见 —— 小屏上很容易以为没有按钮。改为吸底常驻，随时可点。 */
+.modal .modal-actions{position:sticky;bottom:0;z-index:3;background:var(--card);padding:10px 0 2px;margin-top:12px;}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
 .modal-handle{width:38px;height:4px;border-radius:2px;background:var(--text-light);opacity:.5;margin:0 auto 14px;}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:14px;text-align:center;}
@@ -2316,7 +2319,10 @@ setTimeout(function(){
 // newer build exists, auto-reload once so the user always gets the latest app
 // even when Safari cached an old index.html.
 (function(){
-  if('serviceWorker' in navigator){
+  // v144.1: file:// 下无法注册 Service Worker（协议不支持），注册必然失败并刷一条
+  // 网络错误。本地直接打开 index.html 时跳过注册，保持控制台干净；线上 HTTPS 与
+  // localhost 照常注册（这是拿到新版本的机制，不能关）。
+  if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
     // v90: updateViaCache:'none' — iOS Safari caches sw.js for 24h by default,
     // so a stale SW kept serving the old index.html even after we deployed a
     // newer build (Iris was stuck on v88 for hours). This forces the SW update
@@ -2335,6 +2341,9 @@ setTimeout(function(){
   var done=false;
   function check(){
     if(done)return;done=true;
+    // v144.1: file:// 下 fetch sw.js 必然失败（CORS/协议限制），直接跳过这个
+    // 「检测线上是否有新版本」的自检 —— 它只对真实部署的 HTTPS 站点有意义。
+    if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')return;
     // Read APP_VERSION lazily — the assignment below happens after this IIFE runs.
     var myVer=parseInt((window.APP_VERSION||'v0').replace(/\D/g,''),10)||0;
     try{
@@ -2382,7 +2391,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.0';
+var APP_VERSION='v144.1';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -7166,10 +7175,12 @@ function addLocationBudgetItem(){
   var note=document.getElementById('lm-bnote').value.trim();
   var amt=parseFloat(document.getElementById('lm-bamt').value)||0;
   if(amt<=0){showToast('请输入金额'); return;}
-  // v143.5: 记账带「付款人」—— AA 分账需要知道这笔钱是谁垫的。缺省为当前用户，
-  // 行程没有协作成员时下拉隐藏（单人行程不需要选）。
-  lmBudgetItems.push({id:uid(), cat:cat, note:note, amt:amt, time:Date.now(),
-    payer:document.getElementById('lm-bpayer')?document.getElementById('lm-bpayer').value:ghUserId()});
+  // v144.1: 单人行程时付款人下拉是隐藏的（没选项）→ select.value 是空串，
+  // 直接写进去会让这笔钱变成「未标注付款人」，AA 分账就会把它排除在分摊外
+  // （看起来像自己垫的钱消失了）。空值一律回落到当前用户。
+  var _payerSel=document.getElementById('lm-bpayer');
+  var _payer=(_payerSel&&_payerSel.value)||ghUserId();
+  lmBudgetItems.push({id:uid(), cat:cat, note:note, amt:amt, time:Date.now(), payer:_payer});
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
   renderLocationModalBudget();
