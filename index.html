@@ -923,11 +923,17 @@ img.photo-fade.loaded{opacity:1;}
 /* 腾讯署名(attribution)按条款保留，但弱化到不抢视线 */
 #td-map-real [class*="copyright"],#td-map-real [class*="attribution"]{opacity:.55;transform:scale(.85);transform-origin:left bottom;}
 #td-map-real{position:absolute;inset:0;width:100%;height:100%;}
-.td-map .map-label{position:absolute;left:10px;bottom:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--text);}
-.map-legend{position:absolute;right:10px;top:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:5px 8px;font-size:10px;color:var(--text-sec);line-height:1.5;}
+/* v144.0: 地图上的浮层禁用毛玻璃(backdrop-filter)。iOS 在 WebGL canvas 上采样
+   backdrop-filter 会把整片地图糊成一大块白色（用户截图：左上角一片白雾）。
+   改用实色半透明底，视觉几乎不变且渲染稳定。 */
+.td-map .map-label{position:absolute;left:10px;bottom:10px;z-index:2;background:rgba(255,255,255,.92);border-radius:10px;padding:4px 9px;font-size:11px;font-weight:600;color:#4c3a7d;}
+:root.dark .td-map .map-label{background:rgba(40,32,70,.92);color:#e6e1ff;}
+.map-legend{position:absolute;right:10px;top:10px;z-index:2;background:rgba(255,255,255,.92);border-radius:10px;padding:5px 8px;font-size:10px;color:#5a5470;line-height:1.5;}
+:root.dark .map-legend{background:rgba(40,32,70,.92);color:#cfc8f5;}
 .map-setup{position:absolute;left:10px;top:10px;z-index:3;display:none;flex-direction:column;align-items:flex-start;gap:6px;max-width:60%;}
 .map-setup.on{display:flex;}
-.map-upgrade{background:var(--pill-glass);backdrop-filter:blur(6px);border:1px solid var(--border-strong);border-radius:10px;padding:5px 9px;font-size:10.5px;font-weight:600;color:var(--primary-dark);cursor:pointer;font-family:inherit;line-height:1.4;text-align:left;}
+.map-upgrade{background:rgba(255,255,255,.92);border:1px solid var(--border-strong);border-radius:10px;padding:5px 9px;font-size:10.5px;font-weight:600;color:var(--primary-dark);cursor:pointer;font-family:inherit;line-height:1.4;text-align:left;}
+:root.dark .map-upgrade{background:rgba(40,32,70,.92);color:#c4b5fd;}
 .td-map .route-svg{position:absolute;inset:0;width:100%;height:100%;}
 
 /* ================= v100: mood cover ================= */
@@ -2376,7 +2382,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.9';
+var APP_VERSION='v144.0';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
