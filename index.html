@@ -2366,7 +2366,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.7';
+var APP_VERSION='v143.8';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -7670,6 +7670,9 @@ function restoreCloudBackup(day){
     data.tombstones=d.tombstones||{};
     data.locTombstones=d.locTombstones||{};
     data.budgetTombstones=d.budgetTombstones||{};
+    // v143.8: 补上 tools（速记/专注记录/提醒已读）。备份文件里本来就有这个字段，
+    // 但还原清单漏了 —— 导致「回滚到某天」后工具箱数据还是最新的，回滚不完整。
+    if(d.tools)data.tools=d.tools;
     if(d.settings)data.settings=d.settings;
     try{ saveDataLocal(); }catch(e){}
     renderAll(); closeTools();
