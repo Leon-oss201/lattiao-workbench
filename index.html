@@ -907,6 +907,11 @@ img.photo-fade.loaded{opacity:1;}
 .react-cmt b{color:var(--primary-dark);font-weight:600;}
 /* ================= v99: route map ================= */
 .td-map{position:relative;height:200px;border-radius:16px;overflow:hidden;margin:12px 18px;border:1px solid var(--border);background:var(--muted-bg);}
+/* v143.7: 腾讯 GL JS 左下角半透明 logo 水印太碍眼，隐藏它（底部「腾讯地图」版权
+   attribution 文字保留，符合署名要求）。通配 class 防止内部类名变更。 */
+#td-map-real [class*="logo"]{display:none!important;}
+/* 罗盘控件默认又大又压内容，缩小并贴边 */
+#td-map-real [class*="compass"]{transform:scale(.7);transform-origin:top right;}
 #td-map-real{position:absolute;inset:0;width:100%;height:100%;}
 .td-map .map-label{position:absolute;left:10px;bottom:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--text);}
 .map-legend{position:absolute;right:10px;top:10px;z-index:2;background:var(--pill-glass);backdrop-filter:blur(6px);border-radius:10px;padding:5px 8px;font-size:10px;color:var(--text-sec);line-height:1.5;}
@@ -2361,7 +2366,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.6';
+var APP_VERSION='v143.7';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6852,11 +6857,14 @@ function switchTrip(dir){
   document.addEventListener('DOMContentLoaded',function(){
     var page=document.getElementById('page-trip-detail');
     if(!page)return;
-    var sx=0,sy=0,onPills=false,moved=false;
+    var sx=0,sy=0,onPills=false,onNoSwipe=false,moved=false;
+    // v143.7: 这些区域有自己的横向手势/滚动（地图平移、横滑列表），绝不能触发切行程
+    var NO_SWIPE='#td-map,#td-map-real,#td-map-fallback,.cities-scroll,.photo-grid,.tools-body,.route-svg';
     page.addEventListener('touchstart',function(e){
       if(e.touches.length!==1){onPills=false;return;}
       sx=e.touches[0].clientX;sy=e.touches[0].clientY;
       onPills=!!(e.target&&e.target.closest&&e.target.closest('#td-day-pills'));
+      onNoSwipe=!!(e.target&&e.target.closest&&e.target.closest(NO_SWIPE));
       moved=false;
     },{passive:true});
     page.addEventListener('touchmove',function(e){
@@ -6865,10 +6873,11 @@ function switchTrip(dir){
       if(Math.abs(dx)>10||Math.abs(dy)>10)moved=true;
     },{passive:true});
     page.addEventListener('touchend',function(e){
-      if(onPills||!moved)return;     // let the day-pills handler own horizontal swipes there
+      if(onPills||onNoSwipe||!moved)return;  // 地图/横滚区不抢手势；日期条由自己的 handler 管
       var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
-      // Horizontal, dominant over vertical → switch trip. (Vertical is page scroll.)
-      if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)switchTrip(dx<0?1:-1);
+      // v143.7: 用户反馈「太灵敏，一不小心就划到另一个行程」——阈值 60px→110px、
+      // 方向优势 1.5x→2.2x。斜着划/短划/滚动带出的横向位移都不再切行程。
+      if(Math.abs(dx)>110&&Math.abs(dx)>Math.abs(dy)*2.2)switchTrip(dx<0?1:-1);
     },{passive:true});
   });
 })();
@@ -7213,10 +7222,28 @@ function lmLocateMe(){
     showToast('📍 正在获取当前位置…');
     navigator.geolocation.getCurrentPosition(function(pos){
       var c=wgs2gcj(pos.coords.latitude,pos.coords.longitude);
-      var la=document.getElementById('lm-lat'),ln=document.getElementById('lm-lng');
-      if(la)la.value=c[0].toFixed(4);
-      if(ln)ln.value=c[1].toFixed(4);
-      showToast('已填入当前位置(GCJ-02)');
+      // v143.7 防误填：如果这个行程里已有带坐标的地点，而当前位置离它们全都
+      // 非常远（>150km），大概率是人在家里却给旅行地的地点点了定位 —— 必须确认。
+      var nearest=Infinity;
+      try{
+        var t=(data.trips||[]).find(function(x){return x.id===currentTripId;});
+        if(t)(t.days||[]).forEach(function(d){(d.locations||[]).forEach(function(l){
+          if(l&&l.lat!=null&&l.lng!=null){
+            var km=haversineKm(c[0],c[1],parseFloat(l.lat),parseFloat(l.lng));
+            if(km<nearest)nearest=km;
+          }
+        });});
+      }catch(e){}
+      var doFill=function(){
+        var la=document.getElementById('lm-lat'),ln=document.getElementById('lm-lng');
+        if(la)la.value=c[0].toFixed(4);
+        if(ln)ln.value=c[1].toFixed(4);
+        showToast('已填入当前位置(GCJ-02)');
+      };
+      if(isFinite(nearest)&&nearest>150){
+        if(confirm('当前位置距本行程已有地点约 '+Math.round(nearest)+' km ——\n你可能不在旅行地（比如人在家里编辑行程）。\n仍要把这个坐标填进这个地点吗？'))doFill();
+        else showToast('已取消，坐标未改动');
+      }else doFill();
     },function(err){
       showToast('定位失败：'+((err&&err.message)||'请检查定位权限，或用坐标拾取'));
     },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
@@ -11511,6 +11538,25 @@ function renderRouteMap(t,day){
       if(fb)fb.style.display='none';
       if(setup)setup.classList.remove('on');
       if(label)label.textContent='🗺 '+withCoord.length+' 站 · 真实地图';
+      // v143.7: 离群点检测 —— 某个点的坐标距其他所有点都异常远（>300km）时，
+      // fitBounds 会把视野拉到横跨半个中国（用户看到的「路线跑偏」基本都是这种：
+      // 坐标数据本身填错了，地图只是忠实显示）。给出明确的可操作提示。
+      try{
+        var outlier=null;
+        withCoord.forEach(function(a,i){
+          var minD=Infinity;
+          withCoord.forEach(function(b2,j){
+            if(i===j)return;
+            var km=haversineKm(parseFloat(a.lat),parseFloat(a.lng),parseFloat(b2.lat),parseFloat(b2.lng));
+            if(km<minD)minD=km;
+          });
+          if(isFinite(minD)&&minD>300&&(!outlier||minD>outlier.km))outlier={name:a.name||('第'+(i+1)+'站'),km:minD};
+        });
+        if(outlier){
+          label.textContent+=' · ⚠️「'+outlier.name+'」距其他站 '+Math.round(outlier.km)+' km，坐标疑似填错，编辑该地点修正后路线即正常';
+          showToast('⚠️ 「'+outlier.name+'」的坐标离其他地点太远，请编辑修正');
+        }
+      }catch(e){}
       var center=real.__center;
       var latlngs=withCoord.map(function(l){return new TMap.LatLng(parseFloat(l.lat),parseFloat(l.lng));});
       if(!TMAP.map){
