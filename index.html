@@ -2361,9 +2361,9 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v143.5';
+var APP_VERSION='v143.6';
 var STORAGE_KEY='lattiao_v4_data';
-var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
+var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
 var calFilterType='all';
 var currentTripId=null;
@@ -2964,9 +2964,16 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
     lItems.concat(rItems).forEach(function(it){
       if(!it)return;
       var k=bkey(it);
-      if(bseen[k])return; // 同 id：本地优先，跳过对端副本
+      if(bseen[k]){
+        // v143.6: 同 id 本地优先（v127 既定规则，不动），但 AA 需要 payer ——
+        // 本地副本缺 payer 而对端有时补上（只填空、绝不覆盖非空），避免
+        // 「谁付的钱」这一信息在跨设备合并中丢失导致分账算不出来。
+        var prev=bmerged[bseen[k]-1];
+        if(prev&&!prev.payer&&it.payer){prev.payer=it.payer;}
+        return;
+      }
       if(it.id&&data.budgetTombstones&&data.budgetTombstones[it.id])return; // 命中墓碑：丢弃
-      bseen[k]=1;
+      bseen[k]=bmerged.length+1;
       bmerged.push(it);
     });
     bmerged.sort(function(a,b){ return (a.time||0)-(b.time||0); });
@@ -3501,6 +3508,8 @@ function syncPull(force){
       // 较新 createdAt 覆盖，与 joys 同模式；删除不跨设备传播（与 joys 一致，可接受）。
       if(typeof mergeGuides==='function'&&remote.guides){if(mergeGuides(remote.guides))settingsChanged=true;}
       if(typeof mergeFavorites==='function'&&remote.favorites){if(mergeFavorites(remote.favorites))settingsChanged=true;}
+      // v143.6: 工具箱（速记/专注记录/提醒已读）跨设备合并
+      if(typeof mergeTools==='function'&&remote.tools){if(mergeTools(remote.tools))settingsChanged=true;}
       var changed=tripsFingerprint(data.trips)!==tripsFingerprint(merged) // compare after repair
         ||settingsChanged; // v80: settings merge (title/bg) also counts as a change to persist locally
       // v136: 合并结果落盘用 quiet —— 这是「云端→本地」回写，绝不能打脏标记，否则会被
@@ -3742,6 +3751,10 @@ function buildTextPayload(photoChunks){
   // v102: joys/notifications are top-level data so they sync across devices
   remoteData.joys=data.joys||[];
   remoteData.notifs=(data.notifs||[]).slice(0,80);
+  // v143.6: 工具箱数据（番茄钟记录 / 速记 / 提醒已读标记）随云端同步。
+  // 注意绝不能塞进 settings —— v124 起 settings 只推 {updatedAt}（防协作端互冲
+  // 首页外观），放那里等于本机独享，UI 却承诺「自动同步到所有设备」。
+  remoteData.tools=data.tools||{};
   // v103: per-device display names so collaborators see each other's real names
   remoteData.peerNames=data.peerNames||{};
   data.trips.forEach(function(t){
@@ -4550,6 +4563,8 @@ function pushMergeCloud(){
     var myChanged=false;
     if(remote.notifs&&typeof mergeNotifs==='function'){ try{ if(mergeNotifs(remote.notifs))myChanged=true; }catch(e){} }
     if(remote.joys&&typeof mergeJoys==='function'){ try{ if(mergeJoys(remote.joys))myChanged=true; }catch(e){} }
+    // v143.6: 工具箱（速记/专注/提醒已读）随云端合并
+    if(remote.tools&&typeof mergeTools==='function'){ try{ if(mergeTools(remote.tools))myChanged=true; }catch(e){} }
     if(remote.peerNames&&typeof mergePeerNames==='function'){ try{ if(mergePeerNames(remote.peerNames))myChanged=true; }catch(e){} }
     var after=tripsFingerprint(data.trips);
     var merged=before!==after||gChanged||fChanged||myChanged;
@@ -7247,13 +7262,23 @@ function lmAutoDistance(day,loc,prevLoc){
    避免触碰 hard-rule #12 的 data 重建字段清单和同步合并逻辑）。 */
 function toolsState(){
   try{
-    data.settings=data.settings||{};
-    var s=data.settings;
-    if(!s.tools||typeof s.tools!=='object')s.tools={};
-    if(!Array.isArray(s.tools.pomo))s.tools.pomo=[];
-    if(!Array.isArray(s.tools.notes))s.tools.notes=[];
-    if(!Array.isArray(s.tools.remindDone))s.tools.remindDone=[];
-    return s.tools;
+    // v143.6: 工具箱数据改存顶层 data.tools（v143.5 放在 settings.tools 是错的 ——
+    // v124 起 buildTextPayload 的 settings 只推 {updatedAt}，数据根本进不了云端，
+    // 而 UI 却承诺「自动同步到所有设备」。顶层字段随 payload 走，才有真同步。）
+    if(!data.tools||typeof data.tools!=='object')data.tools={};
+    var s=data.tools;
+    // 迁移：v143.5 的用户可能已经在 settings.tools 里存了速记/专注记录，搬到新家
+    if(data.settings&&data.settings.tools&&typeof data.settings.tools==='object'){
+      var old=data.settings.tools;
+      if(!s.pomo||!s.pomo.length){ if(Array.isArray(old.pomo))s.pomo=old.pomo; }
+      if(!s.notes||!s.notes.length){ if(Array.isArray(old.notes))s.notes=old.notes; }
+      if(Array.isArray(old.remindDone)&&(!s.remindDone||!s.remindDone.length))s.remindDone=old.remindDone;
+      try{ delete data.settings.tools; }catch(e){}
+    }
+    if(!Array.isArray(s.pomo))s.pomo=[];
+    if(!Array.isArray(s.notes))s.notes=[];
+    if(!Array.isArray(s.remindDone))s.remindDone=[];
+    return s;
   }catch(e){return {pomo:[],notes:[],remindDone:[]};}
 }
 function toolsSave(push){
@@ -7288,25 +7313,37 @@ function switchToolsTab(tab){
 function renderTools(){ renderPomoHistory(); renderNoteList(); renderRemindCenter(); }
 
 /* --- 番茄钟 --- */
-var POMO={timer:null,left:0,total:0,running:false,mode:'focus'};
+/* v143.6: 计时基于「截止时间戳」而不是每秒递减。移动端息屏/切后台时浏览器会把
+   setInterval 节流到分钟级甚至暂停，递减式计时会严重走慢、到点不响。改成
+   remaining = deadline - now，interval 只负责刷新显示 —— 哪怕被节流，回到前台
+   也会立刻显示真实剩余时间，并在越过 deadline 时补触发完成。 */
+var POMO={timer:null,left:0,total:0,running:false,mode:'focus',deadline:0};
 function pomoFmt(s){ var m=Math.floor(s/60),ss=s%60; return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
 function pomoSet(minutes,mode){
   POMO.mode=mode||'focus'; POMO.total=Math.round(minutes*60); POMO.left=POMO.total;
-  pomoStop(); renderPomoDisplay();
+  POMO.deadline=0; pomoStop(); renderPomoDisplay();
 }
 function pomoStart(){
   if(POMO.running)return;
   if(POMO.left<=0)pomoSet(POMO.mode==='focus'?25:5,POMO.mode);
+  POMO.deadline=Date.now()+POMO.left*1000;
   POMO.running=true;
-  POMO.timer=setInterval(function(){
-    POMO.left--;
-    if(POMO.left<=0){ pomoComplete(); return; }
-    renderPomoDisplay();
-  },1000);
+  pomoTick();
+  POMO.timer=setInterval(pomoTick,1000);
   renderPomoDisplay();
 }
-function pomoPause(){ if(POMO.timer)clearInterval(POMO.timer); POMO.timer=null; POMO.running=false; renderPomoDisplay(); }
-function pomoReset(){ pomoStop(); POMO.left=POMO.total; renderPomoDisplay(); }
+function pomoTick(){
+  if(!POMO.running||!POMO.deadline)return;
+  var left=Math.round((POMO.deadline-Date.now())/1000);
+  if(left<=0){ POMO.left=0; pomoComplete(); return; }
+  if(left!==POMO.left){ POMO.left=left; renderPomoDisplay(); }
+}
+function pomoPause(){
+  // 暂停时保存真实剩余（基于时间戳，避免后台节流导致的偏差）
+  if(POMO.running&&POMO.deadline)POMO.left=Math.max(0,Math.round((POMO.deadline-Date.now())/1000));
+  pomoStop(); renderPomoDisplay();
+}
+function pomoReset(){ pomoStop(); POMO.left=POMO.total; POMO.deadline=0; renderPomoDisplay(); }
 function pomoStop(){ if(POMO.timer)clearInterval(POMO.timer); POMO.timer=null; POMO.running=false; }
 function pomoComplete(){
   pomoStop(); POMO.left=0; renderPomoDisplay();
@@ -8991,7 +9028,7 @@ function exportFullBackup(){
   var done=function(){
     try{
       var payload={type:'lattiao-full-backup',app:APP_VERSION||'v4',exportedAt:new Date().toISOString(),
-        data:{trips:data.trips,guides:data.guides||[],favorites:data.favorites||[],tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{},settings:data.settings||{}}};
+        data:{trips:data.trips,guides:data.guides||[],favorites:data.favorites||[],tombstones:data.tombstones||{},locTombstones:data.locTombstones||{},budgetTombstones:data.budgetTombstones||{},settings:data.settings||{},tools:data.tools||{}}};
       var blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       var url=URL.createObjectURL(blob);
       var a=document.createElement('a');
@@ -9224,7 +9261,7 @@ function saveSettings(){
 }
 function clearAll(){
   if(!confirm('⚠️ 清空后将无法恢复，确定吗？'))return;
-  data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'}};
+  data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
   saveData();
   closeModal('settings-modal');
   showPage('home');
@@ -9322,7 +9359,8 @@ function importData(e){
           budgetTombstones:d.budgetTombstones||prev.budgetTombstones||{},
           joys:d.joys||prev.joys||[],
           notifs:d.notifs||prev.notifs||[],
-          peerNames:d.peerNames||prev.peerNames||{}
+          peerNames:d.peerNames||prev.peerNames||{},
+          tools:d.tools||prev.tools||{pomo:[],notes:[],remindDone:[]}
         };
         // v131: 导入把本地数据整体替换后，必须重置协作通知基线
         // （与 forceRescue/forceResync 的 GH_NOTIF_SNAP=null 同款处理）。
@@ -9380,7 +9418,8 @@ function forceResync(){
       // 起它们已纳入云端同步，这里仍优先保留本机副本，避免救援把还没推上云的内容抹掉。
       var _prevS=data||{};
       data={trips:[],guides:_prevS.guides||[],favorites:_prevS.favorites||[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
-            joys:_prevS.joys||[],notifs:_prevS.notifs||[],peerNames:_prevS.peerNames||{}};
+            joys:_prevS.joys||[],notifs:_prevS.notifs||[],peerNames:_prevS.peerNames||{},
+            tools:_prevS.tools||{pomo:[],notes:[],remindDone:[]}};
       if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
       if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
       if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object')data.budgetTombstones=remote.budgetTombstones;
@@ -9539,7 +9578,8 @@ function forceRescue(){
     // v128: 同 forceResync，guides/favorites 也保留本机副本（防救援清空）。
     var _prevR=data||{};
     data={trips:[],guides:_prevR.guides||[],favorites:_prevR.favorites||[],settings:settings,tombstones:{},locTombstones:{},budgetTombstones:{},
-          joys:_prevR.joys||[],notifs:_prevR.notifs||[],peerNames:_prevR.peerNames||{}};
+          joys:_prevR.joys||[],notifs:_prevR.notifs||[],peerNames:_prevR.peerNames||{},
+            tools:_prevR.tools||{pomo:[],notes:[],remindDone:[]}};
     if(remote.tombstones&&typeof remote.tombstones==='object')data.tombstones=remote.tombstones;
     if(remote.locTombstones&&typeof remote.locTombstones==='object')data.locTombstones=remote.locTombstones;
     if(remote.budgetTombstones&&typeof remote.budgetTombstones==='object')data.budgetTombstones=remote.budgetTombstones;
@@ -11794,6 +11834,39 @@ function mergeJoys(remoteJoys){
     else if((j.ts||0)>(local.ts||0)){local.text=j.text||'';local.ts=j.ts||0;local.date=j.date||local.date;changed=true;}
   });
   return changed;
+}
+// v143.6: 工具箱数据的跨设备合并（与 joys 同模式：按 id 并集）。
+// · pomo（专注记录）/ notes（速记）：按 id 并集，只补本地没有的（这些都是「追加型」记录，
+//   不存在改内容，避免两端互相覆盖）；
+// · remindDone（提醒已读）：取并集 —— 我在本机点过「知道了」，对端不该再弹同一条。
+// 删除同样不跨端传播（同 joys/攻略的既定折中）：本机删掉的速记，对端仍可见。
+function mergeTools(remoteTools){
+  try{
+    if(!remoteTools||typeof remoteTools!=='object')return false;
+    var st=toolsState();
+    var changed=false;
+    ['pomo','notes'].forEach(function(k){
+      var rem=remoteTools[k];
+      if(!Array.isArray(rem)||!rem.length)return;
+      var seen={};
+      st[k].forEach(function(it){ if(it&&it.id)seen[it.id]=1; });
+      rem.forEach(function(it){
+        if(!it||!it.id||seen[it.id])return;
+        st[k].push(it); seen[it.id]=1; changed=true;
+      });
+      // 保持有序 + 控制体积（云端最多留 300/500 条，本地同样）
+      st[k].sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+      var cap=k==='pomo'?300:500;
+      if(st[k].length>cap)st[k]=st[k].slice(-cap);
+    });
+    if(Array.isArray(remoteTools.remindDone)){
+      remoteTools.remindDone.forEach(function(id){
+        if(id&&st.remindDone.indexOf(id)<0){st.remindDone.push(id);changed=true;}
+      });
+      if(st.remindDone.length>200)st.remindDone=st.remindDone.slice(-200);
+    }
+    return changed;
+  }catch(e){return false;}
 }
 // v128: 攻略/收藏的跨设备合并（与 joys 同模式：按 id 并集，较新 createdAt 覆盖）。
 // 删端不传播（与 joys 一致）：B 本地仍有的条目不会被 A 的删除冲掉，但代价是删除不跨设备。
