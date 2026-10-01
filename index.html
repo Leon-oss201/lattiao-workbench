@@ -925,6 +925,18 @@ img.photo-fade.loaded{opacity:1;}
 #td-map-real [class*="zoom"]{display:none!important;}
 /* 腾讯署名(attribution)按条款保留，但弱化到不抢视线 */
 #td-map-real [class*="copyright"],#td-map-real [class*="attribution"]{opacity:.55;transform:scale(.85);transform-origin:left bottom;}
+/* v144.2: 必杀——真实地图渲染成功后，卡片内除「站点标签」和「全屏按钮」外的
+   一切覆盖层（setup 提示/fallback/任何神秘白块）全部隐藏。用户截图里那块
+   半透明白雾就是 setup 容器在真实地图上残留。 */
+.td-map.has-real > :not(#td-map-real):not(#td-map-label):not(#td-map-fs){display:none!important;}
+/* 全屏按钮 */
+.map-fs-btn{position:absolute;right:10px;top:10px;z-index:4;width:36px;height:36px;border-radius:10px;border:1px solid var(--border-strong);background:rgba(255,255,255,.92);font-size:16px;color:var(--primary-dark);cursor:pointer;line-height:1;}
+.map-fs-btn:active{transform:scale(.94);}
+/* 全屏地图层 */
+#td-map-fs-layer{position:fixed;inset:0;z-index:1250;background:#eef0f6;animation:slideUp .25s ease;}
+#td-map-fs-layer .fs-label{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:1300;background:rgba(255,255,255,.94);border-radius:12px;padding:7px 12px;font-size:13px;font-weight:600;color:#4c3a7d;box-shadow:0 2px 10px rgba(0,0,0,.12);max-width:70%;}
+#td-map-fs-layer .fs-close{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:1300;background:rgba(255,255,255,.94);border:1px solid var(--border-strong);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--primary-dark);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12);font-family:inherit;}
+#td-map-fs-layer .fs-hint{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:1300;background:rgba(31,45,33,.8);color:#fff;border-radius:18px;padding:6px 14px;font-size:11px;pointer-events:none;}
 #td-map-real{position:absolute;inset:0;width:100%;height:100%;}
 /* v144.0: 地图上的浮层禁用毛玻璃(backdrop-filter)。iOS 在 WebGL canvas 上采样
    backdrop-filter 会把整片地图糊成一大块白色（用户截图：左上角一片白雾）。
@@ -1445,6 +1457,8 @@ setTimeout(function(){
         <button class="map-upgrade" onclick="openMapSettings()" data-page-node-id="hey2AcyN2lXMwDBUCpt3lb">🗺️ 用真实地图显示（可选）</button>
       </div>
       <div class="map-label" id="td-map-label" data-page-node-id="bkqEULhnNMtOYsAp7lUD6c">🗺️ 路线示意</div>
+      <!-- v144.2: 全屏地图按钮 —— 小卡片看路线太憋屈，点开展开成全屏 -->
+      <button id="td-map-fs" class="map-fs-btn" onclick="openMapFull(currentTripId)" title="全屏查看地图">⤢</button>
     </div>
     <div class="td-section" data-page-node-id="kbZH9QGAGNz7Cpl4eHzFL4">
       <h3 data-page-node-id="zyvd5rdlbd9IKsE5pWDT2l">📖 攻略笔记</h3>
@@ -2391,7 +2405,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.1';
+var APP_VERSION='v144.2';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -11531,14 +11545,99 @@ function drawSvgRoute(day,container){
       nodesSvg+
     '</svg>';
 }
+/* ===== v144.2: 全屏地图 =====
+   小卡片 200px 高看路线太憋屈。点「⤢」展开全屏：独立 TMap 实例 + 全部站点与
+   路线 + fitBounds，右上角关闭。关闭时 destroy 释放 WebGL 资源。 */
+function mapWithCoordOf(tripId){
+  var t=(data.trips||[]).find(function(x){return x.id===tripId;});
+  if(!t)return null;
+  var day=t.days[currentTripDay]||t.days[0];
+  var dlocs=(day&&day.locations)||[];
+  var withCoord=dlocs.filter(function(l){
+    var la=parseFloat(l.lat),ln=parseFloat(l.lng);
+    return !isNaN(la)&&!isNaN(ln)&&la>3&&la<54&&ln>73&&ln<136;
+  });
+  return {trip:t,withCoord:withCoord};
+}
+function openMapFull(tripId){
+  // v144.2: 腾讯 SDK 不支持 file 协议（会插一个永不渲染的死视图），线上 https
+  // 与 localhost 才放开。同时让本地直接打开文件时的行为可预期。
+  if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){
+    showToast('全屏地图需在线上版本使用');return;
+  }
+  var m=mapWithCoordOf(tripId);
+  if(!m){showToast('未找到该行程');return;}
+  if(!mapKey()){showToast('先在「我的 → 地图设置」填腾讯位置服务 Key');return;}
+  if(m.withCoord.length<2){showToast('至少 2 个带坐标的地点才能展开地图');return;}
+  closeMapFull();
+  var ov=document.createElement('div');
+  ov.id='td-map-fs-layer';
+  ov.innerHTML='<div class="fs-label">🗺 '+m.withCoord.length+' 站 · '+escapeHTML(m.trip.title||'行程')+'</div>'+
+    '<button class="fs-close" onclick="closeMapFull()">✕ 关闭</button>'+
+    '<div id="td-map-fs-canvas" style="position:absolute;inset:0;"></div>'+
+    '<div class="fs-hint">双指缩放 · 单指拖动</div>';
+  document.body.appendChild(ov);
+  loadTMap(function(ok){
+    if(!ok){showToast('地图加载失败');closeMapFull();return;}
+    try{
+      var canvas=document.getElementById('td-map-fs-canvas');
+      if(!canvas){return;}
+      var latlngs=m.withCoord.map(function(l){return new TMap.LatLng(parseFloat(l.lat),parseFloat(l.lng));});
+      var map=new TMap.Map(canvas,{zoom:12,center:latlngs[0],baseMap:{type:'vector'}});
+      window.__fsMap=map;
+      var pinSvg='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30"><path d="M11 0C5 0 0 5 0 11c0 8 11 19 11 19s11-11 11-19C22 5 17 0 11 0z" fill="#7C3AED"/><circle cx="11" cy="11" r="4" fill="#fff"/></svg>');
+      new TMap.MultiMarker({
+        map:map,
+        styles:{m0:new TMap.MarkerStyle({width:22,height:30,anchor:{x:11,y:30},src:pinSvg})},
+        geometries:latlngs.map(function(p2,i){return {id:'p'+i,styleId:'m0',position:p2};})
+      });
+      new TMap.MultiPolyline({
+        map:map,
+        styles:{l0:new TMap.PolylineStyle({color:'#7C3AED',width:5,borderWidth:1,borderColor:'#FFFFFF',lineCap:'round',showArrow:true})},
+        geometries:[{id:'r',styleId:'l0',paths:latlngs}]
+      });
+      var bnd=new TMap.LatLngBounds();
+      latlngs.forEach(function(p3){bnd.extend(p3);});
+      map.fitBounds(bnd,{padding:60});
+      // v144.2: 兜底 —— 8 秒后画布仍是空的（脚本加载了但地图没渲染：key 失效、
+      // 网络半通等），自动关闭全屏层，别让用户面对一块死白屏。
+      setTimeout(function(){
+        var cv=document.getElementById('td-map-fs-canvas');
+        if(cv&&!cv.firstElementChild){showToast('地图加载超时，请检查网络与 Key');closeMapFull();}
+      },8000);
+      // 离群点提示（与 v143.7 小卡片同逻辑）
+      var outlier=null;
+      m.withCoord.forEach(function(a,i){
+        var minD=Infinity;
+        m.withCoord.forEach(function(b2,j){ if(i===j)return; var km=haversineKm(parseFloat(a.lat),parseFloat(a.lng),parseFloat(b2.lat),parseFloat(b2.lng)); if(km<minD)minD=km; });
+        if(isFinite(minD)&&minD>300&&(!outlier||minD>outlier.km))outlier={name:a.name||('第'+(i+1)+'站'),km:minD};
+      });
+      if(outlier)showToast('⚠️ 「'+outlier.name+'」距其他站 '+Math.round(outlier.km)+' km，坐标疑似填错');
+    }catch(e){
+      showToast('全屏地图加载失败');
+      closeMapFull();
+    }
+  });
+}
+function closeMapFull(){
+  var ov=document.getElementById('td-map-fs-layer');
+  if(!ov)return;
+  try{ if(window.__fsMap&&window.__fsMap.destroy)window.__fsMap.destroy(); }catch(e){}
+  window.__fsMap=null;
+  ov.remove();
+}
 function renderRouteMap(t,day){
   var fb=document.getElementById('td-map-fallback');
   var real=document.getElementById('td-map-real');
   var label=document.getElementById('td-map-label');
   var setup=document.getElementById('td-map-setup');
+  var fsBtn=document.getElementById('td-map-fs');
+  var card=document.getElementById('td-map');
   if(!fb)return;
   var dlocs=(day&&day.locations)||[];
   drawSvgRoute(day,fb);
+  // v144.2: 示意图模式下移除 has-real（真实地图专属的覆盖层清理不能影响示意图）
+  if(card)card.classList.remove('has-real');
   if(label)label.textContent='🗺 '+(dlocs.length?(dlocs.length+' 站 · 路线示意'):'路线示意');
   var withCoord=dlocs.filter(function(l){
     var la=parseFloat(l.lat),ln=parseFloat(l.lng);
@@ -11567,6 +11666,10 @@ function renderRouteMap(t,day){
     try{
       if(fb)fb.style.display='none';
       if(setup)setup.classList.remove('on');
+      // v144.2: 真实地图渲染成功 —— 打上 has-real 标记，卡片内除「站点标签」和
+      // 「全屏按钮」外的所有覆盖层（setup 提示等）由 CSS 必杀规则统一隐藏。
+      if(card)card.classList.add('has-real');
+      if(fsBtn)fsBtn.style.display='';
       if(label)label.textContent='🗺 '+withCoord.length+' 站 · 真实地图';
       // v143.7: 离群点检测 —— 某个点的坐标距其他所有点都异常远（>300km）时，
       // fitBounds 会把视野拉到横跨半个中国（用户看到的「路线跑偏」基本都是这种：
