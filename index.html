@@ -2405,7 +2405,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.2';
+var APP_VERSION='v144.3';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -11635,89 +11635,26 @@ function renderRouteMap(t,day){
   var card=document.getElementById('td-map');
   if(!fb)return;
   var dlocs=(day&&day.locations)||[];
+  /* v144.3: 釜底抽薪 —— 小卡片不再嵌入真实地图。
+     腾讯 GL JS 把 logo/比例尺/手势层等控件挂在 body 级（fixed 相对视口），在 200px
+     小卡片上表现为：半透明白雾残留、控件穿透弹窗和导航、透明手势层劫持「⤢」按钮
+     点击（用户连续四张截图全部由此而来，CSS 无法根治——选择器够不到 body 级）。
+     改为：小卡片永远显示干净的 SVG 路线示意图（无 WebGL、无控件、零穿透）；
+     看真实地图走「⤢ 全屏」，全屏层是 body 级整屏，TMap 控件贴屏幕边缘属正常形态。 */
   drawSvgRoute(day,fb);
-  // v144.2: 示意图模式下移除 has-real（真实地图专属的覆盖层清理不能影响示意图）
+  if(fb)fb.style.display='';
+  if(real)real.innerHTML='';
   if(card)card.classList.remove('has-real');
-  if(label)label.textContent='🗺 '+(dlocs.length?(dlocs.length+' 站 · 路线示意'):'路线示意');
+  if(setup)setup.classList.remove('on');
   var withCoord=dlocs.filter(function(l){
     var la=parseFloat(l.lat),ln=parseFloat(l.lng);
     return !isNaN(la)&&!isNaN(ln)&&la>3&&la<54&&ln>73&&ln<136;
   });
-  if(setup)setup.classList.toggle('on',!mapKey());
-  if(!mapKey()){
-    if(real)real.innerHTML='';
-    if(fb)fb.style.display='';
-    if(label)label.textContent='🗺 未配置地图 Key · 路线示意图（设置页可填腾讯位置服务 Key）';
-    return;
-  }
-  loadTMap(function(ok){
-    if(!ok){
-      if(fb)fb.style.display='';
-      if(setup)setup.classList.add('on');
-      showToast('地图加载失败，已回退到路线示意图');
-      return;
-    }
-    if(withCoord.length<2){
-      if(fb)fb.style.display='';
-      if(setup)setup.classList.add('on');
-      if(label)label.textContent='🗺 需给至少 2 个地点填写 GCJ-02 经纬度才显示真实地图（当前 '+withCoord.length+' 个带坐标）';
-      return;
-    }
-    try{
-      if(fb)fb.style.display='none';
-      if(setup)setup.classList.remove('on');
-      // v144.2: 真实地图渲染成功 —— 打上 has-real 标记，卡片内除「站点标签」和
-      // 「全屏按钮」外的所有覆盖层（setup 提示等）由 CSS 必杀规则统一隐藏。
-      if(card)card.classList.add('has-real');
-      if(fsBtn)fsBtn.style.display='';
-      if(label)label.textContent='🗺 '+withCoord.length+' 站 · 真实地图';
-      // v143.7: 离群点检测 —— 某个点的坐标距其他所有点都异常远（>300km）时，
-      // fitBounds 会把视野拉到横跨半个中国（用户看到的「路线跑偏」基本都是这种：
-      // 坐标数据本身填错了，地图只是忠实显示）。给出明确的可操作提示。
-      try{
-        var outlier=null;
-        withCoord.forEach(function(a,i){
-          var minD=Infinity;
-          withCoord.forEach(function(b2,j){
-            if(i===j)return;
-            var km=haversineKm(parseFloat(a.lat),parseFloat(a.lng),parseFloat(b2.lat),parseFloat(b2.lng));
-            if(km<minD)minD=km;
-          });
-          if(isFinite(minD)&&minD>300&&(!outlier||minD>outlier.km))outlier={name:a.name||('第'+(i+1)+'站'),km:minD};
-        });
-        if(outlier){
-          label.textContent+=' · ⚠️「'+outlier.name+'」距其他站 '+Math.round(outlier.km)+' km，坐标疑似填错，编辑该地点修正后路线即正常';
-          showToast('⚠️ 「'+outlier.name+'」的坐标离其他地点太远，请编辑修正');
-        }
-      }catch(e){}
-      var center=real.__center;
-      var latlngs=withCoord.map(function(l){return new TMap.LatLng(parseFloat(l.lat),parseFloat(l.lng));});
-      if(!TMAP.map){
-        TMAP.map=new TMap.Map(real,{zoom:13,center:latlngs[0],baseMap:{type:'vector'}});
-      }else{
-        TMAP.map.setCenter(latlngs[0]);
-      }
-      if(TMAP.markerLayer){try{TMAP.markerLayer.setMap(null);}catch(e){}}
-      if(TMAP.lineLayer){try{TMAP.lineLayer.setMap(null);}catch(e){}}
-      TMAP.markerLayer=new TMap.MultiMarker({
-        map:TMAP.map,
-        styles:{m0:new TMap.MarkerStyle({width:22,height:30,anchor:{x:11,y:30},
-          src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30"><path d="M11 0C5 0 0 5 0 11c0 8 11 19 11 19s11-11 11-19C22 5 17 0 11 0z" fill="#7C3AED"/><circle cx="11" cy="11" r="4" fill="#fff"/></svg>')})},
-        geometries:latlngs.map(function(p,i){return {id:'p'+i,styleId:'m0',position:p};})
-      });
-      TMAP.lineLayer=new TMap.MultiPolyline({
-        map:TMAP.map,
-        styles:{l0:new TMap.PolylineStyle({color:'#7C3AED',width:5,borderWidth:1,borderColor:'#FFFFFF',lineCap:'round',showArrow:true})},
-        geometries:[{id:'r',styleId:'l0',paths:latlngs}]
-      });
-      var b=new TMap.LatLngBounds();
-      latlngs.forEach(function(p){b.extend(p);});
-      TMAP.map.fitBounds(b,{padding:40});
-    }catch(e){
-      if(fb)fb.style.display='';
-      if(setup)setup.classList.add('on');
-    }
-  });
+  var canReal=!!mapKey()&&withCoord.length>=2;
+  if(fsBtn)fsBtn.style.display=(dlocs.length&&canReal)?'':'none';
+  if(label)label.textContent=mapKey()
+    ?('🗺 '+(dlocs.length?dlocs.length+' 站':'路线示意')+(canReal?' · 点 ⤢ 看真实地图':'（地点填坐标后可看真实地图）'))
+    :'🗺 未配置地图 Key · 路线示意图（设置页可填腾讯位置服务 Key）';
 }
 
 
