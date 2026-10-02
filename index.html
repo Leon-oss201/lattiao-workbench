@@ -588,6 +588,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-item.swiped .tl-swipe-del{opacity:1;pointer-events:auto;}
 .tl-item .tl-card{transition:transform .2s ease;position:relative;z-index:1;}
 .tl-item.swiped .tl-card{transform:translateX(-64px);}
+/* v144.4: 地点协作署名行 —— 小字浅色，不抢视觉 */
+.loc-meta{font-size:10px;color:var(--text-light);margin-top:4px;letter-spacing:.2px;}
 .tl-time{position:absolute;left:-60px;top:10px;width:48px;text-align:right;font-size:11px;color:var(--text-sec);}
 .tl-time b{display:block;font-size:13px;color:var(--text);font-weight:700;}
 .tl-dot{position:absolute;left:-12px;top:14px;width:18px;height:18px;border-radius:50%;background:var(--card);border:3px solid var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);}
@@ -2405,7 +2407,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.3';
+var APP_VERSION='v144.4';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -2969,7 +2971,7 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   // 需同步的字段，必须同时改这里和 saveLocation 的 _fts 列表，否则改动会丢。
   // distance 自 v143.4 起由坐标自动算出（各端一致），进白名单只是兜底防旧设备的
   // 手填值把新设备的自动值顶掉。
-  var fields=['name','guide','feeling','time','type','lat','lng','distance','duration'];
+  var fields=['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt'];
   fields.forEach(function(f){
     var rv=remoteLoc[f], lv=out[f];
     var rTs=fieldTs(remoteLoc,f)||remoteTripTs;
@@ -4143,7 +4145,8 @@ function tripRenderFp(t){
   var parts=[];
   (t.days||[]).forEach(function(d){
     var locs=(d.locations||[]).map(function(l){
-      return [l.name,l.guide,l.feeling,l.time,l.type,(l.lat!=null?1:0),(l.lng!=null?1:0),(l.photos||[]).length,l._photoCount||0];
+      return [l.name,l.guide,l.feeling,l.time,l.type,(l.lat!=null?1:0),(l.lng!=null?1:0),(l.photos||[]).length,l._photoCount||0,
+        l.createdBy||'',l.editedBy||'',tsOf(l.editedAt)||0];
     });
     parts.push({dt:d.date,L:locs});
   });
@@ -6976,11 +6979,27 @@ function renderTimeline(){
             '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>')+
           '</span>'+
         '</div>'+
+        (function(){var m=locMetaLine(l);return m?('<div class="loc-meta">✎ '+escapeHTML(m)+'</div>'):'';})()+
         photoThumbs+
         locReactHTML(l)+
       '</div></div>';
   });
   document.getElementById('td-timeline').innerHTML=html;
+}
+// v144.4: 地点协作署名行 —— 「谁添加 · 谁最后修改(时间)」。数据由 saveLocation 写入
+// createdBy / editedBy+editedAt，随 _fts 白名单跨设备合并（对端较新者赢 → 实时同步）。
+// 老地点无这些字段则不显示（不打扰存量卡片）。
+function locMetaLine(l){
+  try{
+    var parts=[];
+    if(l.createdBy)parts.push(peerName(l.createdBy)+' 添加');
+    if(l.editedBy&&tsOf(l.editedAt)){
+      var d=new Date(tsOf(l.editedAt));
+      var when=(d.getMonth()+1)+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      parts.push(peerName(l.editedBy)+' '+when+' 修改');
+    }
+    return parts.join(' · ');
+  }catch(e){return '';}
 }
 function sortLocations(mode){
   if(blockIfReadOnly(currentTripId,'排序地点'))return;
@@ -7768,8 +7787,20 @@ function saveLocation(){
   // falsely claiming it was merged. Always inherit _prev._fts first.
   var _prev=(isEdit&&day.locations[currentEditingLocationIdx])?day.locations[currentEditingLocationIdx]:null;
   loc._fts=(_prev&&_prev._fts)?JSON.parse(JSON.stringify(_prev._fts)):(loc._fts||{});
+  // v144.4: 地点协作署名 —— 新增记 createdBy（只记一次，永不覆盖）；编辑记
+  // editedBy/editedAt（最后修改人+时间，随 _fts 参与合并，对端较新者赢 → 实时同步）。
+  // 白名单与 mergeLocationPair 的 fields 必须一致（硬规则 #13）。
+  if(isEdit){
+    loc.editedBy=ghUserId();
+    loc.editedAt=Date.now();
+    // v144.4 补丁: 编辑构造的是全新 loc 对象，必须继承创建者——否则第一次编辑后
+    // createdBy 就丢了（editedBy 是新写的所以不丢），「谁添加」再也显示不出来。
+    if(_prev&&_prev.createdBy)loc.createdBy=_prev.createdBy;
+  }else{
+    loc.createdBy=ghUserId();
+  }
   // v143.5: 补 duration/distance 时间戳（与 mergeLocationPair 白名单必须一致，否则丢失）
-  ['name','guide','feeling','time','type','lat','lng','distance','duration'].forEach(function(f){
+  ['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt'].forEach(function(f){
     if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
   });
   // v143.4: 距离自动计算（同一天时间序上一站 haversine），替代原手动「距离(km)」输入框
