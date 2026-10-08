@@ -590,6 +590,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-item.swiped .tl-card{transform:translateX(-64px);}
 /* v144.4: 地点协作署名行 —— 小字浅色，不抢视觉 */
 .loc-meta{font-size:10px;color:var(--text-light);margin-top:4px;letter-spacing:.2px;}
+/* v144.6: 首次使用强制命名门——全屏遮罩，不设名字不放行 */
+.name-gate{position:fixed;inset:0;z-index:1250;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;}
+.name-gate.active{display:flex;}
+.name-gate .ng-emoji{font-size:44px;margin-bottom:12px;}
+.name-gate .ng-title{font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.name-gate .ng-sub{font-size:13px;color:var(--text-sec);line-height:1.7;margin-bottom:22px;}
+.name-gate .ng-input{width:100%;max-width:300px;padding:13px 16px;border-radius:14px;border:2px solid var(--primary);background:var(--card);color:var(--text);font-size:16px;text-align:center;outline:none;}
+.name-gate .ng-input:focus{box-shadow:0 0 0 4px var(--primary-light);}
+.name-gate .ng-btn{margin-top:14px;width:100%;max-width:300px;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:#fff;font-size:15px;font-weight:700;cursor:pointer;}
+.name-gate .ng-hint{margin-top:10px;font-size:11px;color:var(--text-light);}
 /* v144.5: 行程归属体系 —— 成员色板 chip / 详情页成员行 / 首页卡片创建者行 */
 .owner-chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#fff;padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:1px;line-height:14px;}
 .owner-filter{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 2px;scrollbar-width:none;}
@@ -2197,7 +2207,7 @@ setTimeout(function(){
     <div class="modal-title" data-page-node-id="zKVCysJF1YtICdtt2fksXs">偏好设置</div>
     <div class="form-row" data-page-node-id="FKEafD2HQo31Bq69DRv6Zu">
       <label class="form-label" data-page-node-id="A8rO6dOBLoRqqpXDxYZ8ss">显示名称</label>
-      <input class="form-input" id="set-name" placeholder="Iris" maxlength="100" data-page-node-id="kuknq73IWmzi41D0WQJZc1">
+      <input class="form-input" id="set-name" placeholder="你的名字" maxlength="100" data-page-node-id="kuknq73IWmzi41D0WQJZc1">
     </div>
     <div class="form-row" data-page-node-id="kMR1GEi7Anh4xqWZaMzUof">
       <label class="form-label" data-page-node-id="a14gNDJhdvRAQscZy1z4l8">签名</label>
@@ -2341,6 +2351,15 @@ setTimeout(function(){
   <button class="pv-cover" id="pv-cover" onclick="pvSetCover()" data-page-node-id="v141pvcover">设为行程封面</button>
 </div>
 
+<div class="name-gate" id="name-gate">
+  <div class="ng-emoji">👋</div>
+  <div class="ng-title">先认识一下你</div>
+  <div class="ng-sub">协作记录里每个伙伴都要有独一无二的名字<br>起好名字才能开始使用哦</div>
+  <input class="ng-input" id="gate-name" placeholder="你的名字" maxlength="20" onkeydown="if(event.key==='Enter')saveGateName()">
+  <button class="ng-btn" onclick="saveGateName()">就用这个名字 ✨</button>
+  <div class="ng-hint">名字会在协作时展示给同伴，且不能重复</div>
+</div>
+
 <div class="toast" id="toast" data-page-node-id="XeAgXSixr0I3hEfMOZAdpO"></div>
 
 <script>
@@ -2423,9 +2442,9 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.5';
+var APP_VERSION='v144.6';
 var STORAGE_KEY='lattiao_v4_data';
-var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
+var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
 var calFilterType='all';
 var currentTripId=null;
@@ -2951,6 +2970,57 @@ function ensurePeerName(){
   if(!data.peerNames||typeof data.peerNames!=='object')data.peerNames={};
   var me=data.settings&&data.settings.name?data.settings.name.trim():'';
   if(me)data.peerNames[ghUserId()]=me;
+}
+// v144.6: 协作成员名字唯一性——同一协作圈（peerNames 已同步的可见成员）里
+// 不允许两个人用同一个名字，否则署名/归属/分账全部分不清谁是谁。
+function canonicalName(s){return (s||'').trim().toLowerCase();}
+function nameTakenByOther(name){
+  var c=canonicalName(name);
+  if(!c)return false;
+  var me=ghUserId(),pn=data.peerNames||{};
+  for(var uid in pn){
+    if(uid===me)continue;
+    if(canonicalName(pn[uid])===c)return true;
+  }
+  return false;
+}
+function ownerOfName(name){
+  var c=canonicalName(name),pn=data.peerNames||{};
+  for(var uid in pn){if(canonicalName(pn[uid])===c)return peerName(uid);}
+  return '其他成员';
+}
+// v144.6: 首次使用强制命名门——没有名字就全屏拦截，设好名字才放行。
+// 老用户 settings.name 已有值，门禁永远不出现，行为零变化。
+function needsNameGate(){
+  return !(data.settings&&data.settings.name&&data.settings.name.trim());
+}
+function showNameGate(){
+  var g=document.getElementById('name-gate');
+  if(!g)return;
+  g.classList.add('active');
+  setTimeout(function(){var i=document.getElementById('gate-name');if(i)i.focus();},150);
+  // v144.6.1: 门禁激活期间轮询自愈——名字一旦出现就立刻收起。覆盖「导入备份 /
+  // 恢复快照 / 恢复出厂后又拿到数据」等名字晚到的场景，避免门已经不该挡了还挡着。
+  if(GH._gatePoll)clearInterval(GH._gatePoll);
+  GH._gatePoll=setInterval(function(){if(!needsNameGate())hideNameGate();},400);
+}
+function hideNameGate(){
+  var g=document.getElementById('name-gate');
+  if(g)g.classList.remove('active');
+  if(GH._gatePoll){clearInterval(GH._gatePoll);GH._gatePoll=null;}
+}
+function saveGateName(){
+  var i=document.getElementById('gate-name');
+  var name=((i&&i.value)||'').trim();
+  if(!name){showToast('先给自己起个名字吧 ✍️');return;}
+  if(nameTakenByOther(name)){showToast('「'+name+'」已被 '+ownerOfName(name)+' 使用，换一个吧');return;}
+  if(!data.settings)data.settings={};
+  data.settings.name=name;
+  ensurePeerName();
+  saveData();
+  hideNameGate();
+  renderAll();
+  showToast('欢迎，'+name+' ✨');
 }
 function peerName(uid){
   if(!uid)return '旅伴';
@@ -9059,7 +9129,7 @@ function closeFeatureInfo(){
 }
 
 function renderProfile(){
-  document.getElementById('profile-name').textContent=data.settings.name||'Iris';
+  document.getElementById('profile-name').textContent=data.settings.name||'我';
   // v105: refresh grouped menu so the badges (e.g. notification count) stay in sync.
   renderProMenu();
   // Show the running app version so the user always knows which build they're on.
@@ -9170,15 +9240,19 @@ function renderProfile(){
   }catch(e){}
   // v103 item 4: joy timeline — every "小确幸" across all trips, newest first.
   // v124: viewer / guest mode removed — joy timeline always renders normally.
+  // v144.6: 默认只显示 5 条，其余折叠进「展开全部」按钮（不再一屏糊 30 条）。
   try{
     var jtEl=document.getElementById('pro-joy-timeline');
     if(jtEl){
       var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
       if(!joys.length){jtEl.style.display='none';}
       else{
+        var JOY_COLLAPSED_N=5;
+        var joyExpanded=!!window._joyExpanded;
+        var shown=joyExpanded?joys:joys.slice(0,JOY_COLLAPSED_N);
         jtEl.style.display='block';
         jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+
-          joys.slice(0,30).map(function(j){
+          shown.map(function(j){
             var dt=(j.date||'').slice(5).replace('-','.');
             var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
             var tt=_tn?(' · '+escapeHTML(_tn)):'';
@@ -9186,10 +9260,17 @@ function renderProfile(){
               '<span style="color:var(--primary-dark);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
               '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
           }).join('')+
-          (joys.length>30?'<div style="font-size:11px;color:var(--text-light);text-align:center;padding-top:6px;">还有 '+(joys.length-30)+' 条…</div>':'');
+          (joys.length>JOY_COLLAPSED_N
+            ?'<div onclick="toggleJoyExpand()" style="font-size:12px;font-weight:600;color:var(--primary);text-align:center;padding:9px 0 2px;cursor:pointer;">'+(joyExpanded?'收起 ▲':'展开全部 '+(joys.length-JOY_COLLAPSED_N)+' 条 ▼')+'</div>'
+            :'');
       }
     }
   }catch(e){}
+}
+// v144.6: 小确幸时间线 展开/收起 切换（状态存 window，重渲染不丢）
+function toggleJoyExpand(){
+  window._joyExpanded=!window._joyExpanded;
+  if(typeof renderProfile==='function')renderProfile();
 }
 function dumpLocalState(){
   // Trim photos/base64 so the dump fits in a clipboard paste / screenshot share.
@@ -9335,7 +9416,7 @@ function importFullBackup(input){
 
 // ============ Settings / Love ============
 function openSettings(){
-  document.getElementById('set-name').value=data.settings.name||'Iris';
+  document.getElementById('set-name').value=data.settings.name||'';
   document.getElementById('set-slogan').value=data.settings.slogan||'';
   document.getElementById('set-city').value=data.settings.city||'';
   document.getElementById('set-token').value=ghToken()||'';
@@ -9435,7 +9516,10 @@ function browserLabel(){
   }catch(e){return '浏览器';}
 }
 function saveSettings(){
-  var name=document.getElementById('set-name').value.trim()||'Iris';
+  // v144.6: 名字必填 + 协作圈内唯一（不再默默兜底成 'Iris'——那是写死名字的老毛病）
+  var name=document.getElementById('set-name').value.trim();
+  if(!name){showToast('请先给自己起一个名字');return;}
+  if(nameTakenByOther(name)){showToast('「'+name+'」已被 '+ownerOfName(name)+' 使用，换一个吧');return;}
   var slogan=document.getElementById('set-slogan').value.trim();
   var city=document.getElementById('set-city').value.trim();
   var newTok=document.getElementById('set-token').value.trim();
@@ -9639,7 +9723,7 @@ function forceResync(){
       if(!remote||!remote.trips){throw new Error('EMPTY_REMOTE');}
       try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
       try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
-      var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
+      var settings=(data&&data.settings)||{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
       // v120: 同 forceRescue —— 重建 data 时保留 joys / notifs / peerNames，
       // 否则「立即从云端拉取」会把小确幸、通知、协作者名字清空，并在下次推送时
       // 把空数组写进云端，对端也跟着丢。
@@ -9800,7 +9884,7 @@ function forceRescue(){
     try{localStorage.removeItem('lattiao_gh_cache');}catch(e){}
     GH.pullBackoff=0;GH.nextPullAt=0;GH.tokenInvalid=false;
     // 2) rebuild an empty state, keeping the user's settings
-    var settings=(data&&data.settings)||{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
+    var settings=(data&&data.settings)||{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'};
     // v120: 重建 data 时必须保留 joys / notifs / peerNames。旧代码整体重建时漏了这三个
     // 同步字段，「清空本地缓存并从云端恢复」反而会把小确幸、通知、协作者名字一起抹掉；
     // 而 pushMergeCloud 只合并 trips、不合并 joys，下一次推送就会把空数组写进云端
@@ -11426,7 +11510,7 @@ function drawYearPoster(st,photos,canvas){
   c.textAlign='center';
   c.fillText(st.year+' 旅行账单',W/2,96);
   c.fillStyle='#7C3AED';c.font='20px "PingFang SC","Microsoft YaHei",sans-serif';
-  c.fillText((data.settings&&data.settings.name||'Iris')+' 的这一年 ✨',W/2,132);
+  c.fillText((data.settings&&data.settings.name||'我')+' 的这一年 ✨',W/2,132);
   // big numbers
   var cards=[
     ['🧳 旅行',st.trips+' 次'],
@@ -12902,6 +12986,8 @@ function init(){
   loadData();
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   ensurePeerName();   // v103: register this device's display name for collaborators
+  // v144.6: 首次使用（没有显示名字）→ 全屏命名门，起好名字才能继续操作
+  if(needsNameGate())showNameGate();
   migrateAllCollaborators(); // v106: string[] collaborators → object[] with role
   // v124: 恢复已上传的照片分片指纹。原先只在内存，刷新后清零 → done 永远是 0
   try{GH.photoChunkFp=JSON.parse(localStorage.getItem('lattiao_photoChunkFp')||'{}')||{};}catch(e){GH.photoChunkFp={};}
