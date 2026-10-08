@@ -590,6 +590,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-item.swiped .tl-card{transform:translateX(-64px);}
 /* v144.4: 地点协作署名行 —— 小字浅色，不抢视觉 */
 .loc-meta{font-size:10px;color:var(--text-light);margin-top:4px;letter-spacing:.2px;}
+/* v144.5: 行程归属体系 —— 成员色板 chip / 详情页成员行 / 首页卡片创建者行 */
+.owner-chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#fff;padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:1px;line-height:14px;}
+.owner-filter{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 2px;scrollbar-width:none;}
+.owner-filter::-webkit-scrollbar{display:none;}
+.owner-filter .of-chip{flex:0 0 auto;font-size:11px;font-weight:600;padding:4px 12px;border-radius:12px;background:var(--muted-bg);color:var(--text-sec);cursor:pointer;border:1.5px solid transparent;white-space:nowrap;}
+.owner-filter .of-chip.active{background:var(--primary-soft,#EDE9FE);color:var(--primary);border-color:var(--primary);}
+.td-members{font-size:11px;color:rgba(255,255,255,.92);margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,.35);}
+.tc-creator{font-size:10px;color:var(--text-light);margin-top:3px;}
 .tl-time{position:absolute;left:-60px;top:10px;width:48px;text-align:right;font-size:11px;color:var(--text-sec);}
 .tl-time b{display:block;font-size:13px;color:var(--text);font-weight:700;}
 .tl-dot{position:absolute;left:-12px;top:14px;width:18px;height:18px;border-radius:50%;background:var(--card);border:3px solid var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);}
@@ -1451,6 +1459,8 @@ setTimeout(function(){
       <span data-page-node-id="bB0CqLBwmhWDZH4227eFgO">📍 今日行程 · 共 <b id="td-loc-count" data-page-node-id="A4v4g1sGsC3ZXzxO8qgG3E">0</b> 个地点 <span class="psync-badge" id="td-photo-sync" style="display:none;" data-page-node-id="dAOvxgPvL8IIaCqODcUGE6">📷 0/0</span></span>
       <span id="td-toolbar-actions" style="display:flex;gap:10px;" data-page-node-id="DgA5CUutwjsBYb7esJ0PHj"><span style="color:var(--primary);cursor:pointer;" onclick="sortLocations('smart')" data-page-node-id="WHxzGA6R3aLElz7R3EaldR">🗺 按路线排序</span><span style="cursor:pointer;" onclick="sortLocations('manual')" data-page-node-id="7xEW8LpYsqRLC8EZIsTpQn">🧩 手动调整</span><span style="color:var(--accent-fg);cursor:pointer;" onclick="generateTripDiary()" data-page-node-id="YHpdVl7d8vkBM0RoUYEe0q">📝 写日记</span></span>
     </div>
+    <!-- v144.5: 归属筛选 —— 多人行程按「这段是谁的行程」过滤时间线（renderTimeline 动态填充） -->
+    <div class="owner-filter" id="td-owner-filter"></div>
     <div class="timeline" id="td-timeline" data-page-node-id="H7AcTptBoF8cDw54H0dboC"></div>
     <div class="td-map" id="td-map" data-page-node-id="fScJXRulXtSPJPSeivpOL7">
       <div id="td-map-real" data-page-node-id="8bWNOXDO40pqlefM2BOUUg"></div>
@@ -1791,6 +1801,12 @@ setTimeout(function(){
         <label class="form-label" data-page-node-id="vwImJYCXjDAMjg0oMdFBXY">时长 (分)</label>
         <input class="form-input" id="lm-duration" type="number" placeholder="60" data-page-node-id="kAXMHV9WrCHENPDs4Dkv0I">
       </div>
+    </div>
+    <!-- v144.5: 地点归属人 —— 两人从不同城市出发、同一条时间线混记时，标记这一段是谁的行程。
+         默认当前用户；可以帮对方代记（例如帮 Iris 记武汉出发段）。多人行程才显示该行。 -->
+    <div class="form-row" id="lm-owner-row" style="display:none;">
+      <label class="form-label">🧳 这段是谁的行程</label>
+      <select class="form-select" id="lm-owner"></select>
     </div>
     <div class="form-row form-row-flex" data-page-node-id="QMFgvOxZ15V4mL1LgPGGjC">
       <div data-page-node-id="0qmP4HPLd4rPdvEKGiCYnJ">
@@ -2407,7 +2423,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.4';
+var APP_VERSION='v144.5';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'Iris',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -2956,6 +2972,31 @@ function mergePeerNames(remote){
   ensurePeerName(); // re-assert self name (authoritative, may have been edited)
   return changed;
 }
+// ---- v144.5: 行程归属体系（trip.createdBy/createdAt + loc.owner + 成员色板）----
+// 每个 uid 一个稳定颜色（hash 取色板），时间线节点 / 归属 chip / 筛选 chip 统一用色，
+// 两个人混记同一条时间线时扫一眼就知道哪段是谁的。
+function uidColor(u){
+  var pal=['#7C3AED','#EC4899','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EF4444','#0EA5E9'];
+  if(!u)return 'var(--text-light)';
+  return pal[Math.abs(hashCode(String(u)))%pal.length];
+}
+// 地点归属人：优先 owner（v144.5 显式选择），回落 createdBy（v144.4 署名），再回落空。
+function locOwnerUid(l){return (l&&(l.owner||l.createdBy))||'';}
+// tripMembers 唯一定义在 v143.5 AA 分账区（约 7750 行）——v144.5 起包含 createdBy。
+// 地点弹窗的「这段是谁的行程」选择器（多人行程才显示，单人不打扰）。
+function renderOwnerSelect(selected){
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  var row=document.getElementById('lm-owner-row');
+  var sel=document.getElementById('lm-owner');
+  if(!row||!sel)return;
+  var members=t?tripMembers(t):[ghUserId()];
+  if(members.length<2){row.style.display='none';return;}
+  sel.innerHTML=members.map(function(u){
+    return '<option value="'+escapeHTML(u)+'">'+escapeHTML(peerName(u))+(t&&u===t.createdBy?' 👑':'')+'</option>';
+  }).join('');
+  sel.value=(selected&&members.indexOf(selected)>=0)?selected:ghUserId();
+  row.style.display='';
+}
 // v103 item 8: per-field timestamp on a location (falls back to trip updatedAt).
 function fieldTs(loc,field){
   if(loc&&loc._fts&&typeof loc._fts[field]!=='undefined')return tsOf(loc._fts[field]);
@@ -2971,7 +3012,8 @@ function mergeLocationPair(localLoc,remoteLoc,localTripTs,remoteTripTs){
   // 需同步的字段，必须同时改这里和 saveLocation 的 _fts 列表，否则改动会丢。
   // distance 自 v143.4 起由坐标自动算出（各端一致），进白名单只是兜底防旧设备的
   // 手填值把新设备的自动值顶掉。
-  var fields=['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt'];
+  // v144.5: owner（地点归属人，可被改判 → 走 newer-wins）进白名单。
+  var fields=['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt','owner'];
   fields.forEach(function(f){
     var rv=remoteLoc[f], lv=out[f];
     var rTs=fieldTs(remoteLoc,f)||remoteTripTs;
@@ -3350,6 +3392,18 @@ function mergeTrips(localTrips,remoteTrips){
     // Keep the most recent update timestamp. v101: 统一回写成数字，让类型逐步收敛
     // （旧写法在两个比较都为 false 时会静默取 remoteTs，把本地时间「追平」成云端值）
     local.updatedAt=Math.max(localTs,remoteTs);
+    // v144.5: 行程归属 —— 创建者「先到先得」，绝不走 newer-wins（创建者天然不该被
+    // 后编辑的一方顶掉）；createdAt 取两边最早的非零值。collaborators 按 uid 并集，
+    // 让两端的成员列表收敛（本地新增成员 + 对端新增成员都保留）。
+    local.createdBy=local.createdBy||remote.createdBy||'';
+    local.createdAt=tsOf(local.createdAt)||tsOf(remote.createdAt)||0;
+    (function(){
+      var cm={};
+      (local.collaborators||[]).forEach(function(c){if(c&&c.uid)cm[c.uid]=c;});
+      (remote.collaborators||[]).forEach(function(c){if(c&&c.uid&&!cm[c.uid])cm[c.uid]=c;});
+      var arr=Object.keys(cm).map(function(k){return cm[k];});
+      if(arr.length)local.collaborators=arr;
+    })();
     // Merge days by date, then merge locations within each day by id
     var dayMap={};
     (local.days||[]).forEach(function(d){ if(d&&d.date){ dayMap[d.date]={date:d.date,weather:d.weather||'',locations:JSON.parse(JSON.stringify(d.locations||[]))}; } });
@@ -4137,7 +4191,7 @@ function activeScreenFp(){
       return 'td|'+tripRenderFp(t);
     }
     if(a.id==='page-calendar')return 'cal|'+JSON.stringify((data.trips||[]).map(function(t){return t.id+':'+(t.days||[]).length+':'+(t._photoCount||0);}));
-    if(a.id==='page-trips')return 'trips|'+JSON.stringify((data.trips||[]).map(function(t){return t.id+':'+(t.title||'')+':'+(t.cover?1:0)+':'+(t._photoCount||0)+':'+((t.tags||[]).join(','));}));
+    if(a.id==='page-trips')return 'trips|'+JSON.stringify((data.trips||[]).map(function(t){return t.id+':'+(t.title||'')+':'+(t.cover?1:0)+':'+(t._photoCount||0)+':'+((t.tags||[]).join(','))+':'+(t.createdBy||'')+':'+tripMembers(t).join(',');}));
     return 'other:'+a.id;
   }catch(e){return 'err';}
 }
@@ -4145,12 +4199,14 @@ function tripRenderFp(t){
   var parts=[];
   (t.days||[]).forEach(function(d){
     var locs=(d.locations||[]).map(function(l){
+      // v144.5: 纳入 owner —— 仅归属人改判也要重渲染时间线（硬规则：新增需同步的
+      // 显示字段必须同时进指纹，否则拉取合并后界面不更新）。
       return [l.name,l.guide,l.feeling,l.time,l.type,(l.lat!=null?1:0),(l.lng!=null?1:0),(l.photos||[]).length,l._photoCount||0,
-        l.createdBy||'',l.editedBy||'',tsOf(l.editedAt)||0];
+        l.createdBy||'',l.editedBy||'',tsOf(l.editedAt)||0,l.owner||''];
     });
     parts.push({dt:d.date,L:locs});
   });
-  return JSON.stringify({c:(t.cover?1:0),d:parts});
+  return JSON.stringify({c:(t.cover?1:0),cb:(t.createdBy||''),ca:tsOf(t.createdAt)||0,m:tripMembers(t).join(','),d:parts});
 }
 function renderIfChanged(beforeFp){
   var afterFp=activeScreenFp();
@@ -6407,6 +6463,8 @@ function renderTrips(){
             '<span>📅 '+dur+'</span>'+
           '</div>'+
           tagHtml+
+          // v144.5: 行程归属 —— 创建者 + 成员（两人以上才显示成员，单人只显示创建者）
+          (t.createdBy?('<div class="tc-creator">👑 '+escapeHTML(peerName(t.createdBy))+' 创建'+(tripMembers(t).length>1?(' · 👥 '+tripMembers(t).map(function(u){return escapeHTML(peerName(u));}).join(' & ')):'')+'</div>'):'')+
           (t.updatedBy&&t.updatedBy!==ghUserId()?('<div class="tc-collab">🖊 '+escapeHTML(peerName(t.updatedBy))+' 编辑于 '+relTimeAgo(new Date(t.updatedAt).getTime())+'</div>'):'')+
         '</div></div>';
     });
@@ -6655,6 +6713,12 @@ function saveTrip(){
       t.budget=orig.budget?JSON.parse(JSON.stringify(orig.budget)):{total:0,items:[]};
       if(tripBudget!==null)t.budget.total=tripBudget;
       if(!t.cover&&orig.cover)t.cover=orig.cover;
+      // v144.5: 编辑构造的 t 不携带 createdBy/createdAt/collaborators，Object.assign
+      // 只拷贝 t 上存在的键所以不会抹掉 orig 的值——但为了杜绝 v144.4「编辑丢创建者」
+      // 同类回归，这里显式回填：丢了就立即补上（老行程也借此一次回填到位）。
+      t.createdBy=orig.createdBy||ghUserId();
+      t.createdAt=orig.createdAt||Date.now();
+      t.collaborators=(orig.collaborators&&orig.collaborators.length)?orig.collaborators:[{uid:t.createdBy,role:'owner',addedAt:t.createdAt||0,addedBy:''}];
       Object.assign(orig,t);
       orig.updatedAt=new Date().toISOString();
     }
@@ -6680,6 +6744,11 @@ function saveTrip(){
     // 这种负载下异步交错放大的副产物。下一次真正新建会经 openTripModal() 把该值清零。
     currentEditingTripId=t.id;
     t.updatedAt=new Date().toISOString();
+    // v144.5: 新建行程播种归属 —— createdBy/createdAt 先到先得（合并层永不 newer-wins
+    // 覆盖），创建者同时进入 collaborators 成员列表（ tripMembers 的数据来源）。
+    t.createdBy=ghUserId();
+    t.createdAt=Date.now();
+    t.collaborators=[{uid:ghUserId(),role:'owner',addedAt:t.createdAt,addedBy:ghUserId()}];
     data.trips.push(t);
   }
   saveData();
@@ -6713,6 +6782,7 @@ function ensureTripDays(t){
 }
 function openTrip(id){
   currentTripId=id;
+  locOwnerFilter=''; // v144.5: 换行程必须重置归属筛选，否则上一个行程的筛选串台
   var t=data.trips.find(function(x){return x.id===id;});
   if(!t){
     // Trip not in local data — likely a fresh device / cleared cache. Pull from cloud and try again.
@@ -6791,10 +6861,22 @@ function renderOpenTripChrome(t){
     '<button class="btn-icon" onclick="shareCurrentTrip()" title="分享链接">↗</button>'+
     '<button class="btn-icon" onclick="editCurrentTrip()" title="编辑">✎</button>'+
     '<button class="btn-icon" onclick="forceRescue()" title="重新从云端拉取" style="background:var(--accent-soft);color:var(--accent-fg);">↻</button>';
+  // v144.5: 归属行 —— 「由谁创建 + 同行成员」。名字全走 peerName（硬规则：禁止写死）。
+  var members=tripMembers(t);
+  var membersLine='';
+  if(t.createdBy){
+    var others=members.filter(function(u){return u!==t.createdBy;});
+    membersLine='👑 '+escapeHTML(peerName(t.createdBy))+' 创建'+
+      (others.length?(' · 同行：'+others.map(function(u){return '<span style="color:#fff;font-weight:600;">'+escapeHTML(peerName(u))+'</span>';}).join('、')):'');
+  }
+  var overlay='<div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div>'+
+    (membersLine?('<div class="td-members" id="td-members">'+membersLine+'</div>'):'')+
+    '</div>';
+  var chrome='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div>';
   if(t.cover){
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><img src="'+t.cover+'"><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML=chrome+'<img src="'+t.cover+'">'+overlay;
   }else{
-    document.getElementById('td-hero').innerHTML='<button class="td-back" onclick="showPage(\'trips\')">‹</button><div class="td-actions">'+actions+'</div><div class="td-hero-overlay"><h1 id="td-title">'+escapeHTML(t.title)+'</h1><div class="sub" id="td-sub">📍 '+(t.destination?' '+escapeHTML(t.destination):'')+(t.startDate?' · '+fmtDate(t.startDate):'')+(t.endDate?' ~ '+fmtDate(t.endDate):'')+'</div></div>';
+    document.getElementById('td-hero').innerHTML=chrome+overlay;
   }
   document.getElementById('td-title').textContent=t.title;
   document.getElementById('td-sub').textContent='📍 '+(t.destination||'未设置目的地');
@@ -6923,6 +7005,9 @@ function switchTrip(dir){
     },{passive:true});
   });
 })();
+// v144.5: 归属筛选状态 —— ''=全部，否则为 uid。打开别的行程时重置（见 openTrip）。
+var locOwnerFilter='';
+function setLocOwnerFilter(uid){locOwnerFilter=uid||'';renderTimeline();renderTripDetailExtras();}
 function renderTimeline(){
   var t=data.trips.find(function(x){return x.id===currentTripId;});
   if(!t)return;
@@ -6930,7 +7015,24 @@ function renderTimeline(){
   // Respect the user's chosen day (do NOT auto-snap to a non-empty day) so empty
   // days like D3 stay visible as "📭 这一天还没有安排" instead of silently showing D1.
   var day=t.days[currentTripDay]||t.days[0]||{locations:[]};
-  var locs=day.locations||[];
+  var allLocs=day.locations||[];
+  // v144.5: 归属筛选 —— 多人行程才渲染 chips（单人不打扰）；筛选同时作用于时间线与路线图
+  var members=tripMembers(t);
+  var filterEl=document.getElementById('td-owner-filter');
+  if(filterEl){
+    if(members.length>1){
+      var cnt=function(u){return allLocs.filter(function(l){return locOwnerUid(l)===u;}).length;};
+      filterEl.style.display='';
+      filterEl.innerHTML='<div class="of-chip'+(locOwnerFilter===''?' active':'')+'" onclick="setLocOwnerFilter(\'\')">全部 '+allLocs.length+'</div>'+
+        members.map(function(u){
+          return '<div class="of-chip'+(locOwnerFilter===u?' active':'')+'" style="'+(locOwnerFilter===u?'':'')+'" onclick="setLocOwnerFilter(\''+escapeHTML(u)+'\')"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+uidColor(u)+';margin-right:4px;vertical-align:1px;"></span>'+escapeHTML(peerName(u))+' '+cnt(u)+'</div>';
+        }).join('');
+    }else{filterEl.style.display='none';filterEl.innerHTML='';}
+  }
+  var locs=allLocs;
+  if(locOwnerFilter&&members.indexOf(locOwnerFilter)>=0){
+    locs=locs.filter(function(l){return locOwnerUid(l)===locOwnerFilter;});
+  }
   // v106: read-only mode strips per-location edit affordances entirely so the
   // user never sees a button that would be blocked. The card click becomes a
   // soft "view only" — opens the location in read-only mode if implemented,
@@ -6938,7 +7040,7 @@ function renderTimeline(){
   var ro=isReadOnly(t);
   document.getElementById('td-loc-count').textContent=locs.length;
   if(locs.length===0){
-    document.getElementById('td-timeline').innerHTML='<div style="text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;">'+(ro?'这一天还没有安排':'📭 这一天还没有安排，点击 + 添加地点')+'</div>';
+    document.getElementById('td-timeline').innerHTML='<div style="text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;">'+(allLocs.length?( '🔗 这一天没有 '+(locOwnerFilter?escapeHTML(peerName(locOwnerFilter)):'')+' 的安排'):(ro?'这一天还没有安排':'📭 这一天还没有安排，点击 + 添加地点'))+'</div>';
     return;
   }
   var html='';
@@ -6963,20 +7065,24 @@ function renderTimeline(){
         '<div style="aspect-ratio:1;border-radius:6px;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-sec);font-weight:600;">📷 '+l._photoCount+'</div>'+
         '</div>';
     }
-    html+='<div class="tl-item" data-idx="'+idx+'" onclick="'+(ro?'viewLocation('+idx+')':'editLocation('+idx+')')+'" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
-      (ro?'':'<div class="tl-swipe-del" onclick="event.stopPropagation();swipeDeleteLocation('+idx+')">删除</div>')+
+    // v144.5: 筛选视图下 idx 是过滤后的下标，编辑/删除/移动必须用真实下标（否则
+    // 「只看 Iris」时点编辑会改到别人的地点——数组错位）。
+    var realIdx=allLocs.indexOf(l);
+    var ownerUid=locOwnerUid(l);
+    html+='<div class="tl-item" data-idx="'+idx+'" onclick="'+(ro?'viewLocation('+realIdx+')':'editLocation('+realIdx+')')+'" style="'+(periodColor!=='transparent'?'border-left:4px solid '+periodColor:'')+'">'+
+      (ro?'':'<div class="tl-swipe-del" onclick="event.stopPropagation();swipeDeleteLocation('+realIdx+')">删除</div>')+
       '<div class="tl-time"><b>'+(l.time||('--:--'))+'</b></div>'+
-      '<div class="tl-dot '+dotClass+'"></div>'+
+      '<div class="tl-dot '+dotClass+'" style="'+(ownerUid?('background:'+uidColor(ownerUid)+';box-shadow:0 0 0 3px '+uidColor(ownerUid)+'33;'):'')+'"></div>'+
       '<div class="tl-card">'+
-        '<div class="tl-name">'+typeIcon+' '+escapeHTML(l.name||'')+'<span style="font-size:9px;font-weight:600;color:#fff;background:'+typeColor+';padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;">'+(l.type||'other')+'</span></div>'+
+        '<div class="tl-name">'+typeIcon+' '+escapeHTML(l.name||'')+'<span style="font-size:9px;font-weight:600;color:#fff;background:'+typeColor+';padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;">'+(l.type||'other')+'</span>'+(ownerUid?('<span class="owner-chip" style="background:'+uidColor(ownerUid)+';" onclick="event.stopPropagation();setLocOwnerFilter(\''+escapeHTML(ownerUid)+'\')">'+escapeHTML(peerName(ownerUid))+'</span>'):'')+'</div>'+
         '<div class="tl-meta">'+
           (l.distance?('<span>📏 '+l.distance+' km</span>'):'')+
           (l.duration?('<span>⏱ '+l.duration+' 分钟</span>'):'')+
           '<span style="margin-left:auto;display:flex;gap:6px;">'+
-            (ro?'':'<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();editLocation('+idx+')">✎</span>'+
-            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',-1)">↑</span>'+
-            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+idx+',1)">↓</span>'+
-            '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+idx+')">✕</span>')+
+            (ro?'':'<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();editLocation('+realIdx+')">✎</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+realIdx+',-1)">↑</span>'+
+            '<span style="cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();moveLocation('+realIdx+',1)">↓</span>'+
+            '<span style="cursor:pointer;color:var(--danger);" onclick="event.stopPropagation();deleteLocation('+realIdx+')">✕</span>')+
           '</span>'+
         '</div>'+
         (function(){var m=locMetaLine(l);return m?('<div class="loc-meta">✎ '+escapeHTML(m)+'</div>'):'';})()+
@@ -7127,6 +7233,7 @@ function addLocationToCurrentDay(){
   document.getElementById('lm-save-btn').textContent='添加';
   resetLocationModal();
   renderBudgetPayerSelect();
+  renderOwnerSelect(''); // v144.5: 新增地点默认归属当前用户
   document.getElementById('location-modal').classList.add('active');
 }
 function editLocation(idx){
@@ -7148,6 +7255,7 @@ function editLocation(idx){
   document.getElementById('lm-guide').value=l.guide||'';
   document.getElementById('lm-feeling').value=l.feeling||'';
   renderBudgetPayerSelect(l.budget&&l.budget.items&&l.budget.items[0]?l.budget.items[0].payer:'');
+  renderOwnerSelect(l.owner||l.createdBy||''); // v144.5: 编辑时回显原归属人
   document.getElementById('lm-bcat').value='food';
   document.getElementById('lm-bnote').value='';
   document.getElementById('lm-bamt').value='';
@@ -7628,10 +7736,17 @@ function renderAATripSelect(){
    按成员数平均分摊（粒度够用，不强求逐条指定分摊人）；③每人差额 = 垫付 - 应摊，
    +应收 / -应付；④用贪心撮合生成最少笔数的结清转账清单。 */
 function tripMembers(t){
-  var ids=[];
-  (t.collaborators||[]).forEach(function(c){ if(c&&c.uid&&ids.indexOf(c.uid)<0)ids.push(c.uid); });
-  var me=ghUserId();
-  if(ids.indexOf(me)<0)ids.push(me);
+  // v144.5: 唯一定义（此前 2985 行附近重复声明会被这里覆盖——后声明赢）。
+  // 成员 = 创建者 createdBy 优先 + collaborators（uid 去重）+ 当前用户。
+  // 老数据无 collaborators 时由 createdBy 兜底，归属展示不再依赖 collaborators 存在。
+  var ids=[],seen={};
+  function add(u){if(u&&!seen[u]){seen[u]=1;ids.push(u);}}
+  add(t.createdBy);
+  (t.collaborators||[]).forEach(function(c){
+    if(c&&typeof c==='object'){if(c.uid)add(c.uid);}
+    else if(typeof c==='string')add(c); // v106 前的 string[] 老形态
+  });
+  add(ghUserId());
   return ids;
 }
 function collectTripItems(t){
@@ -7799,8 +7914,16 @@ function saveLocation(){
   }else{
     loc.createdBy=ghUserId();
   }
+  // v144.5: 地点归属人 —— 「这段是谁的行程」。选择器默认当前用户，支持代记；
+  // 编辑时默认保持原归属，除非用户在选择器里显式改判（改判走 _fts → 对端较新者赢）。
+  loc.owner=(function(){
+    var sel=document.getElementById('lm-owner');
+    var row=document.getElementById('lm-owner-row');
+    if(row&&row.style.display!=='none'&&sel&&sel.value)return sel.value;
+    return (_prev&&_prev.owner)||(_prev&&_prev.createdBy)||ghUserId();
+  })();
   // v143.5: 补 duration/distance 时间戳（与 mergeLocationPair 白名单必须一致，否则丢失）
-  ['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt'].forEach(function(f){
+  ['name','guide','feeling','time','type','lat','lng','distance','duration','createdBy','editedBy','editedAt','owner'].forEach(function(f){
     if(!_prev||_prev[f]!==loc[f])loc._fts[f]=Date.now();
   });
   // v143.4: 距离自动计算（同一天时间序上一站 haversine），替代原手动「距离(km)」输入框
@@ -7990,7 +8113,12 @@ function renderTripDetailExtras(){
 
   // v99: route map — schematic SVG by default (zero cost), optional real Tencent map
   if(typeof renderRouteMap==='function'){
-    renderRouteMap(t,t.days[currentTripDay]||t.days[0]);
+    // v144.5: 归属筛选生效时，路线图只画筛选后的人的站点（浅拷贝 day，不动原数据）
+    var _mapDay=t.days[currentTripDay]||t.days[0];
+    if(_mapDay&&locOwnerFilter&&tripMembers(t).indexOf(locOwnerFilter)>=0){
+      _mapDay=Object.assign({},_mapDay,{locations:(_mapDay.locations||[]).filter(function(l){return locOwnerUid(l)===locOwnerFilter;})});
+    }
+    renderRouteMap(t,_mapDay);
   }else{
   var mEl=document.getElementById('td-map');
   if(mEl){
