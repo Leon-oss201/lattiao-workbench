@@ -590,6 +590,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tl-item.swiped .tl-card{transform:translateX(-64px);}
 /* v144.4: 地点协作署名行 —— 小字浅色，不抢视觉 */
 .loc-meta{font-size:10px;color:var(--text-light);margin-top:4px;letter-spacing:.2px;}
+/* v144.7: 首页快捷入口行 —— 取代原 CTA 卡/工具箱卡/quick-grid 三处重复入口 */
+.home-quickrow{display:flex;gap:8px;margin:0 16px 12px;}
+.home-quickrow .hq{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 0 9px;text-align:center;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
+.home-quickrow .hq:active{background:var(--primary-light);}
+.home-quickrow .hq span{display:block;font-size:18px;margin-bottom:3px;}
 /* v144.6: 首次使用强制命名门——全屏遮罩，不设名字不放行 */
 .name-gate{position:fixed;inset:0;z-index:1250;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;}
 .name-gate.active{display:flex;}
@@ -1100,6 +1105,10 @@ img.photo-fade.loaded{opacity:1;}
 .album-group-title{font-size:12px;font-weight:700;color:var(--primary-dark);margin:12px 0 6px;display:flex;justify-content:space-between;align-items:center;grid-column:1/-1;}
 .album-group-toggle{cursor:pointer;font-size:11px;color:var(--primary);}
 .swipe-hint{font-size:11px;color:var(--text-light);text-align:center;padding:6px 0;}
+/* v144.7: 旅行手记折叠区子标题 */
+.td-section .td-sub{padding:10px 0 2px;border-top:1px dashed var(--border);}
+.td-section .td-sub:first-child{border-top:none;padding-top:2px;}
+.td-section .td-sub h4{margin:0 0 6px;font-size:12px;color:var(--text-sec);font-weight:600;}
 .album-selbar{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--card);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.12);}
 .album-sel-count{font-size:13px;font-weight:700;color:var(--text);}
 .album-sel-actions{display:flex;gap:8px;}
@@ -1252,53 +1261,16 @@ setTimeout(function(){
 
     <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
-    <div class="cta-card" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" data-page-node-id="EHPRDqyAArg19hMzwJnHfr">
-      <div class="cta-text" data-page-node-id="dxwHo5EnsrHnwG51iHWJLF">
-        <div class="cta-title" data-page-node-id="u75F91DL4q8fP0kyWXoeLj">开始规划行程</div>
-        <div class="cta-desc" data-page-node-id="X06JBTQEOxoIKSIGYVIl09">定制你的专属专属旅程</div>
-      </div>
-      <div class="cta-arrow" data-page-node-id="KDsDmgjV5k1hNTOiS13bpw">→</div>
-    </div>
-
-    <!-- quick-grid hidden per user request -->
-    <div class="quick-grid" style="display:none;" data-page-node-id="a5mCPW87NEuHqGkItPBckH">
-      <div class="quick-card" onclick="showPage('trips')" data-page-node-id="NzJyOEJzKNi8st1ManH8DE">
-        <div class="q-icon" data-page-node-id="H8IweDCJ5f8u5AAmCkAqoB">📋</div>
-        <div class="q-name" data-page-node-id="b6h2saRZBvTbA7DRheisyA">行程清单</div>
-        <div class="q-desc" data-page-node-id="KKBVCdHkd0Av50jqLmgJ16">计划你的行程安排</div>
-      </div>
-      <div class="quick-card" onclick="showPage('guides')" data-page-node-id="FXKFDfu8lWjZRedVAhASiu">
-        <div class="q-icon" data-page-node-id="7wjIYNlX7LW39jZDidwrTz">📝</div>
-        <div class="q-name" data-page-node-id="Pzz1sCYeZi0uzeLwddFtdm">备忘记录</div>
-        <div class="q-desc" data-page-node-id="EZEvTlv06hOnxlFKO01wym">重要事项不遗漏</div>
-      </div>
-      <div class="quick-card" onclick="showPage('favorites')" data-page-node-id="BKCGGZkSTFjCAkhG9FyS1A">
-        <div class="q-icon" data-page-node-id="lt2kMuSoiE9HQMILjzUTap">🎒</div>
-        <div class="q-name" data-page-node-id="8HJcK8EoYBZvHjLbtl8sbv">我的收藏</div>
-        <div class="q-desc" data-page-node-id="1zTr8BhW4RkYCICde2bJNP">喜欢的地点收藏</div>
-      </div>
-    </div>
-
-    <div id="joy-card-host" data-page-node-id="XNycscFF948Jay4HlunS5t"></div>
-
-    <!-- v143.5: 工具箱入口（番茄钟 / 速记 / 提醒 / 备份回滚） -->
-    <div class="cta-card tools-cta" onclick="openTools()" style="margin-top:10px;">
-      <div class="cta-text">
-        <div class="cta-title">🛠 工具箱 <span id="tools-remind-badge" class="tools-badge" style="display:none;"></span></div>
-        <div class="cta-desc">番茄钟 · 速记 · 到期提醒 · 备份回滚</div>
-      </div>
-      <div class="cta-arrow">→</div>
+    <!-- v144.7: 快捷入口行 —— 原「开始规划行程」CTA / 工具箱 CTA / quick-grid 三处重复入口收成一行 -->
+    <div class="home-quickrow">
+      <div class="hq" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)"><span>🧩</span>规划行程</div>
+      <div class="hq" onclick="openTools()"><span>🛠️</span>工具箱<span id="tools-remind-badge" class="tools-badge" style="display:none;"></span></div>
+      <div class="hq" onclick="openAlbum()"><span>📷</span>相册</div>
     </div>
 
     <div class="home-section" data-page-node-id="YK2X4xLC3bDJKJ3mn5J2sO">
       <div class="section-head" data-page-node-id="N9fJrXnvCvIBEz2A2mzGQ2"><h2 data-page-node-id="6v0hG27FtUAW7BaxWdEPDC">即将出行</h2><span class="more" onclick="showPage('trips')" data-page-node-id="cBPiRKJ7JSfw1F6YdU4de9">查看全部 →</span></div>
       <div id="home-upcoming" data-page-node-id="nfkjIkzcgOZDVBMLVC4wZ3"></div>
-    </div>
-
-    <!-- v78: explored cities -->
-    <div class="home-section" id="home-cities-section" style="display:none;" data-page-node-id="new5jPEeyXc6A6XjH2EE7Q">
-      <div class="section-head" data-page-node-id="6D96x8Ab3xfFDoV84Ow9Rg"><h2 data-page-node-id="oDIUwhFSoRVK24n5eGmTSB">🌍 去过的地方</h2><span class="more" onclick="openAlbum()" data-page-node-id="jEGXez95mXEMlsMduVHr61">相册 →</span></div>
-      <div class="cities-scroll" id="home-cities" data-page-node-id="UpZEr9qKFgSqJo240lDE4m"></div>
     </div>
 
     <button class="fab" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)" data-page-node-id="0wQ4pfa5mH2M0dvAa1cv72" title="新增行程">＋</button>
@@ -1483,16 +1455,24 @@ setTimeout(function(){
       <button id="td-map-fs" class="map-fs-btn" onclick="openMapFull(currentTripId)" title="全屏查看地图">⤢</button>
     </div>
     <div class="td-section" data-page-node-id="kbZH9QGAGNz7Cpl4eHzFL4">
-      <h3 data-page-node-id="zyvd5rdlbd9IKsE5pWDT2l">📖 攻略笔记</h3>
-      <div id="td-guide" data-page-node-id="tDRaO29oCFvMcrcoVlZuyu"></div>
-    </div>
-    <div class="td-section" data-page-node-id="ei6czuGGdbJhctEC8pF5el">
-      <h3 data-page-node-id="4QW2f6zP3CuMIVnOUHQRSF">✨ 旅行感受</h3>
-      <div id="td-feeling" data-page-node-id="d2Gr0sPRXGgxhqBic2Nujx"></div>
-    </div>
-    <div class="td-section" id="td-summary-section" style="display:none;" data-page-node-id="SyHYCjuEFMwb6ZFvAyN3c3">
-      <h3 data-page-node-id="W3AKxsc8ASpBXh9memQZZR">🧾 旅行总结</h3>
-      <div id="td-summary" data-page-node-id="BQErMyex4KO3tPCPJxPAHm"></div>
+      <div class="td-toolbar" style="cursor:pointer;" onclick="toggleTdNotes()" data-node="td-notes-head">
+        <h3 style="margin:0;" data-page-node-id="zyvd5rdlbd9IKsE5pWDT2l">📔 旅行手记 <span id="td-notes-chev" style="color:var(--text-light);font-size:11px;font-weight:400;">点开 ▸</span></h3>
+      </div>
+      <!-- v144.7: 攻略/感受/总结三区合并为一个默认收起的「旅行手记」，元素 id 原样保留 -->
+      <div id="td-notes-body" style="display:none;">
+        <div class="td-sub">
+          <h4>📖 攻略笔记</h4>
+          <div id="td-guide" data-page-node-id="tDRaO29oCFvMcrcoVlZuyu"></div>
+        </div>
+        <div class="td-sub">
+          <h4>✨ 旅行感受</h4>
+          <div id="td-feeling" data-page-node-id="d2Gr0sPRXGgxhqBic2Nujx"></div>
+        </div>
+        <div class="td-sub" id="td-summary-section" style="display:none;" data-page-node-id="SyHYCjuEFMwb6ZFvAyN3c3">
+          <h4>🧾 旅行总结</h4>
+          <div id="td-summary" data-page-node-id="BQErMyex4KO3tPCPJxPAHm"></div>
+        </div>
+      </div>
     </div>
     <div class="td-section" data-page-node-id="hPZwte5KOw3lWbW3pCW5X4">
       <div class="td-toolbar" data-page-node-id="bCGFEKOrz15UAHoFNIZjsn">
@@ -1501,10 +1481,12 @@ setTimeout(function(){
       <div class="td-photos" id="td-photos" data-page-node-id="XGZi9iUaT14Ujw2Lh1Yvst"></div>
     </div>
     <div class="td-section" data-page-node-id="6nKEHTtKxHZB6Pr0GaS8wO">
-      <h3 data-page-node-id="bWbcso0tIknqJ9IfC1T6je">💰 预算明细</h3>
+      <div class="td-toolbar">
+        <h3 style="margin:0;" data-page-node-id="bWbcso0tIknqJ9IfC1T6je">💰 预算明细</h3>
+        <!-- v144.7: AA 结算入口从独立按钮并入预算区头，少一个散落按钮 -->
+        <span style="color:var(--primary);cursor:pointer;font-size:12px;" onclick="openAASettle(currentTripId)">💰 AA 结算 ›</span>
+      </div>
       <div class="td-budget-summary" id="td-budget" data-page-node-id="kxzu1zyBbyJM7gtuHmStlF"></div>
-      <!-- v143.5: AA 结算入口 -->
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="openAASettle(currentTripId)">💰 AA 结算 / 分账</button>
     </div>
   </section>
 
@@ -1610,10 +1592,7 @@ setTimeout(function(){
       <div class="profile-info" data-page-node-id="MmUePEzx3oZm58SaeSfULG">
         <div class="p-name" id="profile-name" data-page-node-id="ztIwGFgj0JEcGhZj0YoMsb">Iris</div>
         <div class="p-sub" data-page-node-id="mFn8Z9CMXH6EIrOQBmrVEC">热爱旅行 · 记录生活</div>
-        <div class="p-tags" data-page-node-id="MNp7LZS1DZfnz3qBBIB0PW">
-          <span class="p-tag" id="p-tag-cities" data-page-node-id="tp7NAzU9WuGNonaQMSH2aA">🧳 已走过 0 城</span>
-          <span class="p-tag" id="p-tag-photos" data-page-node-id="L1Ukj1iNGFHxBYBYDqV4ue">📷 0 张照片</span>
-        </div>
+        <!-- v144.7: 删掉「已走过 N 城 / N 张照片」标签行 —— 与下方统计条和里程碑卡完全重复 -->
       </div>
     </div>
     <div class="pro-stats" data-page-node-id="rziCZMlD1cWAWU2yf9TVUU">
@@ -2442,7 +2421,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.6';
+var APP_VERSION='v144.7';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -5566,7 +5545,7 @@ function updateWeatherUI(w){
   if(text)text.textContent=w.text;
   // v79: show the city name next to the weather pill
   if(city)city.textContent=w.city?('📍'+w.city):'';
-  try{MOOD_STATE.w=w;renderMoodCover();}catch(e){}
+  try{MOOD_STATE.w=w;renderFocusCards();}catch(e){}
 }
 function loadWeather(city){
   if(!city)return;
@@ -6147,7 +6126,7 @@ function renderHome(){
   document.getElementById('greet-date').innerHTML=fmtDate(n)+' 周'+days[n.getDay()]+' · <b id="home-weather-line">--</b>';
   loadWeather(getActiveWeatherCity());
   // v100: mood cover / countdown / joy all depend on trip phase + time of day
-  try{renderMoodCover();renderCountdownCard();renderJoyCard();}catch(e){console.error('v100 home',e);}
+  try{renderFocusCards();}catch(e){console.error('v100 home',e);}
   // upcoming
   var html='';
   var now=new Date();now.setHours(0,0,0,0);
@@ -7028,7 +7007,7 @@ function swipeDeleteLocation(idx){
         var n=(t&&t.days)?t.days.length:0;
         if(n>1){
           var next=currentTripDay+(dx<0?1:-1);
-          if(next>=0&&next<n)selectTripDay(next);
+          if(next>=0&&next<n){selectTripDay(next);swipeHintAck();}
         }
       }
     },{passive:true});
@@ -7047,10 +7026,47 @@ function switchTrip(dir){
   if(ni>=trips.length)ni=0;
   openTrip(trips[ni].id);
 }
+// v144.7: 「旅行手记」折叠区 —— 攻略/感受/总结默认收起，点头部展开
+function toggleTdNotes(){
+  var body=document.getElementById('td-notes-body');
+  var chev=document.getElementById('td-notes-chev');
+  if(!body)return;
+  var open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(chev)chev.textContent=open?'点开 ▸':'收起 ▴';
+}
+function expandTdNotes(){
+  var body=document.getElementById('td-notes-body');
+  var chev=document.getElementById('td-notes-chev');
+  if(!body)return;
+  body.style.display='block';
+  if(chev)chev.textContent='收起 ▴';
+}
+// v144.7: 滑动提示条不再常驻 —— 用户成功滑动切换 2 次后永久隐藏（新手才需要教）
+function swipeHintAck(){
+  try{
+    var n=parseInt(localStorage.getItem('lattiao_swipe_n')||'0',10)+1;
+    localStorage.setItem('lattiao_swipe_n',String(n));
+    if(n>=2){
+      localStorage.setItem('lattiao_swipe_hint_off','1');
+      var h=document.getElementById('td-swipe-hint');
+      if(h)h.style.display='none';
+    }
+  }catch(e){}
+}
+function swipeHintMaybeHide(){
+  try{
+    if(localStorage.getItem('lattiao_swipe_hint_off')==='1'){
+      var h=document.getElementById('td-swipe-hint');
+      if(h)h.style.display='none';
+    }
+  }catch(e){}
+}
 (function(){
   document.addEventListener('DOMContentLoaded',function(){
     var page=document.getElementById('page-trip-detail');
     if(!page)return;
+    swipeHintMaybeHide();
     var sx=0,sy=0,onPills=false,onNoSwipe=false,moved=false;
     // v143.7: 这些区域有自己的横向手势/滚动（地图平移、横滑列表），绝不能触发切行程
     var NO_SWIPE='#td-map,#td-map-real,#td-map-fallback,.cities-scroll,.photo-grid,.tools-body,.route-svg';
@@ -7071,7 +7087,7 @@ function switchTrip(dir){
       var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
       // v143.7: 用户反馈「太灵敏，一不小心就划到另一个行程」——阈值 60px→110px、
       // 方向优势 1.5x→2.2x。斜着划/短划/滚动带出的横向位移都不再切行程。
-      if(Math.abs(dx)>110&&Math.abs(dx)>Math.abs(dy)*2.2)switchTrip(dx<0?1:-1);
+      if(Math.abs(dx)>110&&Math.abs(dx)>Math.abs(dy)*2.2){switchTrip(dx<0?1:-1);swipeHintAck();}
     },{passive:true});
   });
 })();
@@ -8158,6 +8174,7 @@ function renderTripDetailExtras(){
         sumSec.style.display='none';
       }else if(t.summary&&(t.summary.best||t.summary.revisit||t.summary.perPerson)){
         sumSec.style.display='block';
+        expandTdNotes();
         var sp=t.summary;
         sumEl.innerHTML='<div style="background:var(--summary-grad);border:1px solid var(--border);border-radius:14px;padding:14px;">'+
           '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;">💜 这段旅程的回忆</div>'+
@@ -8177,6 +8194,7 @@ function renderTripDetailExtras(){
           '</div>'+
           '<div style="font-size:10px;color:var(--text-light);margin-top:8px;">保存后会显示在行程详情 + 「我的」页</div>'+
         '</div>';
+        expandTdNotes();   // v144.7: 行程结束弹出问卷时自动展开手记区
       }
     }
   }catch(e){}
@@ -9077,12 +9095,16 @@ function renderProMenu(){
     byGroup[f.group].push({key:k,info:f});
   });
   var html='';
+  // v144.7: 低频分组默认收起（回忆探索），分组标题可点击展开/收起 —— 「我的」页不再一长列到底
+  var DEFAULT_FOLDED={'回忆探索':true};
   FEATURE_GROUPS.forEach(function(g){
     var items=byGroup[g[0]];if(!items||!items.length)return;
     // v124: viewer / guest mode removed — import/export is always available.
+    var folded=DEFAULT_FOLDED[g[0]]?true:false;
     html+='<div class="menu-group">'+
-      '<div class="mg-title">'+g[1]+'</div>'+
-      '<div class="menu-card">';
+      '<div class="mg-title" style="cursor:pointer;" onclick="toggleMenuGroup(this)">'+g[1]+
+      '<span style="float:right;color:var(--text-light);font-size:11px;font-weight:400;">'+(folded?'展开 ▸':'收起 ▴')+'</span></div>'+
+      '<div class="menu-card" style="'+(folded?'display:none;':'')+'">';
     items.forEach(function(it){
       var f=it.info;
       var safeLabel=escapeHTML(f.label);
@@ -9102,6 +9124,15 @@ function renderProMenu(){
     '<div class="menu-row meet-row" onclick="showLove()"><div class="mr-icon" style="background:rgba(255,255,255,.25);">💜</div><div class="mr-label">Leon meets Iris</div><div class="mr-arrow">›</div></div>'+
   '</div></div>';
   host.innerHTML=html;
+}
+// v144.7: 「我的」页菜单分组展开/收起
+function toggleMenuGroup(titleEl){
+  var card=titleEl.nextElementSibling;
+  if(!card)return;
+  var open=card.style.display!=='none';
+  card.style.display=open?'none':'';
+  var tag=titleEl.querySelector('span');
+  if(tag)tag.textContent=open?'展开 ▸':'收起 ▴';
 }
 function openFeatureInfo(key){
   var f=FEATURES[key];
@@ -9245,13 +9276,18 @@ function renderProfile(){
     var jtEl=document.getElementById('pro-joy-timeline');
     if(jtEl){
       var joys=(data.joys||[]).slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
-      if(!joys.length){jtEl.style.display='none';}
-      else{
+      // v144.7: 时间线含记录输入行，空状态也显示（输入行兜底，不再整卡隐藏）
+      {
         var JOY_COLLAPSED_N=5;
         var joyExpanded=!!window._joyExpanded;
         var shown=joyExpanded?joys:joys.slice(0,JOY_COLLAPSED_N);
         jtEl.style.display='block';
-        jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+
+        // v144.7: 小确幸记录入口从首页卡片移到这里（首页瘦身，记录+浏览同一处）
+        var cur=joyToday();
+        var joyRow=cur
+          ?'<div class="joy-row"><input class="joy-input" id="joy-input" value="'+escapeHTML(cur.text)+'" maxlength="120" placeholder="今天最开心的一件小事…"><button class="joy-add" onclick="joyAdd()">改一下</button></div>'
+          :'<div class="joy-row"><input class="joy-input" id="joy-input" maxlength="120" placeholder="今天最开心的一件小事…" onkeydown="if(event.key===\'Enter\')joyAdd();"><button class="joy-add" onclick="joyAdd()">记下</button></div>';
+        jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+joyRow+
           shown.map(function(j){
             var dt=(j.date||'').slice(5).replace('-','.');
             var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
@@ -12040,6 +12076,17 @@ function renderMoodCover(){
     '<div class="mc-body"><div class="mc-t">'+escapeHTML(c.title)+'</div>'+
     '<div class="mc-d">'+escapeHTML(c.desc)+'</div></div></div>';
 }
+// v144.7: 焦点卡互斥 —— 出行倒计时在榜时心情封面让位（首页少堆一张大卡）；
+// 没有倒计时时心情封面照常出现，情绪文案不丢。
+function renderFocusCards(){
+  renderMoodCover();
+  renderCountdownCard();
+  var mc=document.getElementById('mood-cover');
+  var cd=document.getElementById('cd-card-host');
+  if(!mc||!cd)return;
+  var cdHas=cd.innerHTML.trim()!=='';
+  mc.style.display=cdHas?'none':'';
+}
 
 /* ================= v100: countdown card ================= */
 function renderCountdownCard(){
@@ -12136,7 +12183,8 @@ function joyAdd(){
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
   el.value='';
-  renderJoyCard();
+  // v144.7: 小确幸卡并入「我的」页时间线，改完直接刷我的页
+  renderProfile();
   showToast('记下啦 ✨');
 }
 function joyDel(id){
@@ -12145,38 +12193,7 @@ function joyDel(id){
   saveDataLocal();
   if(typeof queueBump==='function')queueBump();
   if(typeof syncPush==='function')syncPush();
-  renderJoyCard();
-}
-function renderJoyCard(){
-  var host=document.getElementById('joy-card-host');
-  if(!host)return;
-  var all=joyAll().slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
-  var cur=joyToday();
-  var h='<div class="joy-card"><div class="joy-head"><div class="jh-t">🌸 今日份小确幸</div>'+
-    '<div class="jh-n">已记 '+all.length+' 条</div></div>';
-  if(cur){
-    h+='<div class="joy-row"><input class="joy-input" id="joy-input" value="'+escapeHTML(cur.text)+'" maxlength="120" placeholder="今天最开心的一件小事…">'+
-       '<button class="joy-add" onclick="joyAdd()">改一下</button></div>';
-  }else{
-    h+='<div class="joy-row"><input class="joy-input" id="joy-input" maxlength="120" placeholder="今天最开心的一件小事…" onkeydown="if(event.key===\'Enter\')joyAdd();">'+
-       '<button class="joy-add" onclick="joyAdd()">记下</button></div>';
-  }
-  if(all.length){
-    h+='<div class="joy-list">';
-    var myId=ghUserId();
-    all.slice(0,30).forEach(function(j){
-      var isMine=(!j.uid)||(j.uid===myId);
-      var author=peerName(j.uid||myId);
-      h+='<div class="joy-item"><div class="ji-d">'+escapeHTML((j.date||'').slice(5).replace('-','.'))+'</div>'+
-         '<div class="ji-x"><div>'+escapeHTML(j.text||'')+'</div>'+
-         '<div class="ji-author">'+escapeHTML(author)+'</div></div>'+
-         (isMine?'<div class="ji-del" onclick="joyDel(\''+escapeHTML(j.id||'')+'\')">✕</div>':'')+
-         '</div>';
-    });
-    h+='</div>';
-  }
-  h+='</div>';
-  host.innerHTML=h;
+  renderProfile();
 }
 // v102: joys now travel in the sync payload. Merge by id: add missing entries,
 // and update existing ones if the remote copy is newer (by ts).
