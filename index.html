@@ -2419,7 +2419,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.9';
+var APP_VERSION='v144.10';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -7135,7 +7135,12 @@ function renderTimeline(){
   if(filterEl){
     if(members.length>1){
       var cnt=function(u){return allLocs.filter(function(l){return locOwnerUid(l)===u;}).length;};
-      filterEl.style.display='';
+      // v144.9: 只显示当天实际有地点的成员 —— 0 个地点的人（如被邀请但还没加
+      // 内容的协作者）不占 chip 位；等 TA 加了地点 chips 自动多一个。
+      members=members.filter(function(u){return cnt(u)>0;});
+      filterEl.style.display=members.length>1?'':'none';
+    }
+    if(members.length>1){
       filterEl.innerHTML='<div class="of-chip'+(locOwnerFilter===''?' active':'')+'" onclick="setLocOwnerFilter(\'\')">全部 '+allLocs.length+'</div>'+
         members.map(function(u){
           return '<div class="of-chip'+(locOwnerFilter===u?' active':'')+'" style="'+(locOwnerFilter===u?'':'')+'" onclick="setLocOwnerFilter(\''+escapeHTML(u)+'\')"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+uidColor(u)+';margin-right:4px;vertical-align:1px;"></span>'+escapeHTML(peerName(u))+' '+cnt(u)+'</div>';
