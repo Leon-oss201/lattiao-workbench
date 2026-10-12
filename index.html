@@ -656,7 +656,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .bs-meta-row .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
 .bs-meta-row b{color:var(--text);font-weight:700;font-size:13px;}
 
-.budget-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 18px;margin-bottom:18px;}
+.budget-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 18px;margin-bottom:14px;}
 .budget-stat{background:var(--card);border-radius:var(--radius-sm);padding:12px;text-align:center;box-shadow:var(--shadow);}
 .budget-stat .bs-icon{font-size:22px;}
 .budget-stat .bs-amt{font-size:16px;font-weight:700;margin-top:4px;}
@@ -677,9 +677,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .budget-trip-head .bth-date{background:var(--primary-light);color:var(--primary-dark);padding:4px 8px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;line-height:1.3;}
 .budget-trip-head .bth-date b{font-size:13px;display:block;}
 .budget-trip-head .bth-title{font-size:14px;font-weight:600;}
-.budget-trip-head .bth-dur{margin-left:auto;font-size:11px;color:var(--text-light);}
+.budget-trip-head .bth-dur{margin-left:auto;font-size:11px;color:var(--text-light);white-space:nowrap;}
+.budget-trip-head .bth-sub{font-size:11px;color:var(--text-light);margin-top:2px;}
+.bd-toggle{font-size:11px;font-weight:600;color:var(--primary-dark);background:var(--primary-light);border-radius:8px;padding:7px 10px;text-align:center;cursor:pointer;margin-bottom:8px;}
+.bd-items{background:var(--card);border-radius:12px;padding:2px 12px;box-shadow:var(--shadow);margin-bottom:10px;}
+.bd-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.bd-item:last-child{border-bottom:none;}
+.bd-item-i{font-size:14px;}
+.bd-item-t{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bd-item-l{font-size:10px;color:var(--text-light);}
+.bd-item-a{font-size:13px;font-weight:700;color:var(--primary-dark);white-space:nowrap;}
 
-.budget-cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 18px;margin-bottom:14px;}
 /* v75: daily spend bar chart */
 .daily-card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px;}
 .daily-card .dc-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;}
@@ -689,10 +697,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .daily-bar.hot{background:linear-gradient(180deg,#FFB27A,#FF8C42);}
 .daily-bar .db-amt{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text-sec);white-space:nowrap;}
 .daily-bar-label{font-size:9px;color:var(--text-light);white-space:nowrap;}
-.budget-cat{background:var(--card);border-radius:14px;padding:14px 6px;text-align:center;box-shadow:var(--shadow);}
-.budget-cat .bc-icon{font-size:24px;}
-.budget-cat .bc-amt{font-size:12px;font-weight:700;margin-top:4px;}
-.budget-cat .bc-lab{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 /* v142: 分类花销柱状图（实际金额占比，区别于按 plan 比例的甜甜圈图） */
 .budget-cat-chart{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
@@ -1496,25 +1500,22 @@ setTimeout(function(){
       <h1 id="budget-hero-title" data-page-node-id="nKH4JFi9T0Ss1bDisAfDVF">杭州行程预算</h1>
       <div class="sub" id="budget-hero-sub" data-page-node-id="29Fi1cDuzcbdUElIcmHI5y">计划每一段美好旅程</div>
     </div>
-    <div style="padding:0 18px 10px;" data-page-node-id="a3SEHcj6mI0QiOAijpceTj">
-      <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()" data-page-node-id="ot2lBxOcVR9UWf3IKQtn8V">
+    <div style="padding:0 18px 10px;display:flex;gap:8px;align-items:center;" data-page-node-id="a3SEHcj6mI0QiOAijpceTj">
+      <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()" style="flex:1;min-width:0;" data-page-node-id="ot2lBxOcVR9UWf3IKQtn8V">
         <span id="budget-filter-label" data-page-node-id="i7T5yyHeh9GiFJQk6AV1mO">📊 全部行程</span>
         <span style="color:var(--primary);" data-page-node-id="f2CVNrT4PierX4dGIxaQqO">▼</span>
       </div>
-      <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;" data-page-node-id="3qwxB0Df7ZllYvlqRkEuWU"></div>
       <!-- v78: fx conversion — fixed rates, no network needed -->
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;" data-page-node-id="R8tZ3SBHz4BA6io2u2Ld2b">
-        <span style="font-size:12px;color:var(--text-sec);" data-page-node-id="jiBUUFTUzrCXyNPoSWoAif">💱 换算</span>
-        <select class="form-select" id="fx-select" onchange="setFxRate(this.value)" style="flex:1;" data-page-node-id="pqWv2scHopLJy1l2FiWXkw">
-          <option value="1" data-page-node-id="ew5hiUtjFf3NlH0LwBDiRD">人民币 ¥</option>
-          <option value="0.14" data-page-node-id="p5bflbDdh9gDJvn4rlsORR">美元 $（1¥≈$0.14）</option>
-          <option value="0.13" data-page-node-id="qtLiLYuHixRFttfNQBEvL9">欧元 €（1¥≈€0.13）</option>
-          <option value="0.05" data-page-node-id="F8nA1oHlFu1RLIXiUQEEiN">日元 ₩（1¥≈¥0.05）</option>
-          <option value="1.09" data-page-node-id="98hAGSoQHQUenZCQc7GUN9">港币 HK$（1¥≈HK$1.09）</option>
-          <option value="0.19" data-page-node-id="DUGDxdD0bNqOfxIBPYbPw2">新币 S$（1¥≈S$0.19）</option>
-        </select>
-      </div>
+      <select class="form-select" id="fx-select" onchange="setFxRate(this.value)" style="flex:1;min-width:0;" aria-label="货币换算" title="货币换算" data-page-node-id="pqWv2scHopLJy1l2FiWXkw">
+        <option value="1" data-page-node-id="ew5hiUtjFf3NlH0LwBDiRD">💱 人民币 ¥</option>
+        <option value="0.14" data-page-node-id="p5bflbDdh9gDJvn4rlsORR">美元 $（1¥≈$0.14）</option>
+        <option value="0.13" data-page-node-id="qtLiLYuHixRFttfNQBEvL9">欧元 €（1¥≈€0.13）</option>
+        <option value="0.05" data-page-node-id="F8nA1oHlFu1RLIXiUQEEiN">日元 ₩（1¥≈¥0.05）</option>
+        <option value="1.09" data-page-node-id="98hAGSoQHQUenZCQc7GUN9">港币 HK$（1¥≈HK$1.09）</option>
+        <option value="0.19" data-page-node-id="DUGDxdD0bNqOfxIBPYbPw2">新币 S$（1¥≈S$0.19）</option>
+      </select>
     </div>
+    <div class="budget-filter-menu" id="budget-filter-menu" style="display:none;margin:0 18px 10px;" data-page-node-id="3qwxB0Df7ZllYvlqRkEuWU"></div>
     <div class="budget-summary" data-page-node-id="A8UZU75a595AIWz4NdISn4">
       <div class="donut" data-page-node-id="u994UcgOoxdXoWHlVgs52r">
         <svg width="120" height="120" viewBox="0 0 120 120" data-page-node-id="99Uo1bHa0gEvMy7FBYVjdj">
@@ -1535,9 +1536,7 @@ setTimeout(function(){
     <div class="budget-stats" data-page-node-id="BSdqZLCZiTrq3LnnQzn4MW">
       <div class="budget-stat" data-page-node-id="QbSzvtlS2KB9EtKrPMTbJE"><div class="bs-icon" data-page-node-id="F6FTnpbLxAfYCbKyJwZbAw">💳</div><div class="bs-amt spent" id="stat-spent" data-page-node-id="FNIB4AM3EscRaYUWI0s9Y1">¥0</div><div class="bs-lab" data-page-node-id="fEbYlZqrN80twp77xDPMfR">已支付</div></div>
       <div class="budget-stat" data-page-node-id="LjgzO4nh7OckTEhbnEam7Y"><div class="bs-icon" data-page-node-id="CmFzoMK60RtrIMq6XQINiB">💰</div><div class="bs-amt left" id="stat-left" data-page-node-id="I2veiGVLQNsQsgM68knSbZ">¥0</div><div class="bs-lab" data-page-node-id="5AG8aYCY8dal8FhGFnEsL5">剩余预算</div></div>
-      <div class="budget-stat" data-page-node-id="An7jmahdqDy1oOjPO20S8e"><div class="bs-icon" data-page-node-id="pW1CxCHFy1RmOI9UZcFJw5">📋</div><div class="bs-amt plan" id="stat-plan" data-page-node-id="BLVdvhgV6Oi4YGppeAhfvN">¥0</div><div class="bs-lab" data-page-node-id="lMN3QXnoWQO8hE21HxSJxx">计划额度</div></div>
     </div>
-    <div class="budget-cat-grid" id="budget-cat-grid" data-page-node-id="M52me2KnA5fcQhksh7WFJD"></div>
     <div class="home-section" style="padding:0 18px 14px;">
       <div class="section-head"><h2>花销占比</h2><span class="sh-sub" id="cat-chart-sub"></span></div>
       <div class="budget-cat-chart" id="budget-cat-chart"></div>
@@ -1551,7 +1550,6 @@ setTimeout(function(){
       <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="exportBudgetCsv()" data-page-node-id="jbQEjv1iJELGoWYngaQidQ">📊 导出 CSV</button>
       <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openYearPoster()" data-page-node-id="baJyUG1ywtMGgblszItffI">🎴 年度账单</button>
     </div>
-    <div class="tip-banner" data-page-node-id="DovFCWaeQDh6IMUGnuZfMp">✨ 合理规划每一笔，让旅行更安心</div>
   </section>
 
   <!-- ====== GUIDES ====== -->
@@ -2421,7 +2419,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.7';
+var APP_VERSION='v144.8';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -8686,8 +8684,7 @@ function renderBudget(){
     ['donut-transport','donut-stay','donut-food','donut-ticket','donut-shop'].forEach(function(id){document.getElementById(id).setAttribute('stroke-dasharray','0 301.6');});
     document.getElementById('stat-spent').textContent='¥0';
     document.getElementById('stat-left').textContent='¥0';
-    document.getElementById('stat-plan').textContent='¥0';
-    document.getElementById('budget-cat-grid').innerHTML='';
+    document.getElementById('budget-daily-chart').innerHTML='';
     renderCatBarChart({},0,function(r){return '¥'+Math.round(r);});
     return;
   }
@@ -8723,7 +8720,6 @@ function renderBudget(){
   document.getElementById('stat-spent').textContent=fmt(paid);
   document.getElementById('stat-left').textContent=fmt(left);
   document.getElementById('stat-left').style.color=over?'var(--danger)':(left<=plan*0.2?'var(--accent)':'var(--primary)');
-  document.getElementById('stat-plan').textContent=fmt(plan);
   // keep the fx select in sync with saved settings
   try{
     var fxSel=document.getElementById('fx-select');
@@ -8735,30 +8731,25 @@ function renderBudget(){
   function set(id,val){var c=document.getElementById(id);var len=plan?(val/plan)*C:0;c.setAttribute('stroke-dasharray',len+' '+C);c.setAttribute('stroke-dashoffset',-cum);cum+=len;}
   document.getElementById('donut-transport').setAttribute('stroke-dasharray','0 '+C);
   set('donut-transport',catTotals.transport);set('donut-stay',catTotals.stay);set('donut-food',catTotals.food);set('donut-ticket',catTotals.ticket);set('donut-shop',catTotals.shop);
-  // meta
-  function pct(val){return plan?Math.round((val/plan)*100):0;}
-  document.getElementById('budget-meta').innerHTML=
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#5BC0DE;"></span>交通</span><b>'+pct(catTotals.transport)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#A78BFA;"></span>住宿</span><b>'+pct(catTotals.stay)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#FF8C42;"></span>餐饮</span><b>'+pct(catTotals.food)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#B07AB8;"></span>购物</span><b>'+pct(catTotals.shop)+'%</b></div>'+
-    '<div class="bs-meta-row"><span><span class="dot" style="background:#F4A940;"></span>门票</span><b>'+pct(catTotals.ticket)+'%</b></div>'+
-    (over?'<div class="bs-meta-row" style="color:var(--danger);"><span>⚠️ 已超支</span><b>¥'+Math.abs(left).toFixed(0)+'</b></div>':'<div class="bs-meta-row" style="color:var(--primary);"><span>✅ 剩余预算</span><b>¥'+left.toFixed(0)+'</b></div>')+
-    // v74: AA — per-person share across all filtered trips
-    '<div class="bs-meta-row" style="border-top:1px dashed var(--border);padding-top:8px;margin-top:2px;"><span>👥 AA 人均</span><b>¥'+aaTotal.toFixed(0)+'</b></div>';
-  // cats
-  var catHtml='';
-  var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
-  ['transport','stay','food','ticket','shop'].forEach(function(c){
-    catHtml+='<div class="budget-cat"><div class="bc-icon">'+icons[c]+'</div><div class="bc-amt">¥'+(catTotals[c]||0).toFixed(0)+'</div><div class="bc-lab">'+({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物'}[c])+'</div></div>';
+  // meta — v144.8: 只保留甜甜圈/统计条/柱状图都没覆盖的信息（AA 人均 + 花销大头摘要 + 超支警示）
+  var CAT_CN={transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'};
+  var CAT_COLOR={transport:'#5BC0DE',stay:'#A78BFA',food:'#FF8C42',ticket:'#B07AB8',shop:'#F4A940',other:'#9CA3AF'};
+  var topCat=null;
+  ['transport','stay','food','ticket','shop','other'].forEach(function(k){
+    if((catTotals[k]||0)>0&&(topCat===null||catTotals[k]>catTotals[topCat]))topCat=k;
   });
-  document.getElementById('budget-cat-grid').innerHTML=catHtml;
+  document.getElementById('budget-meta').innerHTML=
+    // v74: AA — per-person share across all filtered trips
+    '<div class="bs-meta-row"><span>👥 AA 人均</span><b>'+fmt(aaTotal)+'</b></div>'+
+    (topCat?'<div class="bs-meta-row"><span><span class="dot" style="background:'+CAT_COLOR[topCat]+';"></span>花销大头 · '+CAT_CN[topCat]+'</span><b>'+(paid?Math.round(catTotals[topCat]/paid*100):0)+'%</b></div>':'')+
+    (over?'<div class="bs-meta-row" style="color:var(--danger);"><span>⚠️ 已超支</span><b>'+fmt(Math.abs(left))+'</b></div>':'');
   // v142: 分类花销柱状图（按实际花费展示各分类占比，区别于按 plan 比例的甜甜圈图）
   renderCatBarChart(catTotals, paid, fmt);
   // v75: daily spend bar chart
   renderDailyChart(trips);
   // trip list with budget detail
   var html='';
+  var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
   trips.forEach(function(t){
     if(!t.startDate)return;
     var tripTotal=getTripSpent(t);
@@ -8766,16 +8757,15 @@ function renderBudget(){
     var tripLeft=tripPlan-tripTotal;
     var d=parseDateStr(t.startDate);
     var dur=t.endDate?daysBetween(t.startDate,t.endDate)+1:1;
+    var itemsOpen=!!(window._bdOpen&&window._bdOpen[t.id]);
     html+='<div class="budget-trip">'+
       '<div class="budget-trip-head" onclick="openTrip(\''+t.id+'\')" style="cursor:pointer;">'+
         '<div class="bth-date"><b>'+d.getDate()+'</b><div>'+(d.getMonth()+1)+'月</div></div>'+
-        '<div class="bth-title">'+escapeHTML(t.title)+'</div>'+
-        '<div class="bth-dur">'+(tripLeft>=0?'剩余 ¥'+tripLeft.toFixed(0):'<span style="color:var(--danger);">超支 ¥'+Math.abs(tripLeft).toFixed(0)+'</span>')+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
-        '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">可用预算</div><div style="font-size:14px;font-weight:700;color:var(--primary-dark);">¥'+tripPlan.toFixed(0)+'</div></div>'+
-        '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">已花费</div><div style="font-size:14px;font-weight:700;color:var(--accent-fg);">¥'+tripTotal.toFixed(0)+'</div></div>'+
-        '<div style="flex:1;background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:11px;color:var(--text-light);">剩余</div><div style="font-size:14px;font-weight:700;color:'+(tripLeft<0?'var(--danger)':(tripLeft<=tripPlan*0.2?'var(--accent)':'var(--primary)'))+';">¥'+tripLeft.toFixed(0)+'</div></div>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div class="bth-title">'+escapeHTML(t.title)+'</div>'+
+          '<div class="bth-sub">预算 '+fmt(tripPlan)+' · 已花 '+fmt(tripTotal)+'</div>'+
+        '</div>'+
+        '<div class="bth-dur">'+(tripLeft>=0?'剩余 '+fmt(tripLeft):'<span style="color:var(--danger);">超支 '+fmt(Math.abs(tripLeft))+'</span>')+'</div>'+
       '</div>'+
       // v74: AA line per trip
       (function(){
@@ -8797,15 +8787,17 @@ function renderBudget(){
       });
     });
     if(tripItems.length){
-      html+='<div style="background:var(--card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:10px;">';
+      html+='<div class="bd-toggle" id="bd-toggle-'+t.id+'" data-n="'+tripItems.length+'" onclick="toggleBudgetItems(\''+t.id+'\',this)" role="button" tabindex="0" title="展开/收起本行程的花销明细">明细 '+tripItems.length+' 笔 '+(itemsOpen?'▴':'▾')+'</div>'+
+        '<div class="bd-items" id="bd-items-'+t.id+'" style="display:'+(itemsOpen?'block':'none')+';">';
       tripItems.forEach(function(x){
-        html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--border);">'+
-          '<span style="font-size:14px;">'+(icons[x.item.cat]||'📦')+'</span>'+
+        var amtStr=fxOn?fmt(x.item.amt||0):'¥'+(x.item.amt||0).toFixed(2);
+        html+='<div class="bd-item">'+
+          '<span class="bd-item-i">'+(icons[x.item.cat]||'📦')+'</span>'+
           '<div style="flex:1;min-width:0;">'+
-            '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(x.item.note||({transport:'交通',stay:'住宿',food:'餐饮',ticket:'门票',shop:'购物',other:'其他'}[x.item.cat]))+'</div>'+
-            '<div style="font-size:10px;color:var(--text-light);">📍 '+escapeHTML(x.loc.name)+'</div>'+
+            '<div class="bd-item-t">'+escapeHTML(x.item.note||CAT_CN[x.item.cat]||'其他')+'</div>'+
+            '<div class="bd-item-l">📍 '+escapeHTML(x.loc.name)+'</div>'+
           '</div>'+
-          '<div style="font-size:13px;font-weight:700;color:var(--primary-dark);">¥'+(x.item.amt||0).toFixed(2)+'</div>'+
+          '<div class="bd-item-a">'+amtStr+'</div>'+
         '</div>';
       });
       html+='</div>';
@@ -8814,6 +8806,15 @@ function renderBudget(){
   });
   if(!html)html='<div class="empty"><div class="e-icon">💰</div><div class="e-title">还没有预算记录</div></div>';
   document.getElementById('budget-trip-list').innerHTML=html;
+}
+// v144.8: 预算页行程花销明细折叠。展开状态仅存于会话（window._bdOpen），不落盘、不参与同步。
+function toggleBudgetItems(id,btn){
+  if(!window._bdOpen)window._bdOpen={};
+  window._bdOpen[id]=!window._bdOpen[id];
+  var open=window._bdOpen[id];
+  var el=document.getElementById('bd-items-'+id);
+  if(el)el.style.display=open?'block':'none';
+  if(btn)btn.textContent='明细 '+(btn.getAttribute('data-n')||'')+' 笔 '+(open?'▴':'▾');
 }
 // v142: 分类花销柱状图 — 按实际花费展示各分类占比（与按 plan 比例的甜甜圈图互补）。
 // catTotals: {transport,stay,food,ticket,shop,other} 实际金额；paid: 总花费；fmt: 金额格式化函数。
