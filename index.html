@@ -2419,7 +2419,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.8';
+var APP_VERSION='v144.9';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -3925,26 +3925,45 @@ function buildTextPayload(photoChunks){
   // v80: sync the *visible* settings (title, slogan, city, background) so
   // collaborators see the same look. `name` stays per-device (it's identity).
   remoteData.settings={
-    // v124: heroTitle/slogan/city/heroBg/fxRate/fontScale 都是「本机偏好」，
+    // v124: heroTitle/slogan/city/fxRate/fontScale 都是「本机偏好」，
     // 不入云（v80 旧逻辑：6 字段直接覆盖，会让协作端互相冲掉编辑——
     // 典型场景：Leon 改了 heroTitle → Iris 端 push 时用自己的默认值覆盖云端 →
     // Leon 30s 后 pull 看到 Iris 的默认值，「改了等会儿还是变回来」）。
     updatedAt:now
   };
+  // v144.9: heroBg 例外恢复同步 —— 用户实测「Iris 换了背景，Leon 端永远是旧图」，
+  // 根因是 v124 把 heroBg 从 payload 剔除后，settingsFingerprint 虽含 heroBg 会触发
+  // push，但字段本身不入云，等于白推。现单独恢复：只在 heroBgTs>0（本机真的设置
+  // 过）时携带，避免从未设置过的设备把云端他人背景冲成空。合并端按 heroBgTs
+  // newer-wins（见 mergeSettings），不会重演 v124 的互冲问题。
+  if((parseInt(data.settings.heroBgTs,10)||0)>0){
+    remoteData.settings.heroBg=data.settings.heroBg||'';
+    remoteData.settings.heroBgTs=data.settings.heroBgTs;
+  }
   return remoteData;
 }
-// v80: merge display settings from remote. v124: settings no longer carries
-// heroTitle/slogan/city/heroBg/fxRate/fontScale (those are per-device), so
-// the only thing that survives the round-trip now is updatedAt. This stops
-// collaborators from overwriting each other's homepage look with their own
-// defaults.
+// v80: merge display settings from remote. v124: heroTitle/slogan/city/fxRate/
+// fontScale stay per-device. v144.9: heroBg 恢复跨设备合并 —— 按 heroBgTs
+// newer-wins（谁后改谁生效），只合这一个字段，不会重演 v124 的整组互冲。
 function mergeSettings(remoteSettings){
   if(!remoteSettings||typeof remoteSettings!=='object')return;
   data.settings=data.settings||{};
-  // v124: no per-field merge — those keys are excluded from push entirely.
+  var HERO_PRESET=['bg-mint','bg-ocean','bg-minimal','bg-journal','bg-night','bg-cherry'];
+  var rTs=parseInt(remoteSettings.heroBgTs,10)||0;
+  var lTs=parseInt(data.settings.heroBgTs,10)||0;
+  if(rTs>lTs&&remoteSettings.heroBg!==undefined){
+    var v=remoteSettings.heroBg;
+    var ok=(typeof v==='string')&&(v===''||v.indexOf('data:')===0||HERO_PRESET.indexOf(v)>=0);
+    if(ok){
+      if(v)data.settings.heroBg=v;
+      else delete data.settings.heroBg;   // 对端已恢复默认（空串=删除墓碑）
+      data.settings.heroBgTs=rTs;
+    }
+    // 非法值：忽略且不推进本地 ts —— 下次 pull 重试，无副作用
+  }
   // Keep heroBg sanitization in case older cloud payloads still carry it.
   if(data.settings.heroBg&&data.settings.heroBg.indexOf('data:')!==0){
-    var isPreset=['bg-mint','bg-ocean','bg-minimal','bg-journal','bg-night','bg-cherry'].indexOf(data.settings.heroBg)>=0;
+    var isPreset=HERO_PRESET.indexOf(data.settings.heroBg)>=0;
     if(!isPreset)delete data.settings.heroBg;
   }
 }
@@ -5947,6 +5966,8 @@ function setHeroBg(v){
   data.settings=data.settings||{};
   if(!v)delete data.settings.heroBg;
   else data.settings.heroBg=v;
+  // v144.9: 记录改动时间 —— heroBg 恢复跨设备同步（谁后改谁生效）。
+  data.settings.heroBgTs=Date.now();
   saveData();
   applyHeroBg();
 }
@@ -7102,6 +7123,14 @@ function renderTimeline(){
   var allLocs=day.locations||[];
   // v144.5: 归属筛选 —— 多人行程才渲染 chips（单人不打扰）；筛选同时作用于时间线与路线图
   var members=tripMembers(t);
+  // v144.9: 成员补齐 —— 凡给本行程添加过地点的人（loc.owner/createdBy）都进筛选，
+  // 不再依赖 collaborators 是否已并集收敛。用户实测：Iris 的地点都在时间线上，
+  // 但 collaborators 里没有她的 uid → tripMembers 只有 1 人 → chips 整个不渲染。
+  // 语义与需求一致：谁参与过编辑（加过地点），筛选条就多一个人。
+  allLocs.forEach(function(l){
+    var u=locOwnerUid(l);
+    if(u&&members.indexOf(u)<0)members.push(u);
+  });
   var filterEl=document.getElementById('td-owner-filter');
   if(filterEl){
     if(members.length>1){
@@ -9096,14 +9125,16 @@ function renderProMenu(){
     byGroup[f.group].push({key:k,info:f});
   });
   var html='';
-  // v144.7: 低频分组默认收起（回忆探索），分组标题可点击展开/收起 —— 「我的」页不再一长列到底
-  var DEFAULT_FOLDED={'回忆探索':true};
+  // v144.9: 除「个性化」外全部默认收起（用户需求：需要时自己展开）；
+  // 手动展开/收起写 localStorage，重进页面不再被打回默认。
+  var DEFAULT_FOLDED={'数据浏览':true,'回忆探索':true,'导入导出':true};
+  var userFold=menuFoldState();
   FEATURE_GROUPS.forEach(function(g){
     var items=byGroup[g[0]];if(!items||!items.length)return;
     // v124: viewer / guest mode removed — import/export is always available.
-    var folded=DEFAULT_FOLDED[g[0]]?true:false;
+    var folded=userFold[g[0]]!==undefined?!!userFold[g[0]]:(DEFAULT_FOLDED[g[0]]?true:false);
     html+='<div class="menu-group">'+
-      '<div class="mg-title" style="cursor:pointer;" onclick="toggleMenuGroup(this)">'+g[1]+
+      '<div class="mg-title" style="cursor:pointer;" data-g="'+g[0]+'" onclick="toggleMenuGroup(this)">'+g[1]+
       '<span style="float:right;color:var(--text-light);font-size:11px;font-weight:400;">'+(folded?'展开 ▸':'收起 ▴')+'</span></div>'+
       '<div class="menu-card" style="'+(folded?'display:none;':'')+'">';
     items.forEach(function(it){
@@ -9126,7 +9157,11 @@ function renderProMenu(){
   '</div></div>';
   host.innerHTML=html;
 }
-// v144.7: 「我的」页菜单分组展开/收起
+// v144.7: 「我的」页菜单分组展开/收起。v144.9: 状态写 localStorage 持久化。
+var MENU_FOLD_KEY='lattiao_menu_fold';
+function menuFoldState(){
+  try{return JSON.parse(localStorage.getItem(MENU_FOLD_KEY)||'{}')||{};}catch(e){return {};}
+}
 function toggleMenuGroup(titleEl){
   var card=titleEl.nextElementSibling;
   if(!card)return;
@@ -9134,6 +9169,13 @@ function toggleMenuGroup(titleEl){
   card.style.display=open?'none':'';
   var tag=titleEl.querySelector('span');
   if(tag)tag.textContent=open?'展开 ▸':'收起 ▴';
+  var g=titleEl.getAttribute('data-g');
+  if(g){
+    // v144.9: 存档语义 = folded（true=收起）。open 是点击前的展开态，
+    // 点击后的 folded 恰好等于 open（原展开→点后收起，原收起→点后展开）。
+    var st=menuFoldState();st[g]=!!open;
+    try{localStorage.setItem(MENU_FOLD_KEY,JSON.stringify(st));}catch(e){}
+  }
 }
 function openFeatureInfo(key){
   var f=FEATURES[key];
