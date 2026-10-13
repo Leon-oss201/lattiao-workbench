@@ -423,9 +423,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
    (7.3:1 light end, 8.7:1 dark end), and now applies in both modes. */
 
 /* ==== CALENDAR ==== */
-.cal-hero{position:relative;padding:18px 18px 14px;background:var(--hero-grad);overflow:hidden;}
-.cal-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
-.cal-hero .cal-sub{font-size:11px;color:var(--text-sec);margin-top:4px;}
+.cal-hero{position:relative;padding:20px 18px 16px;background:var(--hero-grad);overflow:hidden;}
+.cal-hero h1,.trips-hero h1,.budget-hero h1{font-size:26px;font-weight:700;color:var(--text);letter-spacing:1px;}
+.page-hero-bar{position:absolute;left:0;top:16px;bottom:16px;width:4px;border-radius:0 4px 4px 0;background:linear-gradient(180deg,#7C3AED,#EC4899);}
+.hero-city-pill{display:inline-block;vertical-align:4px;margin-left:8px;background:rgba(255,255,255,.85);color:var(--primary-dark);font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;letter-spacing:0;}
+.hero-sub-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.hero-sub-row .cal-sub,.hero-sub-row .sub{margin-top:0;}
+.hero-stat-pill{margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.85);color:var(--primary-dark);font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap;}
+.cal-hero .cal-sub{font-size:11px;color:var(--text-sec);}
 .cal-hero svg.willow{position:absolute;right:0;top:0;height:100%;width:60px;opacity:.35;}
 
 .cal-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;}
@@ -489,9 +494,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .upcoming-card .uc-meta{font-size:11px;color:var(--text-sec);}
 
 /* ==== TRIPS ==== */
-.trips-hero{padding:18px;background:var(--hero-grad);position:relative;overflow:hidden;}
-.trips-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
-.trips-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
+.trips-hero{padding:20px 18px 16px;background:var(--hero-grad);position:relative;overflow:hidden;}
+.trips-hero .sub{font-size:12px;color:var(--text-sec);}
 .trips-hero svg.deco{position:absolute;right:-20px;bottom:-10px;height:140px;opacity:.4;}
 
 .trips-tabs{display:flex;padding:14px 18px 0;gap:18px;border-bottom:1px solid var(--border);}
@@ -641,9 +645,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .td-budget-summary .bs-row b{color:var(--primary-dark);font-weight:700;}
 
 /* ==== BUDGET ==== */
-.budget-hero{padding:20px 18px;background:var(--hero-grad);position:relative;}
-.budget-hero h1{font-size:24px;font-weight:700;color:var(--text);letter-spacing:2px;font-family:"Songti SC","STSong",serif;}
-.budget-hero .sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
+.budget-hero{padding:20px 18px 16px;background:var(--hero-grad);position:relative;}
+.budget-hero .sub{font-size:12px;color:var(--text-sec);}
 
 .budget-summary{margin:-30px 18px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
 .donut{position:relative;width:120px;height:120px;flex-shrink:0;}
@@ -1348,6 +1351,7 @@ setTimeout(function(){
 <!-- ====== CALENDAR ====== -->
 <section class="page page-calendar" id="page-calendar" data-page-node-id="XNbTsSPlM2yiXyK7KHBKBM">
     <div class="cal-hero" data-page-node-id="lgyPFa6u22lT3kvd3N1b1V">
+      <span class="page-hero-bar"></span>
       <svg class="willow" viewBox="0 0 60 200" preserveAspectRatio="xMidYMid slice" data-page-node-id="bA55B2MhRQflYp5hfOOu1c">
         <g stroke="#7C3AED" stroke-width="1.2" fill="none" opacity=".7" data-page-node-id="FcrvZzxlGoSggCEtK2emff">
           <path d="M30 0 Q26 50 22 100 Q20 150 18 200" data-page-node-id="SQpilBacwfhwutXBjIV38m"/>
@@ -1357,8 +1361,13 @@ setTimeout(function(){
           <path d="M30 70 Q22 90 12 110" data-page-node-id="5EINLuwDHG2e2NHF2D4JiH"/>
         </g>
       </svg>
-      <h1 id="cal-hero-title" data-page-node-id="Ri96LW6vht8fn47pEzKQCB">杭州出行计划</h1>
-      <div class="cal-sub" id="cal-hero-sub" data-page-node-id="fDqEjR2fPc86OpUIIoJZSR">安排你的行程，遇见更美的杭州</div>
+      <div style="position:relative;">
+        <h1 id="cal-hero-title" data-page-node-id="Ri96LW6vht8fn47pEzKQCB">出行计划</h1><span class="hero-city-pill" id="cal-hero-city">上海市</span>
+      </div>
+      <div class="hero-sub-row">
+        <div class="cal-sub" id="cal-hero-sub" data-page-node-id="fDqEjR2fPc86OpUIIoJZSR">安排你的行程，遇见更美的一天</div>
+        <span class="hero-stat-pill" id="cal-hero-stat"></span>
+      </div>
     </div>
     <div class="cal-bar" data-page-node-id="y7eD2mjbF0ouOj0ztlTELY">
       <div class="cal-nav" data-page-node-id="gkK5DdBzcmcoVfBvcFenua">
@@ -1399,9 +1408,15 @@ setTimeout(function(){
   <!-- ====== TRIPS ====== -->
   <section class="page page-trips" id="page-trips" data-page-node-id="HqUHoAEuYJwhIw3KWsihN5">
     <div class="trips-hero" data-page-node-id="YEBeUB0YzCqD7LndwhgHB8">
+      <span class="page-hero-bar"></span>
       <svg class="deco" viewBox="0 0 200 200" data-page-node-id="D2aDaJ2b81c18ZyjcgxlZb"><path d="M10 180 Q50 100 100 130 T190 100" stroke="#7C3AED" stroke-width="2" fill="none" opacity=".5" data-page-node-id="lC7OAszdsNsWfNSLay0yPH"/><polygon points="80,120 95,90 110,120" fill="#A78BFA" opacity=".4" data-page-node-id="fK5i6vdJ6W7k6TClMTI7t6"/><polygon points="120,135 135,105 150,135" fill="#A78BFA" opacity=".3" data-page-node-id="bxxhpEjMN0XHTWxNLHhOfe"/></svg>
-      <h1 id="trips-hero-title" data-page-node-id="j2V9Y9ZkJmLRXkFDoiFMoK">杭州行程规划</h1>
-      <div class="sub" id="trips-hero-sub" data-page-node-id="LiAssnBfz31MCCdiXwplDh">遇见西湖的温柔时光 🍃</div>
+      <div style="position:relative;">
+        <h1 id="trips-hero-title" data-page-node-id="j2V9Y9ZkJmLRXkFDoiFMoK">行程规划</h1><span class="hero-city-pill" id="trips-hero-city">上海市</span>
+      </div>
+      <div class="hero-sub-row" style="position:relative;">
+        <div class="sub" id="trips-hero-sub" data-page-node-id="LiAssnBfz31MCCdiXwplDh">遇见一座城市的温柔时光 🍃</div>
+        <span class="hero-stat-pill" id="trips-hero-stat"></span>
+      </div>
     </div>
     <div class="trips-tabs" data-page-node-id="YVPU3el5vBOwJc9XVEHYLB">
       <div class="active" data-tab="upcoming" onclick="tripsTab(this,'upcoming')" data-page-node-id="lGcdpEzTBA5sFfvnCHPg6R">即将出行</div>
@@ -1497,8 +1512,14 @@ setTimeout(function(){
   <!-- ====== BUDGET ====== -->
   <section class="page page-budget" id="page-budget" data-page-node-id="X3d9ayrbsFLpdOVhgErpbL">
     <div class="budget-hero" data-page-node-id="KplqCgg2yJ4R0EByPzbX8f">
-      <h1 id="budget-hero-title" data-page-node-id="nKH4JFi9T0Ss1bDisAfDVF">杭州行程预算</h1>
-      <div class="sub" id="budget-hero-sub" data-page-node-id="29Fi1cDuzcbdUElIcmHI5y">计划每一段美好旅程</div>
+      <span class="page-hero-bar"></span>
+      <div style="position:relative;">
+        <h1 id="budget-hero-title" data-page-node-id="nKH4JFi9T0Ss1bDisAfDVF">行程预算</h1><span class="hero-city-pill" id="budget-hero-city">上海市</span>
+      </div>
+      <div class="hero-sub-row" style="position:relative;">
+        <div class="sub" id="budget-hero-sub" data-page-node-id="29Fi1cDuzcbdUElIcmHI5y">计划每一段美好旅程</div>
+        <span class="hero-stat-pill" id="budget-hero-stat"></span>
+      </div>
     </div>
     <div style="padding:0 18px 10px;display:flex;gap:8px;align-items:center;" data-page-node-id="a3SEHcj6mI0QiOAijpceTj">
       <div class="budget-filter" id="budget-filter" onclick="toggleBudgetFilter()" style="flex:1;min-width:0;" data-page-node-id="ot2lBxOcVR9UWf3IKQtn8V">
@@ -2419,7 +2440,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.10';
+var APP_VERSION='v144.11';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6222,8 +6243,9 @@ function renderHome(){
 // ============ Calendar ============
 function renderCal(){
   var city=getCityFromHero();
-  document.getElementById('cal-hero-title').textContent=city+'出行计划';
-  document.getElementById('cal-hero-sub').textContent='安排你的行程，遇见更美的'+city;
+  document.getElementById('cal-hero-title').textContent='出行计划';
+  document.getElementById('cal-hero-city').textContent=city;
+  document.getElementById('cal-hero-sub').textContent='安排你的行程，遇见更美的一天';
   var y=calDate.getFullYear(),m=calDate.getMonth();
   document.getElementById('cal-month-label').textContent=y+'年'+(m+1)+'月';
   var first=new Date(y,m,1);
@@ -6259,6 +6281,12 @@ function renderCal(){
       cur.setDate(cur.getDate()+1);
     }
   });
+  // v144.11: 表头数据胶囊 —— 本月出行日数
+  try{
+    var pfx=y+'-'+(m<9?'0':'')+(m+1);
+    var evDays=Object.keys(eventMap).filter(function(k){return k.indexOf(pfx)===0;}).length;
+    document.getElementById('cal-hero-stat').textContent=evDays?('本月 '+evDays+' 个出行日'):'';
+  }catch(e){}
   var html='';
   // v80: build a tripRangeMap for connected start/mid/end styling
   var tripRangeMap={};
@@ -6473,8 +6501,20 @@ function coverPlaceholderInner(t,cls){
 function coverPlaceholderHTML(t){return coverPlaceholderInner(t,'trc-cover-ph');}
 function renderTrips(){
   var city=getCityFromHero();
-  document.getElementById('trips-hero-title').textContent=city+'行程规划';
-  document.getElementById('trips-hero-sub').textContent='遇见'+city+'的温柔时光 🍃';
+  document.getElementById('trips-hero-title').textContent='行程规划';
+  document.getElementById('trips-hero-city').textContent=city;
+  document.getElementById('trips-hero-sub').textContent='遇见一座城市的温柔时光 🍃';
+  // v144.11: 表头数据胶囊 —— 进行中/即将出行（全量口径，不随 tab 变）
+  try{
+    var now0=new Date();now0.setHours(0,0,0,0);
+    var ongoing=0,soon=0;
+    data.trips.forEach(function(t){
+      if(!t.startDate||t.status==='archived')return;
+      var s=parseDateStr(t.startDate),e=t.endDate?parseDateStr(t.endDate):s;
+      if(s<=now0&&now0<=e)ongoing++;else if(s>now0)soon++;
+    });
+    document.getElementById('trips-hero-stat').textContent=(ongoing||soon)?('进行中 '+ongoing+' · 即将 '+soon):'';
+  }catch(e){}
   var list=data.trips;
   var now=new Date();now.setHours(0,0,0,0);
   var show=[];
@@ -8693,8 +8733,11 @@ function fxSymbol(){
 }
 function renderBudget(){
   var city=getCityFromHero();
-  document.getElementById('budget-hero-title').textContent=city+'行程预算';
+  document.getElementById('budget-hero-title').textContent='行程预算';
+  document.getElementById('budget-hero-city').textContent=city;
   document.getElementById('budget-hero-sub').textContent='计划每一段美好旅程';
+  // v144.11: 表头数据胶囊 —— 覆盖行程段数
+  try{document.getElementById('budget-hero-stat').textContent=data.trips.length?(data.trips.length+' 段行程'):'';}catch(e){}
   var all=data.trips;
   // filter menu
   var menuHtml='<div class="budget-filter-item '+(budgetFilterTripId==='all'?'active':'')+'" onclick="setBudgetFilter(\'all\')">📊 全部行程</div>';
@@ -9289,7 +9332,8 @@ function renderProfile(){
     }
   }catch(e){}
   // v103 item 2: relationship milestone — names are DYNAMIC (never hardcoded).
-  // Falls back to the user's own stats when there's no collaborator yet.
+  // v144.11: 口径改为全部行程（与统计条一致），并追加「下一站倒计时」让卡片活起来。
+  // 同伴署名仍取协作行程的 collaborator；无协作行程时退回单人文案。
   try{
     var msEl=document.getElementById('pro-milestone');
     if(msEl){
@@ -9297,7 +9341,7 @@ function renderProfile(){
       var shared=data.trips.filter(function(t){
         return (t.collaborators&&t.collaborators.length>1)||(t.collaborators&&t.collaborators.some(function(c){return c!==ghUserId();}));
       });
-      var baseTrips=shared.length?shared:data.trips;
+      var baseTrips=data.trips;
       var X=baseTrips.length;
       var destMap={};
       baseTrips.forEach(function(t){if(t.destination&&t.destination.trim())destMap[t.destination.trim()]=1;});
@@ -9312,6 +9356,29 @@ function renderProfile(){
       var line=peerN
         ? ('和 '+escapeHTML(peerN)+' 一起走过 '+Y+' 座城市，记录了 '+X+' 段旅程，已经 '+Z+' 天啦 💜')
         : ('你已走过 '+Y+' 座城市，记录了 '+X+' 段旅程，旅行第 '+Z+' 天 ✨');
+      // v144.11: 下一站倒计时 —— 最近的未来行程；没有未来行程就回望最近一段
+      try{
+        var today0=new Date();today0.setHours(0,0,0,0);
+        var upcoming=null,past=null;
+        baseTrips.forEach(function(t){
+          if(!t.startDate||t.status==='archived')return;
+          var s=Date.parse(t.startDate);if(!isFinite(s))return;
+          if(s>=today0){if(!upcoming||s<upcoming.s)upcoming={s:s,t:t};}
+          else{var e=t.endDate?Date.parse(t.endDate):s;if(!past||e>past.e)past={e:e,t:t};}
+        });
+        if(upcoming){
+          var e0=upcoming.t.endDate?Date.parse(upcoming.t.endDate):upcoming.s;
+          var dd=Math.round((upcoming.s-today0)/86400000);
+          if(dd===0){ // 今天出发（含在途中）
+            line+='<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--primary);">🧭 正在路上：'+escapeHTML(upcoming.t.destination||upcoming.t.title)+'，好好享受 ✨</div>';
+          }else{
+            line+='<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--primary);">🧭 下一站：'+escapeHTML(upcoming.t.destination||upcoming.t.title)+(dd===1?' · 明天出发！':' · 还有 '+dd+' 天')+'</div>';
+          }
+        }else if(past){
+          var ago=Math.max(0,Math.round((today0-past.e)/86400000));
+          line+='<div style="margin-top:6px;font-size:12px;color:var(--text-light);">🧭 上次去了'+escapeHTML(past.t.destination||past.t.title)+(ago===0?'，刚回来':(ago===1?'，昨天回来':'，'+ago+' 天前回来'))+'</div>';
+        }
+      }catch(e){}
       msEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">💞 我们的旅行里程碑</div>'+
         '<div style="font-size:13px;line-height:1.7;color:var(--text-sec);">'+line+'</div>';
       msEl.style.display=(X||Y)?'block':'none';
