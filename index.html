@@ -416,8 +416,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pro-highlight .ph-l{font-size:10px;color:var(--text-light);margin-top:2px;}
 
 /* FAB */
-.fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#2A1A0E;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.fab{position:fixed;right:20px;bottom:96px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFA65A,#FF8C42);color:#2A1A0E;border:none;font-size:24px;box-shadow:0 6px 20px rgba(255,140,66,.4);cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;transition:transform .2s,opacity .2s;}
 .fab:active{transform:scale(.92);}
+/* v144.12: FAB 固定在右下角，列表滚到中段时会压住行程卡右上角的「进行中 / 还有 N 天」
+   角标，并抢走该区域的点击（点角标变成新增行程）。滚动时让位，只有回到顶部才重新出现
+   —— 顶部是 hero / 问候卡 / 快捷行，不存在冲突。 */
+.fab.fab-hide{transform:translateY(84px);opacity:0;pointer-events:none;}
 /* v94/v95: a white "＋" on the brand orange is only ~2.1:1. Iris's signature
    orange gradient stays untouched — the glyph is deep espresso instead
    (7.3:1 light end, 8.7:1 dark end), and now applies in both modes. */
@@ -1247,7 +1251,6 @@ setTimeout(function(){
       </div>
     </div>
 
-    <div id="reminder-banner" class="reminder-banner" style="display:none;" data-page-node-id="6A1p2j4nDdZQOEXTUbvFFw"></div>
     <div id="mood-cover" data-page-node-id="AXKeyrRQBJC6fY8bUN7Nep"></div>
 
     <div class="home-greeting" data-page-node-id="IiXnyVQEg10hkYDHBW7fmA">
@@ -1265,6 +1268,10 @@ setTimeout(function(){
         <div class="w-city" id="home-weather-city" style="font-size:10px;color:var(--text-light);margin-left:2px;" data-page-node-id="o1WaOkDlYAUlB9r6tQzOVQ"></div>
       </div>
     </div>
+
+    <!-- v144.12: 提醒横幅移到问候卡之后 —— 问候卡 margin-top:-40px 浮在 hero 上，
+         横幅原先夹在 hero 与问候卡之间，会被浮起的卡片压掉下半截 -->
+    <div id="reminder-banner" class="reminder-banner" style="display:none;" data-page-node-id="6A1p2j4nDdZQOEXTUbvFFw"></div>
 
     <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
@@ -1620,8 +1627,8 @@ setTimeout(function(){
       <div class="pro-stat" data-page-node-id="h93SUOFYSUWWg43U7uJjvN"><div class="ps-v" id="ps-km" data-page-node-id="yslMjFgn16H9TxLS94vpUg">0</div><div class="ps-l" data-page-node-id="WB2GGowjlIpBzvA1YGln3M">公里足迹</div></div>
     </div>
     <div class="pro-highlights" id="pro-highlights" style="display:none;" data-page-node-id="tetEDb5ogqZmX8134uc7Bw">
-      <div class="pro-highlight" data-page-node-id="D4yeg0t5qvEgZZtbJPBJOf"><div class="ph-v" id="ph-farthest" data-page-node-id="SjkIzjyNb5gA0YWpqF5MQ4">—</div><div class="ph-l" data-page-node-id="Scuuf6vtp83hSrWGbvClsG">最远目的地</div></div>
-      <div class="pro-highlight" data-page-node-id="pDmxfcWKwtdpDFP5xVAFLT"><div class="ph-v" id="ph-photoday" data-page-node-id="8j1D7kDk5wsgOtR4CIxQg8">—</div><div class="ph-l" data-page-node-id="SDk2z1yE308nDUcmeNnzUx">照片最多的一天</div></div>
+      <div class="pro-highlight" id="ph-card-far" data-page-node-id="D4yeg0t5qvEgZZtbJPBJOf"><div class="ph-v" id="ph-farthest" data-page-node-id="SjkIzjyNb5gA0YWpqF5MQ4">—</div><div class="ph-l" data-page-node-id="Scuuf6vtp83hSrWGbvClsG">最远目的地</div></div>
+      <div class="pro-highlight" id="ph-card-day" data-page-node-id="pDmxfcWKwtdpDFP5xVAFLT"><div class="ph-v" id="ph-photoday" data-page-node-id="8j1D7kDk5wsgOtR4CIxQg8">—</div><div class="ph-l" data-page-node-id="SDk2z1yE308nDUcmeNnzUx">照片最多的一天</div></div>
     </div>
     <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="ULKeKQtgrC0dLFOpoCNGLx"></div>
     <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="b7PAshuyyR9eCJqEVpwJxN"></div>
@@ -2440,7 +2447,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.11';
+var APP_VERSION='v144.12';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -5442,7 +5449,8 @@ function showPage(name){
   });
   window.scrollTo(0,0);
   // Render specific
-  if(name==='home')renderHome();
+  // v144.12: 回首页时把滚动隐藏的 FAB 复位（见 fabAutoHide / fabReset）
+  if(name==='home'){renderHome();try{fabReset();}catch(e){}}
   if(name==='calendar')renderCal();
   if(name==='trips')renderTrips();
   if(name==='budget')renderBudget();
@@ -8697,7 +8705,11 @@ function renderDailyChart(trips){
       });
     });
   });
-  var days=Object.keys(dayMap).sort();
+  // v144.12: 过滤非法日期键 —— 同步合并/手改数据可能产生倒挂或残缺日期，
+  // 直接 slice(5) 会渲染出 "aN-NaN ¥2816" 这种乱码柱子。
+  var days=Object.keys(dayMap).filter(function(d){
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) && isFinite(dayMap[d]);
+  }).sort();
   if(!days.length){wrap.innerHTML='';return;}
   var max=1;
   days.forEach(function(d){if(dayMap[d]>max)max=dayMap[d];});
@@ -8706,7 +8718,7 @@ function renderDailyChart(trips){
     var amt=dayMap[d];
     var h=Math.max(6,Math.round((amt/max)*88));
     var hot=amt>=max*0.8;
-    html+='<div class="daily-bar-wrap"><div class="daily-bar'+(hot?' hot':'')+'" style="height:'+h+'px;"><span class="db-amt">¥'+Math.round(amt)+'</span></div><div class="daily-bar-label">'+d.slice(5)+'</div></div>';
+    html+='<div class="daily-bar-wrap"><div class="daily-bar'+(hot?' hot':'')+'" style="height:'+h+'px;"><span class="db-amt">¥'+Math.round(amt)+'</span></div><div class="daily-bar-label">'+fmtDateShort(d)+'</div></div>';
   });
   html+='</div></div>';
   wrap.innerHTML=html;
@@ -9309,10 +9321,24 @@ function renderProfile(){
       if(dayPhotos[dt]>bestDayN){bestDayN=dayPhotos[dt];bestDay=dt;}
     });
     var fEl=document.getElementById('ph-farthest');
-    if(fEl)fEl.textContent=farthestDest+' · '+Math.round(farthestKm)+'km';
+    // v144.12: 没填距离时不写「— · 0km」占位（旧逻辑先写死再靠整卡隐藏，DOM 里仍留空值）
+    if(fEl)fEl.textContent=farthestKm>0?(farthestDest+' · '+Math.round(farthestKm)+'km'):'—';
     var dEl=document.getElementById('ph-photoday');
-    if(dEl)dEl.textContent=bestDayN>0?(bestDay.slice(5)+' · '+bestDayN+' 张'):'—';
-    if(hlWrap)hlWrap.style.display=(farthestKm>0||bestDayN>0)?'grid':'none';
+    // v144.12: 用 fmtDateShort 代替 slice(5) —— 非法日期（如同步合并出的倒挂/空值）
+    // 会切出 "aN-NaN" 这种乱码，fmtDateShort 走 sanitizeDateStr 校验后返回 '' 或 MM.DD。
+    var _bd=bestDayN>0?fmtDateShort(bestDay):'';
+    if(dEl)dEl.textContent=bestDayN>0?(_bd?(_bd+' · '):'')+bestDayN+' 张':'—';
+    // v144.12: 两格分别显隐 —— 旧逻辑「任一有值就整卡显示」会在只有照片、没填距离时
+    // 渲染出「最远目的地 — · 0km」这种半空卡。
+    var hasFar=farthestKm>0,hasDay=bestDayN>0;
+    var farCard=document.getElementById('ph-card-far');
+    var dayCard=document.getElementById('ph-card-day');
+    if(farCard)farCard.style.display=hasFar?'':'none';
+    if(dayCard)dayCard.style.display=hasDay?'':'none';
+    if(hlWrap){
+      hlWrap.style.display=(hasFar||hasDay)?'grid':'none';
+      hlWrap.style.gridTemplateColumns=(hasFar&&hasDay)?'1fr 1fr':'1fr';
+    }
   }catch(e){}
   // v75: latest trip summary card
   try{
@@ -9404,7 +9430,7 @@ function renderProfile(){
           :'<div class="joy-row"><input class="joy-input" id="joy-input" maxlength="120" placeholder="今天最开心的一件小事…" onkeydown="if(event.key===\'Enter\')joyAdd();"><button class="joy-add" onclick="joyAdd()">记下</button></div>';
         jtEl.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--primary-dark);margin-bottom:8px;">🌟 小确幸时间线（'+joys.length+'）</div>'+joyRow+
           shown.map(function(j){
-            var dt=(j.date||'').slice(5).replace('-','.');
+            var dt=fmtDateShort(j.date)||'';
             var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
             var tt=_tn?(' · '+escapeHTML(_tn)):'';
             return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
@@ -10904,6 +10930,33 @@ function renderReminderBanner(){
     el.style.display='flex';
   }catch(e){el.style.display='none';}
 }
+/* v144.12: 滚动时 FAB 让位（见 .fab.fab-hide），避免压住行程卡右上角标 / 抢点击。
+   回到顶部（scrollTop<40）才恢复；停在列表中段则保持隐藏。 */
+var _fabTimer=null;
+function fabAutoHide(){
+  var ph=document.getElementById('page-home');
+  var fab=document.querySelector('.fab');
+  if(!ph||!fab||window.__fabBound)return;
+  window.__fabBound=1;
+  // 注意：首页的滚动容器是 window（.page 自身不滚动，scrollTop 恒为 0），
+  // 监听 page-home 的 scroll 事件永远不会触发 —— 必须挂在 window 上。
+  window.addEventListener('scroll',function(){
+    if(!ph.classList.contains('active'))return; // 只在首页生效
+    fab.classList.add('fab-hide');
+    if(_fabTimer)clearTimeout(_fabTimer);
+    _fabTimer=setTimeout(function(){
+      if(window.scrollY<40)fab.classList.remove('fab-hide');
+    },700);
+  },{passive:true});
+}
+// 切回首页时强制恢复：若在列表底部滚动隐藏后切走，scrollY 已是 0，
+// 再切回来 scrollTo(0,0) 不会触发 scroll 事件，FAB 会一直藏着。
+function fabReset(){
+  var fab=document.querySelector('.fab');
+  if(fab)fab.classList.remove('fab-hide');
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fabAutoHide);
+else try{fabAutoHide();}catch(e){}
 // v102: merge remote notifications (union by id, cap at 80)
 // v134: 清空通知需在「我这一端」持久生效——云端仍可能残留旧通知，每次 pull 会
 // 把它们 union 回来导致「清空后又冒出来」。用本地 localStorage 的清空时间戳过滤掉
@@ -12561,7 +12614,7 @@ function generatePolaroid(){
         c.fillStyle=ink;
         c.font='italic 13px Georgia,"Songti SC",serif';
         c.textAlign='center';
-        var label=(picks[i].d||'').slice(5).replace('-','.')+' '+(picks[i].locName||'');
+        var label=(fmtDateShort(picks[i].d)||'')+' '+(picks[i].locName||'');
         if(label.length>16)label=label.slice(0,16)+'…';
         c.fillText(label,cw/2,ch-16);
         c.restore();
