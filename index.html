@@ -2547,7 +2547,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.21';
+var APP_VERSION='v144.22';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -3076,6 +3076,51 @@ function ensurePeerName(){
   var me=data.settings&&data.settings.name?data.settings.name.trim():'';
   if(me)data.peerNames[ghUserId()]=me;
 }
+/* ---- v144.22: 幽灵 uid 清理 ----
+   为什么需要：换设备 / 清 localStorage 会让 ghUserId() 生成新 uid，ensurePeerName()
+   把新 uid 注册进 peerNames；而 mergePeerNames() 只做**并集**（只加不删），旧条目永不回收。
+   结果：实测用户的 peerNames 里 6 个 uid 有 4 个是零引用幽灵 —— 诊断面板「协作人数」
+   显示 6 人（实际 2 人），而且 nameTakenByOther() 会让同名的新成员被误判「重名」。
+   清理规则极其保守：只删「零引用 + 不是本机 uid」的条目，有任何数据关联的一个都不动。
+   自我保护：本机 uid 永不被删（ensurePeerName 也会自动注册回来）。 */
+function referencedUidSet(){
+  var set={};
+  function add(u){ if(typeof u==='string'&&u)set[u]=1; }
+  try{
+    (data.trips||[]).forEach(function(t){
+      if(!t)return;
+      add(t.createdBy);
+      (t.collaborators||[]).forEach(function(c){ add(typeof c==='string'?c:(c&&c.uid)); });
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){ if(l){ add(l.owner); add(l.createdBy); add(l.editedBy); } });
+      });
+    });
+    (data.joys||[]).forEach(function(j){ if(j){ add(j.uid); add(j.by); } });
+    (data.notifs||[]).forEach(function(n){ if(n){ add(n.by); add(n.actor); add(n.uid); } });
+    (data.guides||[]).forEach(function(g){ if(g){ add(g.uid); add(g.by); } });
+    (data.favorites||[]).forEach(function(f){ if(f){ add(f.uid); add(f.by); } });
+  }catch(e){}
+  return set;
+}
+function pruneGhostPeerNames(){
+  try{
+    if(!data.peerNames||typeof data.peerNames!=='object')return 0;
+    var me='';
+    try{ me=ghUserId()||''; }catch(e){}
+    var used=referencedUidSet();
+    if(me)used[me]=1;                      // 本机 uid 永不被清理
+    var ghosts=[];
+    Object.keys(data.peerNames).forEach(function(uid){
+      if(uid===me)return;
+      var nm=data.peerNames[uid];
+      if(!nm||!String(nm).trim()){ghosts.push(uid);return;}   // 空名条目同样是垃圾
+      if(!used[uid])ghosts.push(uid);
+    });
+    if(!ghosts.length)return 0;
+    ghosts.forEach(function(u){ try{delete data.peerNames[u];}catch(e){} });
+    return ghosts.length;
+  }catch(e){return 0;}
+}
 // v144.6: 协作成员名字唯一性——同一协作圈（peerNames 已同步的可见成员）里
 // 不允许两个人用同一个名字，否则署名/归属/分账全部分不清谁是谁。
 function canonicalName(s){return (s||'').trim().toLowerCase();}
@@ -3145,6 +3190,11 @@ function mergePeerNames(remote){
     }
   });
   ensurePeerName(); // re-assert self name (authoritative, may have been edited)
+  // v144.22: 合并完立刻清幽灵 uid —— 幽灵正是「合并进来的」，这里是最准确的清理时机。
+  // 只让 changed=true 让指纹机制感知到内容变化（下次 push 自然把清理结果带回云端），
+  // **不能写 lattiao_pending_push**：pull 合并走 quiet 是 v136 的契约（拉取不该触发回传），
+  // local_dirty_v136_test 守护的就是这条。
+  try{ if(pruneGhostPeerNames()>0)changed=true; }catch(e){}
   return changed;
 }
 // ---- v144.5: 行程归属体系（trip.createdBy/createdAt + loc.owner + 成员色板）----
@@ -13728,6 +13778,16 @@ function init(){
   loadData();
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   ensurePeerName();   // v103: register this device's display name for collaborators
+  // v144.22: 启动时清一次幽灵 uid（换设备/清缓存留下的零引用条目）。
+  // 云端可能还带着它们，本地这份也会被 mergePeerNames 合回来 —— 两端都跑才能真收敛。
+  try{
+    if(pruneGhostPeerNames()>0){
+      // 只落盘，不写 lattiao_pending_push —— 保持「非用户编辑不打脏标记」的语义；
+      // 清理结果会随指纹机制自然同步回云端。
+      saveDataLocalQuiet?saveDataLocalQuiet():null;
+      if(typeof scheduleAggressiveRetry==='function')scheduleAggressiveRetry();
+    }
+  }catch(e){}
   // v144.6: 首次使用（没有显示名字）→ 全屏命名门，起好名字才能继续操作
   if(needsNameGate())showNameGate();
   migrateAllCollaborators(); // v106: string[] collaborators → object[] with role
