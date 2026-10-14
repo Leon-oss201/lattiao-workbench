@@ -1701,7 +1701,7 @@ setTimeout(function(){
     <div class="pro-stats" data-page-node-id="rziCZMlD1cWAWU2yf9TVUU">
       <div class="pro-stat" data-page-node-id="UupaSOAxDrg5Eu5FENswxp"><div class="ps-v" id="ps-trips" data-page-node-id="XaUNGZKUursgsnsHNWIuDI">0</div><div class="ps-l" data-page-node-id="7WFdCldaUhJKcwTUgsRn4D">次旅行</div></div>
       <div class="pro-stat" data-page-node-id="g2dtxbsyAeoul2XOKOrbSw"><div class="ps-v" id="ps-photos" data-page-node-id="7MsQ9zUSez0FNA5VT4mqdV">0</div><div class="ps-l" data-page-node-id="pSOXDnRDdZvGgQN5aQAk2n">张照片</div></div>
-      <div class="pro-stat" data-page-node-id="h93SUOFYSUWWg43U7uJjvN"><div class="ps-v" id="ps-km" data-page-node-id="yslMjFgn16H9TxLS94vpUg">0</div><div class="ps-l" data-page-node-id="WB2GGowjlIpBzvA1YGln3M">公里足迹</div></div>
+      <div class="pro-stat" data-page-node-id="h93SUOFYSUWWg43U7uJjvN"><div class="ps-v" id="ps-km" data-page-node-id="yslMjFgn16H9TxLS94vpUg">0</div><div class="ps-l" data-page-node-id="WB2GGowjlIpBzvA1YGln3M">座城市</div></div>
     </div>
     <div class="pro-highlights" id="pro-highlights" style="display:none;" data-page-node-id="tetEDb5ogqZmX8134uc7Bw">
       <div class="pro-highlight" id="ph-card-far" data-page-node-id="D4yeg0t5qvEgZZtbJPBJOf"><div class="ph-v" id="ph-farthest" data-page-node-id="SjkIzjyNb5gA0YWpqF5MQ4">—</div><div class="ph-l" data-page-node-id="Scuuf6vtp83hSrWGbvClsG">最远目的地</div></div>
@@ -2525,7 +2525,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.15';
+var APP_VERSION='v144.16';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -9722,29 +9722,28 @@ function renderProfile(){
   var verFoot=document.getElementById('app-version-footer');
   if(verFoot)verFoot.textContent=APP_VERSION;
   var photoCount=0;
-  var totalKm=0;
   data.trips.forEach(function(t){
     (t.days||[]).forEach(function(d){
       (d.locations||[]).forEach(function(l){
         // v144.15: 口径与 travelStats/徽章墙对齐 —— 照片是分片懒加载的，
         // 分片还没拉下来时 photos 为空但 _photoCount 已知，不加会出现「0 张照片」和徽章「20/100」打架
         photoCount+=(l.photos&&l.photos.length)||l._photoCount||0;
-        var dn=parseFloat(l.distance);
-        if(!isNaN(dn)&&dn>0)totalKm+=dn;
       });
     });
   });
   var uniqueDest={};
   data.trips.forEach(function(t){if(t.destination)uniqueDest[t.destination]=1;});
   var destCount=Object.keys(uniqueDest).length;
-  if(totalKm===0&&destCount>0)totalKm=destCount*200;
   var citiesEl=document.getElementById('p-tag-cities');
   if(citiesEl)citiesEl.textContent='🧳 已走过 '+destCount+' 城';
   var ptagEl=document.getElementById('p-tag-photos');
   if(ptagEl)ptagEl.textContent='📷 '+photoCount+' 张照片';
   document.getElementById('ps-trips').textContent=data.trips.length;
   document.getElementById('ps-photos').textContent=photoCount;
-  document.getElementById('ps-km').textContent=Math.round(totalKm);
+  // v144.16: 第三格由「公里足迹」改成「座城市」—— 原值在没有真实 distance 时是
+  // 城市数×200 编出来的假里程（4 城 → 800 公里），看着像 GPS 实测其实不是。
+  // 城市数是真数据，也和徽章「十城旅人」口径一致。真实里程改由「最远目的地」格承担（那里用真实 distance）。
+  document.getElementById('ps-km').textContent=destCount;
   // v73: highlights — farthest destination + most-photographed day
   try{
     var hlWrap=document.getElementById('pro-highlights');
