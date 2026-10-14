@@ -2547,7 +2547,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.20';
+var APP_VERSION='v144.21';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -5804,7 +5804,11 @@ function loadTripDayWeather(city,date){
     }
   }catch(e){}
   if(localGeo){
-    return fetch(openMeteoUrl(localGeo[0],localGeo[1]))
+    // ⚠️ 顺序陷阱：FP_CITY 存的是 [经度, 纬度]（如 泉州:[118.58, 24.91]），
+    // 而 Open-Meteo 的 latitude/longitude 是 **纬度在前**。传反会拿到
+    // 「Latitude must be in range of -90 to 90°. Given: 118.58」的 400，
+    // 而且本地回归/测试环境全都测不出来（只在真实联网时炸）—— 由线上巡检抓出。
+    return fetch(openMeteoUrl(localGeo[1],localGeo[0]))
       .then(function(r){return r.json();})
       .then(function(d){ return finishTripDayWeather(d,city,date,timeoutId); })
       .catch(function(e){
