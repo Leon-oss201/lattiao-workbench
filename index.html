@@ -437,6 +437,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pomo-mini .pm-t{font-size:11px;font-weight:800;color:var(--primary-dark);margin-top:2px;letter-spacing:.3px;}
 @media (prefers-reduced-motion:no-preference){.pomo-mini{transition:transform .2s,opacity .2s;}}
 .pomo-mini:active{transform:scale(.92);}
+/* ==== v144.14: 今日回忆 / 双人默契值 / 成就徽章墙 ==== */
+/* 今日回忆卡：左图右文，像一张从相册里掉出来的拍立得 */
+.mem-card{margin:0 16px 12px;background:linear-gradient(135deg,#FFF7FB,#F5F0FF);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow-sm);display:flex;gap:12px;align-items:center;}
+.mem-thumb{width:64px;height:64px;border-radius:12px;flex-shrink:0;background:var(--muted-bg);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;position:relative;}
+.mem-thumb img{width:100%;height:100%;object-fit:cover;}
+.mem-body{flex:1;min-width:0;}
+.mem-k{font-size:11px;font-weight:700;color:var(--primary-dark);margin-bottom:3px;}
+.mem-t{font-size:13px;color:var(--text-sec);line-height:1.5;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.mem-date{font-size:10px;color:var(--text-light);margin-top:4px;}
+/* 默契值卡 */
+.ss-card{background:linear-gradient(135deg,#FFE9F3,#EDE4FF);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.ss-top{display:flex;align-items:center;gap:14px;}
+.ss-ring{width:72px;height:72px;flex-shrink:0;position:relative;}
+.ss-ring svg{transform:rotate(-90deg);}
+.ss-ring .ss-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:var(--primary-dark);line-height:1;}
+.ss-ring .ss-num small{font-size:9px;font-weight:600;color:var(--text-light);}
+.ss-info{flex:1;min-width:0;}
+.ss-k{font-size:12px;font-weight:700;color:var(--primary-dark);}
+.ss-t{font-size:12px;color:var(--text-sec);line-height:1.6;margin-top:4px;}
+.ss-facts{display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(124,58,237,.22);}
+.ss-fact{font-size:11px;color:var(--text-sec);}
+.ss-fact b{color:var(--primary-dark);font-size:13px;}
+/* 徽章墙 */
+.bd-head{display:flex;align-items:center;margin-bottom:10px;}
+.bd-title{font-size:12px;font-weight:700;color:var(--primary-dark);}
+.bd-count{margin-left:auto;font-size:11px;color:var(--text-light);}
+.bd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.bd-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:12px;background:var(--surface);border:1px solid var(--border);text-align:center;}
+.bd-item .bd-ico{font-size:22px;line-height:1;filter:grayscale(1);opacity:.35;}
+.bd-item .bd-nm{font-size:10px;color:var(--text-light);line-height:1.3;}
+.bd-item .bd-pr{font-size:9px;color:var(--text-light);}
+.bd-item.got{background:linear-gradient(135deg,var(--primary-lighter),var(--accent-soft));border-color:var(--primary);}
+.bd-item.got .bd-ico{filter:none;opacity:1;}
+.bd-item.got .bd-nm{color:var(--primary-dark);font-weight:600;}
+.bd-item.got .bd-pr{color:var(--primary);}
 /* v94/v95: a white "＋" on the brand orange is only ~2.1:1. Iris's signature
    orange gradient stays untouched — the glyph is deep espresso instead
    (7.3:1 light end, 8.7:1 dark end), and now applies in both modes. */
@@ -1291,6 +1326,9 @@ setTimeout(function(){
 
     <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
+    <!-- v144.14: 今日回忆 —— 往年今天 / 上次来这里，随手翻出一帧旧时光 -->
+    <div id="home-today-memory" style="display:none;" data-page-node-id="tm01memory001"></div>
+
     <!-- v144.7: 快捷入口行 —— 原「开始规划行程」CTA / 工具箱 CTA / quick-grid 三处重复入口收成一行 -->
     <div class="home-quickrow">
       <div class="hq" onclick="showPage('trips');setTimeout(()=>openTripModal(),100)"><span>🧩</span>规划行程</div>
@@ -1669,6 +1707,9 @@ setTimeout(function(){
     </div>
     <div class="pro-highlight" id="pro-summary" style="display:none;margin:0 16px 12px;background:var(--summary-grad);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="ULKeKQtgrC0dLFOpoCNGLx"></div>
     <div id="pro-milestone" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,var(--primary-light),var(--accent-soft));border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="b7PAshuyyR9eCJqEVpwJxN"></div>
+    <!-- v144.14: 双人默契值 + 成就徽章墙 -->
+    <div id="pro-syncscore" style="display:none;margin:0 16px 12px;" data-page-node-id="ss14414a001"></div>
+    <div id="pro-badges" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="bd14414a001"></div>
     <div id="pro-joy-timeline" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;" data-page-node-id="acw5FADFZczTAF8BtqGMnt"></div>
     <div id="pro-menu" data-page-node-id="05w30KdjUzokWRCOFnrZC4"></div>
     <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)" data-page-node-id="PAns7x1Ptb5bclx2e4T7pP">
@@ -2484,7 +2525,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.13';
+var APP_VERSION='v144.14';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6195,6 +6236,8 @@ function locTypeIcon(type){
 
 function renderHome(){
   var city=getActiveWeatherCity();
+  // v144.14: 今日回忆（往年今天 / 上次来这里）—— 失败不拖垮首页
+  try{renderTodayMemory();}catch(e){console.warn('today memory',e);}
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   // hero-title: user-editable, persist into data.settings.heroTitle (不再跟 city 派生 —
@@ -6283,6 +6326,76 @@ function renderHome(){
       }
     }
   }catch(e){}
+}
+
+/* ==== v144.14: 今日回忆（往年今天 / 上次来这里）====
+   纯本地计算：不发任何请求、不依赖任何 API。优先找「同月同日」的往年记录，
+   找不到就退回「最近一次结束的行程」。照片走已有的懒加载分片，拿不到就只出文字卡。 */
+function pickTodayMemory(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var md=(today.getMonth()+1)+'-'+today.getDate();
+  var yearHit=null;
+  (data.trips||[]).forEach(function(t){
+    if(!t||t.status==='archived')return;
+    (t.days||[]).forEach(function(d){
+      var ds=sanitizeDateStr(d&&d.date||'');
+      if(!ds)return;
+      var dt=parseDateStr(ds); if(!dt)return;
+      if((dt.getMonth()+1)+'-'+dt.getDate()!==md)return;
+      var age=Math.round((today-dt)/86400000);
+      if(age>0&&age<1500&&(!yearHit||age<yearHit.age))yearHit={t:t,day:d,age:age,kind:'year'};
+    });
+  });
+  if(yearHit)return yearHit;
+  // 退化：最近一个已经结束的行程（取最后一天）
+  var cands=[];
+  (data.trips||[]).forEach(function(t){
+    if(!t||t.status==='archived'||!t.endDate)return;
+    var e=parseDateStr(sanitizeDateStr(t.endDate));
+    if(!e||e>=today)return;
+    cands.push({t:t,e:e});
+  });
+  cands.sort(function(a,b){return b.e-a.e;});
+  if(!cands.length)return null;
+  var t2=cands[0].t;
+  var days=t2.days||[];
+  return {t:t2,day:days.length?days[days.length-1]:null,age:Math.round((today-cands[0].e)/86400000),kind:'recent'};
+}
+function renderTodayMemory(){
+  var host=document.getElementById('home-today-memory');
+  if(!host)return;
+  var m=pickTodayMemory();
+  if(!m||!m.t){host.style.display='none';host.innerHTML='';return;}
+  var locs=(m.day&&m.day.locations)||[];
+  var withPhoto=locs.filter(function(l){return (l._photoCount>0)||(l.photos&&l.photos.length);});
+  var pick=withPhoto[0]||locs[0];
+  var whenTxt=m.kind==='year'
+    ? ((m.age>=365?'去年':'今年')+' '+fmtDateShort(m.day&&m.day.date||'')+' 也在这里')
+    : ('上次来这里是 '+m.age+' 天前');
+  var titleTxt=m.kind==='year'
+    ? ('📅 '+whenTxt)
+    : ('🕰️ '+whenTxt);
+  var sub=pick?('「'+escapeHTML(pick.name||'那天的风景')+'」'):('那天留下了 '+locs.length+' 个脚印');
+  var tripName=escapeHTML(m.t.title||'一段旅程');
+  var dstr=(m.day&&m.day.date)?fmtDateShort(m.day.date):'';
+  host.innerHTML='<div class="mem-card" onclick="openTrip(\''+m.t.id+'\');showPage(\'trip-detail\');">'+
+    '<div class="mem-thumb" id="mem-thumb-slot">🖼</div>'+
+    '<div class="mem-body">'+
+      '<div class="mem-k">'+titleTxt+'</div>'+
+      '<div class="mem-t">'+sub+'<br>'+tripName+(dstr?' · '+dstr:'')+'</div>'+
+    '</div></div>';
+  host.style.display='block';
+  // 照片是分片懒加载的：拿到再补图，拿不到就保持 emoji
+  if(pick&&(pick._photoCount>0||(pick.photos&&pick.photos.length))&&typeof ensureLocationPhotos==='function'){
+    try{
+      var slot=document.getElementById('mem-thumb-slot');
+      ensureLocationPhotos(m.t.id,pick).then(function(){
+        if(!slot||!slot.isConnected)return;
+        var src=(pick.photos&&pick.photos[0])||'';
+        if(src)slot.innerHTML='<img src="'+src+'" alt="回忆">';
+      }).catch(function(){});
+    }catch(e){}
+  }
 }
 
 // ============ Calendar ============
@@ -7877,6 +7990,146 @@ function noteQuickDel(id){
   toolsSave(); renderNoteList();
   try{updateRemindBadge();}catch(e){}
 }
+/* ==== v144.14: 双人默契值 + 成就徽章墙 ==== */
+/* 一次扫描把旅行统计全算出来，默契值与徽章共用（避免各扫一遍大数组）。 */
+function travelStats(){
+  var s={trips:0,cities:0,photos:0,locs:0,joys:(data.joys||[]).length,
+         pomo:0,todoDone:0,sharedTrips:0,sharedLocs:0,foodLocs:0,stayLocs:0,
+         earlyLocs:0,nightLocs:0,firstDate:null,days:0,byLoc:{}};
+  var cityMap={};
+  try{
+    var st=toolsState();
+    s.pomo=(st.pomo||[]).length;
+    s.todoDone=(st.notes||[]).filter(function(n){return n.done;}).length;
+  }catch(e){}
+  var self=ghUserId();
+  (data.trips||[]).forEach(function(t){
+    if(!t)return;
+    s.trips++;
+    if(t.destination&&t.destination.trim())cityMap[t.destination.trim()]=1;
+    var peers=(t.collaborators||[]).filter(function(c){return c&&c.uid&&c.uid!==self;});
+    if(peers.length)s.sharedTrips++;
+    if(t.startDate){
+      var sd=parseDateStr(sanitizeDateStr(t.startDate));
+      if(sd&&(!s.firstDate||sd<s.firstDate))s.firstDate=sd;
+    }
+    (t.days||[]).forEach(function(d){
+      (d.locations||[]).forEach(function(l){
+        s.locs++;
+        var pn=(l.photos&&l.photos.length)||l._photoCount||0;
+        s.photos+=pn;
+        if(l.type==='food')s.foodLocs++;
+        if(l.type==='stay')s.stayLocs++;
+        var tm=/^(\d{1,2}):\d{2}$/.exec(l.time||'');
+        // 7 点前算「天没亮就出发」（06:30 属于天刚亮，不是严格日出，别卡太死）
+        if(tm){var hh=+tm[1]; if(hh<7)s.earlyLocs++; if(hh>=20)s.nightLocs++;}
+        // 同行人写的地点 = 共同的痕迹
+        if(l.owner&&l.owner!==self){s.sharedLocs++; s.byLoc[l.owner]=(s.byLoc[l.owner]||0)+1;}
+      });
+    });
+  });
+  s.cities=Object.keys(cityMap).length;
+  s.days=s.firstDate?Math.max(0,Math.floor((Date.now()-s.firstDate)/86400000)+1):0;
+  return s;
+}
+function peerNameSafe(uid){
+  try{
+    if(typeof peerName==='function'){var n=peerName(uid); if(n)return n;}
+  }catch(e){}
+  return '旅伴';
+}
+/* 默契值 0–100：同行行程 + 对方写的地点 + 共同小确幸 + 城市数，各占不同权重 */
+function computeSyncScore(s){
+  var score=Math.min(100,Math.round(
+    s.sharedTrips*12 +                       // 一起出发的次数
+    Math.min(26,s.sharedLocs*1.1) +          // 对方留下的痕迹
+    Math.min(18,s.joys*2) +                  // 心动的次数
+    Math.min(20,s.cities*2.4) +              // 走过的城
+    Math.min(14,(s.photos/40))               // 照片存量
+  ));
+  var tier;
+  if(!s.sharedTrips&&!s.sharedLocs) tier='还没有一起出发过 —— 第一段路，要不要一起走？ 💜';
+  else if(score<20) tier='刚认识，慢慢来，先把第一段路走完 🌱';
+  else if(score<40) tier='已经开始默契了：不用商量就知道去哪儿玩';
+  else if(score<60) tier='走过的路都算数，你们已经是固定的搭子了 ✨';
+  else if(score<80) tier='默契不用说的那种 —— 这就是别人羡慕的旅行搭子';
+  else tier='灵魂级旅行搭子 💞 这默契值，满分都装不下';
+  return {score:score,tier:tier};
+}
+function renderSyncScore(){
+  var host=document.getElementById('pro-syncscore');
+  if(!host)return;
+  var s=travelStats();
+  var r=computeSyncScore(s);
+  var peerId=null;
+  Object.keys(s.byLoc||{}).forEach(function(u){ if(!peerId||s.byLoc[u]>s.byLoc[peerId])peerId=u; });
+  var peer=peerId?peerNameSafe(peerId):'';
+  var R=30,C=2*Math.PI*R;
+  var off=C*(1-r.score/100);
+  host.innerHTML='<div class="ss-card">'+
+    '<div class="ss-top">'+
+      '<div class="ss-ring">'+
+        '<svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">'+
+          '<circle cx="36" cy="36" r="'+R+'" fill="none" stroke="rgba(124,58,237,.16)" stroke-width="8"></circle>'+
+          '<circle cx="36" cy="36" r="'+R+'" fill="none" stroke="#EC4899" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"></circle>'+
+        '</svg>'+
+        '<div class="ss-num">'+r.score+'<small>默契值</small></div>'+
+      '</div>'+
+      '<div class="ss-info">'+
+        '<div class="ss-k">'+(peer?('💞 和 '+escapeHTML(peer)+' 的默契值'):'💞 我们的默契值')+'</div>'+
+        '<div class="ss-t">'+escapeHTML(r.tier)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="ss-facts">'+
+      '<div class="ss-fact">🤝 同行 <b>'+s.sharedTrips+'</b> 段</div>'+
+      '<div class="ss-fact">✍️ 对方记了 <b>'+s.sharedLocs+'</b> 个地点</div>'+
+      '<div class="ss-fact">✨ 小确幸 <b>'+s.joys+'</b> 条</div>'+
+    '</div>'+
+  '</div>';
+  host.style.display='block';
+}
+/* 15 枚徽章：全部纯本地计算，不发请求、不加同步字段（不碰 mergeLocationPair 白名单）。 */
+function badgeList(){
+  return [
+    {n:'🎒',t:'第一段旅程',ok:function(s){return s.trips>=1;},pr:function(s){return s.trips+'/'+1;}},
+    {n:'🗺',t:'五次出发',ok:function(s){return s.trips>=5;},pr:function(s){return s.trips+'/5';}},
+    {n:'🏙',t:'十城旅人',ok:function(s){return s.cities>=10;},pr:function(s){return s.cities+'/10';}},
+    {n:'📷',t:'百张照片',ok:function(s){return s.photos>=100;},pr:function(s){return s.photos+'/100';}},
+    {n:'🎞',t:'三百帧',ok:function(s){return s.photos>=300;},pr:function(s){return s.photos+'/300';}},
+    {n:'✨',t:'小确幸收藏',ok:function(s){return s.joys>=5;},pr:function(s){return s.joys+'/5';}},
+    {n:'💫',t:'心动 20 次',ok:function(s){return s.joys>=20;},pr:function(s){return s.joys+'/20';}},
+    {n:'🍜',t:'干饭人',ok:function(s){return s.foodLocs>=10;},pr:function(s){return s.foodLocs+'/10';}},
+    {n:'🏨',t:'旅行家',ok:function(s){return s.stayLocs>=5;},pr:function(s){return s.stayLocs+'/5';}},
+    {n:'🌅',t:'天没亮就出发',ok:function(s){return s.earlyLocs>=1;},pr:function(s){return s.earlyLocs+'/1';}},
+    {n:'🌙',t:'夜游达人',ok:function(s){return s.nightLocs>=1;},pr:function(s){return s.nightLocs+'/1';}},
+    {n:'✅',t:'说做就做',ok:function(s){return s.todoDone>=10;},pr:function(s){return s.todoDone+'/10';}},
+    {n:'🍅',t:'专注旅行者',ok:function(s){return s.pomo>=10;},pr:function(s){return s.pomo+'/10';}},
+    {n:'💞',t:'有人同行',ok:function(s){return s.sharedTrips>=1;},pr:function(s){return s.sharedTrips+'/1';}},
+    {n:'💜',t:'一年之约',ok:function(s){return s.days>=365;},pr:function(s){return s.days+'/365';}}
+  ];
+}
+function renderBadgeWall(){
+  var host=document.getElementById('pro-badges');
+  if(!host)return;
+  var s=travelStats();
+  var list=badgeList();
+  var got=0;
+  var html=list.map(function(b){
+    var ok=false;
+    try{ok=!!b.ok(s);}catch(e){}
+    if(ok)got++;
+    var pr='';
+    try{pr=ok?'已解锁':b.pr(s);}catch(e){}
+    return '<div class="bd-item'+(ok?' got':'')+'" title="'+escapeHTML(b.t)+'">'+
+      '<div class="bd-ico">'+b.n+'</div>'+
+      '<div class="bd-nm">'+escapeHTML(b.t)+'</div>'+
+      '<div class="bd-pr">'+escapeHTML(pr)+'</div></div>';
+  }).join('');
+  host.innerHTML='<div class="bd-head"><span class="bd-title">🏅 成就徽章</span><span class="bd-count">'+got+' / '+list.length+' 已解锁</span></div>'+
+    '<div class="bd-grid">'+html+'</div>';
+  host.style.display='block';
+}
+
 function renderNoteList(){
   var st=toolsState(), host=document.getElementById('tools-note-list'); if(!host)return;
   var all=st.notes||[];
@@ -9415,6 +9668,9 @@ function closeFeatureInfo(){
 
 function renderProfile(){
   document.getElementById('profile-name').textContent=data.settings.name||'我';
+  // v144.14: 默契值 + 徽章墙（各自 try 包裹，坏一个不影响整页）
+  try{renderSyncScore();}catch(e){console.warn('syncscore',e);}
+  try{renderBadgeWall();}catch(e){console.warn('badges',e);}
   // v105: refresh grouped menu so the badges (e.g. notification count) stay in sync.
   renderProMenu();
   // Show the running app version so the user always knows which build they're on.
