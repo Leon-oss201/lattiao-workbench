@@ -2547,7 +2547,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.19';
+var APP_VERSION='v144.20';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -5755,6 +5755,32 @@ function setTripDayWeatherCache(city,date,w){
     localStorage.setItem('lattiao_trip_weather',JSON.stringify(d));
   }catch(e){}
 }
+// past_days=92 + forecast_days=16 → covers any past or upcoming trip date.
+// Without past_days the API only returns the next ~16 days, so PAST trip days
+// (e.g. "what was the weather on 8.12") fell back to a fake "晴 28°C" reading.
+function openMeteoUrl(lat,lon){
+  return 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+    '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max'+
+    '&current=temperature_2m,wind_speed_10m&timezone=auto&past_days=92&forecast_days=16';
+}
+// v144.19: forecast 解析抽成独立函数，本地 FP_CITY 命中与在线地理编码两条路径共用
+function finishTripDayWeather(d,city,date,timeoutId){
+  clearTimeout(timeoutId);
+  var daily=d.daily||{};
+  var idx=(daily.time||[]).indexOf(date);
+  if(idx<0)throw new Error('date not in forecast');
+  var code=(daily.weathercode||[])[idx];
+  var max=(daily.temperature_2m_max||[])[idx];
+  var min=(daily.temperature_2m_min||[])[idx];
+  var rain=(daily.precipitation_probability_max||[])[idx]||0;
+  var uv=(daily.uv_index_max||[])[idx]||0;
+  var wind=(daily.wind_speed_10m_max||[])[idx]||0;
+  var m=mapWeather(code);
+  var w={date:date,city:city,dayLabel:fmtDateShort(date),text:m.text,icon:m.icon,tempMax:max,tempMin:min,rainProb:rain,uv:uv,wind:wind,loaded:true};
+  setTripDayWeatherCache(city,date,w);
+  updateTripDayWeatherUI(w);
+  return w;
+}
 function loadTripDayWeather(city,date){
   var cached=getTripDayWeatherCache(city,date);
   // Only trust a positive result — a cached failure (loaded:false) must not
@@ -5766,34 +5792,36 @@ function loadTripDayWeather(city,date){
   var timeoutId=setTimeout(function(){
     updateTripDayWeatherUI(climatologyWeather(city,date));
   },8000);
+  // v144.19: 先查本地 FP_CITY 坐标表，再考虑在线地理编码。
+  // Open-Meteo 的 geocoding 对国内非省会城市经常查不到（实测「泉州」查不到 → 抛错 →
+  // 行程卡天气空白 + 控制台报错），而 FP_CITY 里本来就有泉州等 30+ 城市。
+  // 本地表命中 = 零网络延迟、零失败率；查不到才走原来的在线流程。
+  var localGeo=null;
+  try{
+    if(typeof FP_CITY==='object'&&FP_CITY){
+      var _c=String(city||'').trim();
+      localGeo=FP_CITY[_c]||FP_CITY[_c.replace(/市$/,'')]||null;
+    }
+  }catch(e){}
+  if(localGeo){
+    return fetch(openMeteoUrl(localGeo[0],localGeo[1]))
+      .then(function(r){return r.json();})
+      .then(function(d){ return finishTripDayWeather(d,city,date,timeoutId); })
+      .catch(function(e){
+        clearTimeout(timeoutId);
+        console.warn('trip weather(local geo)',e);
+        updateTripDayWeatherUI(climatologyWeather(city,date));
+        return null;
+      });
+  }
   return fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh&format=json')
     .then(function(r){return r.json();})
     .then(function(geo){
       if(!geo.results||!geo.results.length)throw new Error('no geo for '+city);
       var lat=geo.results[0].latitude,lon=geo.results[0].longitude;
-      // past_days=92 + forecast_days=16 → covers any past or upcoming trip date.
-      // Without past_days the API only returns the next ~16 days, so PAST trip days
-      // (e.g. "what was the weather on 8.12") fell back to a fake "晴 28°C" reading.
-      var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max&current=temperature_2m,wind_speed_10m&timezone=auto&past_days=92&forecast_days=16';
-      return fetch(url).then(function(r){return r.json();});
+      return fetch(openMeteoUrl(lat,lon)).then(function(r){return r.json();});
     })
-    .then(function(d){
-      clearTimeout(timeoutId);
-      var daily=d.daily||{};
-      var idx=(daily.time||[]).indexOf(date);
-      if(idx<0)throw new Error('date not in forecast');
-      var code=(daily.weathercode||[])[idx];
-      var max=(daily.temperature_2m_max||[])[idx];
-      var min=(daily.temperature_2m_min||[])[idx];
-      var rain=(daily.precipitation_probability_max||[])[idx]||0;
-      var uv=(daily.uv_index_max||[])[idx]||0;
-      var wind=(daily.wind_speed_10m_max||[])[idx]||0;
-      var m=mapWeather(code);
-      var w={date:date,city:city,dayLabel:fmtDateShort(date),text:m.text,icon:m.icon,tempMax:max,tempMin:min,rainProb:rain,uv:uv,wind:wind,loaded:true};
-      setTripDayWeatherCache(city,date,w);
-      updateTripDayWeatherUI(w);
-      return w;
-    })
+    .then(function(d){ return finishTripDayWeather(d,city,date,timeoutId); })
     .catch(function(e){
       clearTimeout(timeoutId);
       console.error('trip weather',e);
