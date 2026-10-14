@@ -508,10 +508,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   /* v80: trip-range styling — connected pill across multiple days, more eye-
      catching than the old red border. Start day gets ✈️, end day gets 🏠, the
      middle days get a soft gradient. Single-day trips are a solid circle. */
-  .cal-day.trip-start{background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(124,58,237,.3);}
-  .cal-day.trip-mid{background:var(--trip-mid-bg);color:var(--trip-mid-fg);font-weight:600;}
-  .cal-day.trip-end{background:linear-gradient(135deg,#FF8C42,#FFA76B);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(255,140,66,.3);}
-  .cal-day.trip-single{background:linear-gradient(135deg,#7C3AED,#FF8C42);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(124,58,237,.3);}
+/* v80: connected start/mid/end styling.
+   v144.17: 整格底色改为「淡 tint」，主视觉让给日期下方的连续行程条 —— 大面积紫块太重，
+   看不出是「哪一段行程」；淡底 + 连续色带才有「10.2–10.7 是一趟」的连读感。
+   三态色：已结束=淡紫 / 今天在行程里=暖橙 / 未来=紫粉渐变。 */
+.cal-day.trip-start{background:rgba(124,58,237,.13);color:var(--primary-dark);font-weight:600;}
+.cal-day.trip-mid{background:rgba(124,58,237,.08);color:var(--primary-dark);font-weight:600;}
+.cal-day.trip-end{background:rgba(124,58,237,.13);color:var(--primary-dark);font-weight:600;}
+.cal-day.trip-single{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(236,72,153,.16));color:var(--primary-dark);font-weight:600;}
+:root.dark .cal-day.trip-start,:root.dark .cal-day.trip-end{background:rgba(124,58,237,.26);color:#EDE9FE;}
+:root.dark .cal-day.trip-mid{background:rgba(124,58,237,.16);color:#DDD6FE;}
+:root.dark .cal-day.trip-single{background:linear-gradient(135deg,rgba(124,58,237,.32),rgba(236,72,153,.28));color:#F3E8FF;}
+/* 行程条：left/right -2px 盖过 grid 的 4px gap，跨天行程看起来连成一条 */
+.cal-day .cd-trip-bar{position:absolute;left:-2px;right:-2px;bottom:5px;height:3px;border-radius:2px;}
+.cal-day.tstate-done .cd-trip-bar{background:rgba(124,58,237,.3);}
+.cal-day.tstate-future .cd-trip-bar{background:linear-gradient(90deg,#7C3AED,#EC4899);}
+.cal-day.tstate-live .cd-trip-bar{background:linear-gradient(90deg,#FF8C42,#FFB25E);box-shadow:0 0 0 2px rgba(255,140,66,.16);}
+:root.dark .cal-day.tstate-done .cd-trip-bar{background:rgba(167,139,250,.45);}
+:root.dark .cal-day.tstate-future .cd-trip-bar{background:linear-gradient(90deg,#A78BFA,#F472B6);}
+:root.dark .cal-day.tstate-live .cd-trip-bar{background:linear-gradient(90deg,#FF8C42,#FFC48A);}
+/* 今天在行程里：紫底实心格上也要看得见条 */
+.cal-day.today .cd-trip-bar{background:#FFD9B0;box-shadow:0 0 0 2px rgba(255,255,255,.2);}
   .cal-day .cal-trip-icon{font-size:9px;line-height:1;margin-top:1px;}
   .cal-day.trip-start .cal-day-num,.cal-day.trip-end .cal-day-num,.cal-day.trip-single .cal-day-num{font-size:11px;}
   /* v80: cal status banner — the loudest thing on the page */
@@ -2525,7 +2542,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.16';
+var APP_VERSION='v144.17';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6439,49 +6456,47 @@ function renderCal(){
       cur.setDate(cur.getDate()+1);
     }
   });
-  // v144.11: 表头数据胶囊 —— 本月出行日数
-  try{
-    var pfx=y+'-'+(m<9?'0':'')+(m+1);
-    var evDays=Object.keys(eventMap).filter(function(k){return k.indexOf(pfx)===0;}).length;
-    document.getElementById('cal-hero-stat').textContent=evDays?('本月 '+evDays+' 个出行日'):'';
-  }catch(e){}
   var html='';
   // v80: build a tripRangeMap for connected start/mid/end styling
+  // v144.17: ①endDate 缺失时用 startDate 当单日 —— 旧逻辑 `if(!t.startDate||!t.endDate)return;`
+  //   会让「没填结束日期」的行程在日历上彻底消失，用户完全看不到自己有行程（实际踩到的坑）。
+  //   ②倒挂（start>end）按单日处理，避免 while 循环不执行。
+  //   ③记下行程名，供格子 title 提示用。
   var tripRangeMap={};
+  var todayKey=dateKey(new Date());
   data.trips.forEach(function(t){
-    if(!t.startDate||!t.endDate)return;
-    var sd=parseDateStr(t.startDate),ed=parseDateStr(t.endDate);
+    if(!t||!t.startDate)return;
+    var sd=parseDateStr(t.startDate); if(!sd)return;
+    var ed=parseDateStr(t.endDate||'')||sd;
+    if(ed<sd)ed=sd;
     var cur=new Date(sd);
     while(cur<=ed){
       var k=dateKey(cur);
       if(cur.getFullYear()===y && cur.getMonth()===m){
-        if(!tripRangeMap[k])tripRangeMap[k]={count:0,start:false,end:false,mid:false,single:false};
+        if(!tripRangeMap[k])tripRangeMap[k]={count:0,start:false,end:false,mid:false,single:false,titles:[]};
         tripRangeMap[k].count++;
+        var tn=(t.title||'未命名');
+        if(tripRangeMap[k].titles.indexOf(tn)<0)tripRangeMap[k].titles.push(tn);
       }
       cur.setDate(cur.getDate()+1);
     }
   });
   // mark start/mid/end/single
   data.trips.forEach(function(t){
-    if(!t.startDate||!t.endDate)return;
-    var sd=parseDateStr(t.startDate),ed=parseDateStr(t.endDate);
+    if(!t||!t.startDate)return;
+    var sd=parseDateStr(t.startDate); if(!sd)return;
+    var ed=parseDateStr(t.endDate||'')||sd;
+    if(ed<sd)ed=sd;
     var sameDay=dateKey(sd)===dateKey(ed);
     var sk=dateKey(sd),ek=dateKey(ed);
-    if(tripRangeMap[sk]&&sk.slice(0,4)==y&&parseInt(sk.slice(5,7),10)-1===m){
-      if(sameDay)tripRangeMap[sk].single=true;
-      else tripRangeMap[sk].start=true;
-    }
-    if(tripRangeMap[ek]&&ek.slice(0,4)==y&&parseInt(ek.slice(5,7),10)-1===m){
-      if(!sameDay)tripRangeMap[ek].end=true;
-    }
+    if(tripRangeMap[sk]){ if(sameDay)tripRangeMap[sk].single=true; else tripRangeMap[sk].start=true; }
+    if(!sameDay&&tripRangeMap[ek])tripRangeMap[ek].end=true;
     // mark mid days
     if(!sameDay){
       var cur=new Date(sd);cur.setDate(cur.getDate()+1);
       while(cur<ed){
         var mk=dateKey(cur);
-        if(tripRangeMap[mk]&&mk.slice(0,4)==y&&parseInt(mk.slice(5,7),10)-1===m){
-          tripRangeMap[mk].mid=true;
-        }
+        if(tripRangeMap[mk])tripRangeMap[mk].mid=true;
         cur.setDate(cur.getDate()+1);
       }
     }
@@ -6491,26 +6506,43 @@ function renderCal(){
     html+='<div class="cal-day muted"><div class="cal-day-num">'+pm.getDate()+'</div></div>';
   }
   for(var d=1;d<=last.getDate();d++){
-    var key=y+'-'+(m+1)+'-'+d;
+    // v144.17: 这里原来写的是 `y+'-'+(m+1)+'-'+d`（月/日都不补零），
+    // 而 tripRangeMap / eventMap 的 key 都来自 dateKey()（YYYY-MM-DD 补零），
+    // 于是「1–9 号」永远查不到行程标记与地点小点 —— 表现为月初那几���一片空白。
+    var key=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var ev=eventMap[key];
     var isToday=isCurMonth && today.getDate()===d;
     var range=tripRangeMap[key];
     var rangeCls=range?((range.single?' trip-single':'')+(range.start?' trip-start':'')+(range.end?' trip-end':'')+(range.mid?' trip-mid':'')):'';
-    var tripIcon=range&&range.start?'<div class="cal-trip-icon">✈️</div>':(range&&range.end?'<div class="cal-trip-icon">🏠</div>':(range&&range.mid?'<div class="cal-trip-icon">•</div>':''));
+    // v144.17: 三态行程标记（按天判断）——已结束的行程也要看得见，只是不抢眼。
+    // done=过去的行程日 / live=今天就在行程里 / future=还没出发的日子
+    var hasTrip=!!range;
+    var state=hasTrip?((key<todayKey)?'done':(key===todayKey?'live':'future')):'';
+    var tripIcon=range&&range.single?'<div class="cal-trip-icon">🎯</div>':(range&&range.start?'<div class="cal-trip-icon">✈️</div>':(range&&range.end?'<div class="cal-trip-icon">🏠</div>':(range&&range.mid?'<div class="cal-trip-icon">•</div>':'')));
+    var tripTitle=range?(range.titles.join(' / ')+(range.count>1?('（'+range.count+' 段行程）'):'')):'';
     var dots='';
     if(ev){
       if(ev.attraction)dots+='<span class="cal-dot attraction"></span>';
       if(ev.food)dots+='<span class="cal-dot food"></span>';
       if(ev.transport)dots+='<span class="cal-dot transport"></span>';
     }
-    html+='<div class="cal-day'+(isToday?' today':'')+rangeCls+'" onclick="calDayClick('+y+','+(m+1)+','+d+')" data-trip="'+(range?escapeHTML((data.trips.find(function(tr){return tr.startDate&&dateKey(parseDateStr(tr.startDate))<=key&&dateKey(parseDateStr(tr.endDate||tr.startDate))>=key;})||{}).title||''):'')+'">'+
+    html+='<div class="cal-day'+(isToday?' today':'')+(hasTrip?' has-trip':'')+(state?' tstate-'+state:'')+rangeCls+'" onclick="calDayClick('+y+','+(m+1)+','+d+')" title="'+escapeHTML(tripTitle||'')+'">'+
       '<div class="cal-day-num">'+d+'</div>'+
       tripIcon+
-      (dots?'<div class="cal-dots">'+dots+'</div>':'')+'</div>';
+      (dots?'<div class="cal-dots">'+dots+'</div>':'')+
+      (hasTrip?'<div class="cd-trip-bar"></div>':'')+'</div>';
   }
   var rem=7-((startDay+last.getDate())%7);
   if(rem<7)for(var i=0;i<rem;i++){var nx=new Date(y,m+1,i+1);html+='<div class="cal-day muted"><div class="cal-day-num">'+nx.getDate()+'</div></div>';}
   document.getElementById('cal-grid').innerHTML=html;
+  // v144.17: 表头胶囊改口径 —— 原来数 eventMap（只算「有地点的日子」，没填地点的行程会漏），
+  // 现在数 tripRangeMap（本月有行程的天数），与下面的行程条完全一致。
+  // 必须放在 map 构建 + 渲染之后，否则读到的是还没填充的空表。
+  try{
+    var calTripDays=Object.keys(tripRangeMap||{}).length;
+    var statEl=document.getElementById('cal-hero-stat');
+    if(statEl)statEl.textContent=calTripDays?('本月 '+calTripDays+' 天有行程'):'';
+  }catch(e){}
   // v80: status banner — current trip / next-up trip (most visible thing)
   renderCalStatus();
   // render locations list
