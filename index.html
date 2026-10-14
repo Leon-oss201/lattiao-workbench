@@ -422,6 +422,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
    角标，并抢走该区域的点击（点角标变成新增行程）。滚动时让位，只有回到顶部才重新出现
    —— 顶部是 hero / 问候卡 / 快捷行，不存在冲突。 */
 .fab.fab-hide{transform:translateY(84px);opacity:0;pointer-events:none;}
+/* ==== v144.13: 速记升级待办 + 番茄钟全局挂件 ==== */
+.nt-seg{flex:0 0 auto;padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text-sec);cursor:pointer;}
+.nt-seg.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.tools-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;}
+.tools-input:focus{outline:none;border-color:var(--primary);}
+.tn-mini{color:var(--primary);cursor:pointer;font-weight:600;}
+.tools-note.done .tn-text{text-decoration:line-through;color:var(--text-light);opacity:.7;}
+.tools-note.overdue{border-left:3px solid var(--danger,#DC2626);}
+/* 迷你挂件：bottom 162px 正好避开首页 FAB（bottom:96 + 高度 54） */
+.pomo-mini{position:fixed;right:20px;bottom:162px;width:48px;height:48px;border-radius:50%;background:var(--card);border:2px solid var(--primary);box-shadow:var(--shadow);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:98;cursor:pointer;line-height:1;user-select:none;}
+.pomo-mini.on{display:flex;}
+.pomo-mini .pm-i{font-size:13px;}
+.pomo-mini .pm-t{font-size:11px;font-weight:800;color:var(--primary-dark);margin-top:2px;letter-spacing:.3px;}
+@media (prefers-reduced-motion:no-preference){.pomo-mini{transition:transform .2s,opacity .2s;}}
+.pomo-mini:active{transform:scale(.92);}
 /* v94/v95: a white "＋" on the brand orange is only ~2.1:1. Iris's signature
    orange gradient stays untouched — the glyph is deep espresso instead
    (7.3:1 light end, 8.7:1 dark end), and now applies in both modes. */
@@ -481,12 +496,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .cal-dot.food{background:#FF8C42;}
 .cal-dot.transport{background:#5BC0DE;}
 
-.cal-legend{background:var(--card);margin:18px;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);}
-.cal-legend-title{font-size:12px;color:var(--text-sec);margin-bottom:10px;text-align:center;}
-.cal-legend-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
-.cal-legend-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--text-sec);cursor:pointer;padding:6px;border-radius:10px;transition:background .15s;}
+/* v144.13: 图例改紧凑横排 chips —— 原来 8 项竖排占 180px，日历页因此被顶到近 2 屏 */
+.cal-legend{background:var(--card);margin:12px 18px;border-radius:var(--radius);padding:10px 12px;box-shadow:var(--shadow);}
+.cal-legend-title{font-size:11px;color:var(--text-light);margin-bottom:6px;text-align:center;}
+.cal-legend-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.cal-legend-item{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--text-sec);cursor:pointer;padding:5px 2px;border-radius:8px;transition:background .15s;}
 .cal-legend-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
-.cal-legend-item .cli{font-size:18px;}
+.cal-legend-item .cli{font-size:13px;}
 
 .cal-upcoming{padding:0 18px 18px;}
 .upcoming-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;}
@@ -1320,19 +1336,40 @@ setTimeout(function(){
     </div>
 
     <div id="tools-body-note" class="tools-body" style="display:none;">
-      <textarea class="form-textarea" id="tools-note-input" placeholder="想到什么随手记一句…（自动同步到所有设备）"></textarea>
-      <div class="tools-btnrow" style="margin-top:8px;">
-        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="noteQuickSave()">保存速记</button>
+      <!-- v144.13: 速记升级为「速记 / 待办」双模 —— 填了截止日的待办会进提醒中心与首页横幅 -->
+      <div class="tools-btnrow" style="margin-bottom:8px;">
+        <div class="nt-seg active" id="note-mode-quick" onclick="setNoteMode('quick')">✍️ 速记</div>
+        <div class="nt-seg" id="note-mode-todo" onclick="setNoteMode('todo')">📌 待办</div>
+        <span class="tools-dim" id="note-rate" style="margin-left:auto;align-self:center;"></span>
       </div>
-      <div id="tools-note-list" style="margin-top:10px;"></div>
+      <textarea class="form-textarea" id="tools-note-input" placeholder="想到什么随手记一句…（自动同步到所有设备）"></textarea>
+      <div id="note-todo-extra" style="display:none;">
+        <div class="tools-btnrow" style="margin-top:8px;">
+          <input type="date" class="tools-input" id="note-due-date" style="flex:1;" aria-label="待办截止日" />
+          <select class="form-select tools-input" id="note-pri" style="flex:0 0 auto;" aria-label="优先级">
+            <option value="low">普通</option><option value="mid" selected>重要</option><option value="high">紧急</option>
+          </select>
+        </div>
+        <div class="tools-dim" style="margin-top:6px;">填了截止日才会进提醒中心 / 首页横幅；只填文字 = 普通速记。</div>
+      </div>
+      <div class="tools-btnrow" style="margin-top:8px;">
+        <button class="btn btn-primary btn-sm" id="note-save-btn" style="flex:1;" onclick="noteQuickSave()">保存速记</button>
+      </div>
+      <input type="search" class="tools-input" id="tools-note-search" style="margin-top:10px;width:100%;" placeholder="🔍 搜索速记 / 待办…" oninput="renderNoteList()" aria-label="搜索速记" />
+      <div id="tools-note-list" style="margin-top:8px;"></div>
     </div>
 
     <div id="tools-body-remind" class="tools-body" style="display:none;">
-      <div class="tools-dim" style="margin-bottom:8px;">到期强提醒（当天/明天出行会周期性提醒）：</div>
+      <div class="tools-dim" style="margin-bottom:8px;">到期强提醒（当天/明天出行、临期待办会周期性提醒）：</div>
       <div class="tools-btnrow">
         <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="toggleStrongRemind()">切换强提醒开关</button>
         <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="strongRemindTick(true)">立即测试提醒</button>
       </div>
+      <!-- v144.13: 订阅式提醒 —— 导出含 VALARM 的 .ics 导入系统日历，App 不开也能响 -->
+      <div class="tools-btnrow" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="exportCalendarICS()">📅 导出提醒日历（.ics）</button>
+      </div>
+      <div class="tools-dim" style="margin-top:6px;">导入系统日历后，出行/签证/待办的提醒由系统接管 —— <b>即使不打开 App 也会弹</b>。数据变了重新导出一次即可。</div>
       <div id="tools-remind-list" style="margin-top:10px;"></div>
     </div>
 
@@ -1390,7 +1427,7 @@ setTimeout(function(){
          on the calendar ("here's what you're doing or about to do"). -->
     <div id="cal-status" style="display:none;" data-page-node-id="SbUCPm1qNU5fADOGrWP25g"></div>
     <div class="cal-legend" data-page-node-id="nPSriPAAdTiHQ70Zy2Jydg">
-      <div class="cal-legend-title" data-page-node-id="yohXm6UY54tBSd7i0B6Vf5">— 行程标注（点击筛选）—</div>
+      <div class="cal-legend-title" data-page-node-id="yohXm6UY54tBSd7i0B6Vf5">点击图例筛选下方地点</div>
       <div class="cal-legend-grid" data-page-node-id="YgGvFwYo2CicqyfBmoYIt8">
         <div class="cal-legend-item" data-type="attraction" onclick="setCalFilter('attraction')" data-page-node-id="NfBFUC9PZLkKnueTEQ4Zdi"><div class="cli" data-page-node-id="wqNBDNlAjHIm14bsX0izNk">🏞</div>景点</div>
         <div class="cal-legend-item" data-type="food" onclick="setCalFilter('food')" data-page-node-id="uqahppg2eLYbTMIuuVO1Zp"><div class="cli" data-page-node-id="8fZDC2sfSefbRtbxVgdqDv">🍜</div>美食</div>
@@ -2447,7 +2484,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.12';
+var APP_VERSION='v144.13';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6431,15 +6468,22 @@ function renderCalLocationList(monthLocs){
       '<div class="uc-body">';
     items.forEach(function(x){
       var l=x.loc;
-      html+='<div style="padding:6px 0;border-bottom:1px dashed var(--border);" onclick="openTrip(\''+x.tripId+'\');selectTripDay('+x.dayIndex+');">'+
-        '<div style="display:flex;align-items:center;gap:8px;">'+
+      // v144.13: 详情默认收起（原来攻略/感受/照片/预算全铺开，一个月地点就把日历页撑到近 2 屏）。
+      // 点「展开 ▾」才铺开；点行本身仍是去行程对应天。
+      var key=x.tripId+'|'+x.dayIndex+'|'+(l.id||'');
+      var isOpen=!!(window._calLocOpen&&window._calLocOpen[key]);
+      var hasDetail=!!(l.guide||l.feeling||(l.photos&&l.photos.length)||l._photoCount||(l.budget&&l.budget.items&&l.budget.items.length));
+      var phN=l._photoCount||(l.photos&&l.photos.length)||0;
+      html+='<div style="padding:6px 0;border-bottom:1px dashed var(--border);">'+
+        '<div style="display:flex;align-items:center;gap:8px;" onclick="openTrip(\''+x.tripId+'\');selectTripDay('+x.dayIndex+');">'+
           '<span style="font-size:16px;">'+(typeIcon[l.type]||'📍')+'</span>'+
-          '<div style="flex:1;">'+
-            '<div style="font-size:14px;font-weight:600;">'+escapeHTML(l.name||'未命名')+'</div>'+
-            '<div style="font-size:11px;color:var(--text-sec);">'+(l.time||'')+' · '+escapeHTML(x.tripTitle)+' · '+(l._photoCount||(l.photos&&l.photos.length)?'📷 '+(l._photoCount||l.photos.length):'')+'</div>'+
+          '<div style="flex:1;min-width:0;">'+
+            '<div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(l.name||'未命名')+'</div>'+
+            '<div style="font-size:11px;color:var(--text-sec);">'+escapeHTML(l.time||'')+' · '+escapeHTML(x.tripTitle)+(phN?' · 📷 '+phN:'')+'</div>'+
           '</div>'+
+          (hasDetail?'<span class="tn-mini" style="flex-shrink:0;" onclick="event.stopPropagation();toggleCalLocDetail(\''+key+'\');">'+(isOpen?'收起 ▴':'展开 ▾')+'</span>':'')+
         '</div>'+
-        renderCalLocationDetails(l)+
+        (isOpen?renderCalLocationDetails(l):'')+
       '</div>';
     });
     html+='</div></div>';
@@ -6480,6 +6524,13 @@ function renderCalLocationDetails(l){
   return html;
 }
 function calShift(d){calDate.setMonth(calDate.getMonth()+d);renderCal();}
+// v144.13: 日历「本月地点」详情的展开状态（会话级，不落盘不参与同步）。
+// 注意 key 里带 tripId/dayIndex/loc.id，同名地点也不会串台。
+function toggleCalLocDetail(key){
+  window._calLocOpen=window._calLocOpen||{};
+  window._calLocOpen[key]=!window._calLocOpen[key];
+  renderCal();
+}
 function calToday(){calDate=new Date();renderCal();}
 function calDayClick(y,m,d){calDate=new Date(y,m-1,d);renderCal();}
 
@@ -7738,6 +7789,17 @@ function renderPomoDisplay(){
   el.textContent=pomoFmt(POMO.left>0?POMO.left:POMO.total);
   var st=document.getElementById('pomo-state'); if(st)st.textContent=POMO.running?(POMO.mode==='focus'?'专注中…':'休息中…'):'已暂停';
   document.title=POMO.running?('('+pomoFmt(POMO.left)+') 薄荷旅行手账'):'薄荷旅行手账';
+  // v144.13: 同步全局迷你挂件 —— 关掉弹窗/切页后仍能看到剩余时间
+  var mini=document.getElementById('pomo-mini');
+  if(mini){
+    mini.classList.toggle('on',!!POMO.running);
+    if(POMO.running){
+      var ic=document.getElementById('pomo-mini-ico'),mt=document.getElementById('pomo-mini-time');
+      if(ic)ic.textContent=(POMO.mode==='focus')?'🍅':'🌿';
+      if(mt)mt.textContent=pomoFmt(POMO.left);
+      mini.setAttribute('title','番茄钟剩余 '+pomoFmt(POMO.left)+'（点击回到工具箱）');
+    }
+  }
 }
 function renderPomoHistory(){
   var st=toolsState(), host=document.getElementById('pomo-history'); if(!host)return;
@@ -7759,32 +7821,100 @@ function notifyDesktop(title,body){
   }catch(e){}
 }
 
-/* --- 速记 --- */
+/* --- 速记（v144.13: 双模 —— 普通速记 / 带截止日的待办）--- */
+var NOTE_MODE='quick';
+function setNoteMode(m){
+  NOTE_MODE=(m==='todo')?'todo':'quick';
+  var q=document.getElementById('note-mode-quick'),t=document.getElementById('note-mode-todo');
+  if(q)q.classList.toggle('active',NOTE_MODE==='quick');
+  if(t)t.classList.toggle('active',NOTE_MODE==='todo');
+  var ex=document.getElementById('note-todo-extra');
+  if(ex)ex.style.display=NOTE_MODE==='todo'?'block':'none';
+  var inp=document.getElementById('tools-note-input');
+  if(inp)inp.placeholder=(NOTE_MODE==='todo')?'要做的一件事…（填截止日才会提醒）':'想到什么随手记一句…（自动同步到所有设备）';
+  var btn=document.getElementById('note-save-btn');
+  if(btn)btn.textContent=(NOTE_MODE==='todo')?'添加待办':'保存速记';
+}
 function noteQuickSave(){
   var el=document.getElementById('tools-note-input'); if(!el)return;
   var txt=(el.value||'').trim();
   if(!txt){showToast('写点什么再保存吧');return;}
   var st=toolsState();
-  st.notes.unshift({id:uid(),text:txt,ts:Date.now(),by:ghUserId()});
+  // 老数据兼容：没有 at/done/pin 字段的旧速记照常工作，缺省即「速记」
+  var item={id:uid(),text:txt,ts:Date.now(),by:ghUserId()};
+  if(NOTE_MODE==='todo'){
+    var at=sanitizeDateStr((document.getElementById('note-due-date')||{}).value||'');
+    item.pri=(document.getElementById('note-pri')||{}).value||'mid';
+    if(at)item.at=at;
+  }
+  st.notes.unshift(item);
   if(st.notes.length>500)st.notes=st.notes.slice(0,500);
   el.value='';
+  var de=document.getElementById('note-due-date'); if(de)de.value='';
   toolsSave();
   renderNoteList();
-  showToast('已记下 ✍️');
+  try{updateRemindBadge();}catch(e){}
+  try{renderReminderBanner();}catch(e){}
+  showToast(item.at?('已添加待办 · '+fmtDateShort(item.at)+' 会提醒你 📌'):'已记下 ✍️');
+}
+function noteToggleDone(id){
+  var st=toolsState();
+  st.notes.forEach(function(n){ if(n.id===id){ n.done=n.done?0:1; n.doneTs=n.done?Date.now():0; } });
+  toolsSave();
+  renderNoteList();
+  try{updateRemindBadge();}catch(e){}
+  try{renderReminderBanner();}catch(e){}
+}
+function noteTogglePin(id){
+  var st=toolsState();
+  st.notes.forEach(function(n){ if(n.id===id)n.pin=n.pin?0:1; });
+  toolsSave();
+  renderNoteList();
 }
 function noteQuickDel(id){
   var st=toolsState();
   st.notes=st.notes.filter(function(n){return n.id!==id;});
   toolsSave(); renderNoteList();
+  try{updateRemindBadge();}catch(e){}
 }
 function renderNoteList(){
   var st=toolsState(), host=document.getElementById('tools-note-list'); if(!host)return;
-  if(!st.notes.length){host.innerHTML='<div class="tools-empty">还没有速记。想到什么随手记一句，自动同步到所有设备 ✍️</div>';return;}
-  host.innerHTML=st.notes.slice(0,40).map(function(n){
-    return '<div class="tools-note"><div class="tn-text">'+escapeHTML(n.text)+'</div>'+
-      '<div class="tn-foot"><span class="tools-dim">'+new Date(n.ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span>'+
+  var all=st.notes||[];
+  var kw=((document.getElementById('tools-note-search')||{}).value||'').trim().toLowerCase();
+  // 完成率：近 7 天新建的待办
+  var weekAgo=Date.now()-7*86400000;
+  var wkTodos=all.filter(function(n){return n.at&&(n.ts||0)>=weekAgo;});
+  var wkDone=wkTodos.filter(function(n){return n.done;});
+  var rate=document.getElementById('note-rate');
+  if(rate)rate.textContent=wkTodos.length?('本周待办 '+wkDone.length+'/'+wkTodos.length):'';
+  var list=all.filter(function(n){ return !kw||String(n.text||'').toLowerCase().indexOf(kw)>=0; });
+  // 排序：置顶 > 未完成 > 时间倒序
+  list=list.slice().sort(function(a,b){
+    if(!!b.pin!==!!a.pin)return b.pin?1:-1;
+    var ad=a.done?1:0,bd=b.done?1:0;
+    if(ad!==bd)return ad-bd;
+    return (b.ts||0)-(a.ts||0);
+  });
+  var today=dateKey(new Date()),overdueN=0;
+  var html=list.slice(0,60).map(function(n){
+    var overdue=!!(n.at&&!n.done&&n.at<today);
+    if(overdue)overdueN++;
+    var meta=[];
+    if(n.at)meta.push((n.done?'✅ ':(overdue?'⚠️ ':'📌 '))+(fmtDateShort(n.at)||n.at));
+    if(n.pri&&n.pri!=='mid')meta.push(n.pri==='high'?'🔴 紧急':'⚪ 普通');
+    meta.push(new Date(n.ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}));
+    return '<div class="tools-note'+(n.done?' done':'')+(overdue?' overdue':'')+'">'+
+      '<div class="tn-text">'+(n.pin?'📌 ':'')+escapeHTML(n.text)+'</div>'+
+      '<div class="tn-foot"><span class="tools-dim">'+escapeHTML(meta.join(' · '))+'</span>'+
+      '<span class="tn-mini" onclick="noteTogglePin(\''+n.id+'\')">'+(n.pin?'取消置顶':'置顶')+'</span>'+
+      '<span class="tn-mini" onclick="noteToggleDone(\''+n.id+'\')">'+(n.done?'↺ 恢复':'✓ 完成')+'</span>'+
       '<span class="tn-del" onclick="noteQuickDel(\''+n.id+'\')">删除</span></div></div>';
   }).join('');
+  if(!list.length){
+    host.innerHTML='<div class="tools-empty">'+(kw?'没有匹配的记录 🔍':(all.length?'没有匹配的记录 🔍':'还没有速记。想到什么随手记一句，自动同步到所有设备 ✍️'))+'</div>';
+    return;
+  }
+  host.innerHTML=html+(overdueN?'<div class="tools-dim" style="text-align:center;padding:6px;">'+overdueN+' 项已逾期，建议今天处理 💜</div>':'');
 }
 
 /* --- 提醒中心：集中展示所有待办/到期事项 --- */
@@ -7805,6 +7935,23 @@ function dueItems(){
     }
     if(t.endDate&&t.endDate===tk)out.push({id:'end|'+t.id,days:0,level:'mid',title:'今天是最后一天：'+(t.title||''),detail:'别忘了写旅行感受 💜',tripId:t.id});
   });
+  // v144.13: 未完成且带截止日的待办（速记升级而来）—— 逾期的一直显示，未来的只看 7 天内。
+  // 优先级：逾期/紧急=high，今天/明天=high，3 天内/重要=mid，其余 low。
+  try{
+    (toolsState().notes||[]).forEach(function(n){
+      if(!n||!n.at||n.done)return;
+      var at=sanitizeDateStr(n.at);
+      if(!at)return;
+      var d=daysBetween(tk,at);
+      if(d>7)return;
+      var overdue=d<0;
+      var lvl=overdue?'high':((d<=1||n.pri==='high')?'high':((d<=3||n.pri==='mid')?'mid':'low'));
+      var when=overdue?('已逾期 '+Math.abs(d)+' 天'):(d===0?'今天到期':(d===1?'明天到期':('还有 '+d+' 天')));
+      out.push({id:'todo|'+n.id,days:d,level:lvl,isTodo:true,noteId:n.id,
+        title:when+'：'+String(n.text||'').slice(0,40),
+        detail:'待办'+(n.pri==='high'?' · 🔴 紧急':(n.pri==='low'?' · ⚪ 普通':''))});
+    });
+  }catch(e){}
   out.sort(function(a,b){return a.days-b.days;});
   return out;
 }
@@ -7814,9 +7961,13 @@ function renderRemindCenter(){
   var undone=items.filter(function(i){return done.indexOf(i.id)<0;});
   if(!undone.length){host.innerHTML='<div class="tools-empty">近 7 天没有到期事项，安心享受当下 ☕</div>';return;}
   host.innerHTML=undone.map(function(i){
-    return '<div class="tools-note tools-remind '+i.level+'"><div class="tn-text">'+escapeHTML(i.title)+'</div>'+
+    // v144.13: 待办项没有 tripId，按钮改成「完成 ✓」；行程项仍走「查看详情 ›」
+    var acts=i.isTodo
+      ? ('<span class="rl-go" onclick="noteToggleDone(\''+i.noteId+'\');renderRemindCenter();updateRemindBadge();">完成 ✓</span>')
+      : ('<span class="rl-go" onclick="openTrip(\''+i.tripId+'\');closeTools();showPage(\'trip-detail\');">查看详情 ›</span>');
+    return '<div class="tools-note tools-remind '+i.level+'"><div class="tn-text">'+(i.isTodo?'📌 ':'')+escapeHTML(i.title)+'</div>'+
       '<div class="tools-dim">'+escapeHTML(i.detail||'')+'</div>'+
-      '<div class="tn-foot"><span class="rl-go" onclick="openTrip(\''+i.tripId+'\');closeTools();showPage(\'trip-detail\');">查看详情 ›</span>'+
+      '<div class="tn-foot">'+acts+
       '<span class="tn-del" onclick="markRemindDone(\''+i.id+'\')">知道了</span></div></div>';
   }).join('');
 }
@@ -9822,6 +9973,60 @@ function exportTripICS(tripId){
     showToast('已导出「'+(t.title||'行程')+'」日历文件 📅');
   }catch(err){showToast('导出失败：'+(err&&err.message||err));}
 }
+/* --- v144.13: 订阅式提醒日历（.ics + VALARM）---
+   动机：PWA 关掉后 toast / 桌面通知都不响。把未来行程、签证到期、带截止日的待办
+   导成一个 .ics，导入系统日历后由系统接管提醒 —— 这是免费方案里唯一能在
+   App 不运行时还响的路子。数据变了重新导出一次即可。 */
+function buildCalendarICS(){
+  var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//lattiao//MintTravel//CN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+icsEscape('薄荷旅行手账')];
+  var today=dateKey(new Date());
+  (data.trips||[]).forEach(function(t){
+    if(!t||t.status==='archived'||!t.startDate)return;
+    var s=sanitizeDateStr(t.startDate);
+    if(!s||s<today)return;                      // 只导未来，历史没提醒价值
+    var e=sanitizeDateStr(t.endDate||'');
+    if(!e||e<s)e=addDaysStr(s,1); else e=addDaysStr(e,1);
+    lines.push('BEGIN:VEVENT','UID:trip-'+t.id+'@lattiao','DTSTAMP:'+icsStamp(),
+      'DTSTART;VALUE=DATE:'+s.replace(/-/g,''),'DTEND;VALUE=DATE:'+e.replace(/-/g,''),
+      'SUMMARY:'+icsEscape(t.title||'旅行计划'),'LOCATION:'+icsEscape(t.destination||''));
+    if(t.flightNo)lines.push('DESCRIPTION:'+icsEscape('航班/车次 '+t.flightNo));
+    lines.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEscape('明天出发：'+(t.title||'旅行计划')),'TRIGGER:-P1D','END:VALARM','END:VEVENT');
+    var vd=sanitizeDateStr(t.visaDate||'');
+    if(vd&&vd>=today){
+      lines.push('BEGIN:VEVENT','UID:visa-'+t.id+'@lattiao','DTSTAMP:'+icsStamp(),
+        'DTSTART;VALUE=DATE:'+vd.replace(/-/g,''),'DTEND;VALUE=DATE:'+addDaysStr(vd,1).replace(/-/g,''),
+        'SUMMARY:'+icsEscape('签证到期：'+(t.title||'旅行计划')),
+        'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEscape('签证 3 天后到期，记得核对'),'TRIGGER:-P3D','END:VALARM','END:VEVENT');
+    }
+  });
+  try{
+    (toolsState().notes||[]).forEach(function(n){
+      if(!n||!n.at||n.done)return;
+      var at=sanitizeDateStr(n.at);
+      if(!at||at<today)return;
+      lines.push('BEGIN:VEVENT','UID:todo-'+n.id+'@lattiao','DTSTAMP:'+icsStamp(),
+        'DTSTART;VALUE=DATE:'+at.replace(/-/g,''),'DTEND;VALUE=DATE:'+addDaysStr(at,1).replace(/-/g,''),
+        'SUMMARY:'+icsEscape('待办：'+n.text),
+        'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEscape(n.text),'TRIGGER:-PT9H','END:VALARM','END:VEVENT');
+    });
+  }catch(e){}
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function exportCalendarICS(){
+  try{
+    var txt=buildCalendarICS();
+    var n=(txt.match(/BEGIN:VEVENT/g)||[]).length;
+    if(!n){showToast('没有未来的行程或待办可导出');return;}
+    var blob=new Blob([txt],{type:'text/calendar;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='薄荷旅行手账-提醒.ics';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    showToast('已导出 '+n+' 条 📅 导入系统日历后 App 不开也会提醒');
+  }catch(err){showToast('导出失败：'+(err&&err.message||err));}
+}
 function importData(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
@@ -10913,20 +11118,20 @@ function renderReminderBanner(){
   var el=document.getElementById('reminder-banner');
   if(!el)return;
   try{
-    var tk=dateKey(new Date());
-    var best=null,bestDays=999;
-    (data.trips||[]).forEach(function(t){
-      if(!t||t.status==='archived'||!t.startDate)return;
-      var d=daysBetween(tk,t.startDate);
-      if(d<0)return; // 已出发
-      if(d<=7&&d<bestDays){bestDays=d;best=t;}
-    });
+    // v144.13: 改走统一的 dueItems() —— 原来只扫 data.trips 的出发日，待办/签证看不到。
+    // 优先级：待办优先（更需要处理）> 行程/签证。
+    var done=toolsState().remindDone||[];
+    var items=dueItems().filter(function(i){return done.indexOf(i.id)<0;});
+    var best=null;
+    for(var i=0;i<items.length;i++){ if(items[i].isTodo){best=items[i];break;} }
+    if(!best)best=items[0];
     if(!best){el.style.display='none';return;}
-    var label=bestDays===0?'今天出发':(bestDays===1?'明天出发':('还有 '+bestDays+' 天出发'));
-    el.innerHTML='<div class="rb-ico">✈️</div>'+
-      '<div class="rb-body"><div class="rb-t">'+label+'：'+escapeHTML(best.title||'未命名')+'</div>'+
-      '<div class="rb-s">📍 '+(best.destination||'—')+(best.endDate?(' · '+fmtDate(best.startDate)+' ~ '+fmtDate(best.endDate)):(' · '+fmtDate(best.startDate)))+'</div></div>'+
-      '<button class="rb-btn" onclick="openTrip(\''+best.id+'\');showPage(\'trip-detail\');">查看 ›</button>';
+    el.innerHTML='<div class="rb-ico">'+(best.isTodo?'📌':'✈️')+'</div>'+
+      '<div class="rb-body"><div class="rb-t">'+escapeHTML(best.title)+'</div>'+
+      '<div class="rb-s">'+escapeHTML(best.detail||'')+'</div></div>'+
+      (best.isTodo
+        ? '<button class="rb-btn" onclick="noteToggleDone(\''+best.noteId+'\')">完成 ✓</button>'
+        : '<button class="rb-btn" onclick="openTrip(\''+best.tripId+'\');showPage(\'trip-detail\');">查看 ›</button>');
     el.style.display='flex';
   }catch(e){el.style.display='none';}
 }
@@ -13264,5 +13469,12 @@ function init(){
 }
 init();
 </script>
+
+<!-- v144.13: 番茄钟全局迷你挂件 —— 弹窗关掉 / 切到别的页面也能看到剩余时间 -->
+<div class="pomo-mini" id="pomo-mini" onclick="openTools('pomo')" title="番茄钟" role="button" tabindex="0"
+  aria-label="番茄钟迷你计时器">
+  <span class="pm-i" id="pomo-mini-ico">🍅</span>
+  <span class="pm-t" id="pomo-mini-time">25:00</span>
+</div>
 </body>
 </html>
