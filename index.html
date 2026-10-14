@@ -2547,7 +2547,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.18';
+var APP_VERSION='v144.19';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -3263,7 +3263,12 @@ function geHeaders(){
 // Gitee returns: object for a file, array for a dir, [] when missing (no 404).
 function geGetRaw(path,timeout){
   var t=ghToken();
-  var qs='access_token='+encodeURIComponent(t||'');
+  // v144.19: 请求层最后一道闸 —— 没 token 直接放弃，不发请求。
+  // 之前这里会把空 token 拼进 `?access_token=` 发出去，Gitee 稳定回 401：
+  // 每 30s 轮询刷一次、控制台一片红、私有仓库还可能被限流。
+  // 单测环境用 mock 不校验 token，所以这条路径在测试里永远绿 —— 线上巡检才抓得到。
+  if(!t)return Promise.resolve(null);
+  var qs='access_token='+encodeURIComponent(t);
   // v137: 同步读必须绕过 HTTP 缓存（含 verify 回读、pull 拉取）。否则浏览器缓存可能
   // 返回陈旧响应，骗过 uploadPhotoChunk 的「写后校验」或让 pull 看到旧数据。
   return ghFetchTimeout(geUrl(path)+'?'+qs,{headers:geHeaders(),cache:'no-store'},timeout||20000,'GET '+path)
@@ -3684,6 +3689,11 @@ function mergeTrips(localTrips,remoteTrips){
 function syncPull(force){
   if(GH.pulling)return Promise.resolve();
   if(GH.pushing)return Promise.resolve(); // don't pull while pushing — avoids race with deletes
+  // v144.19: 无 token（只读模式）时**直接不发请求**。
+  // 旧逻辑照常发 `?access_token=`（空 token）→ Gitee 每次回 401，
+  // 每 30s 轮询一次、控制台刷 401、还可能被限流。测试环境用 mock 永远发现不了，
+  // 是线上巡检（live_audit --online）抓出来的真实问题。
+  if(!ghHasToken())return Promise.resolve();
   var _pullBeforeFp=activeScreenFp(); // v132: P0 指纹，合并后比对可见内容是否真有变化
   // v58: auto-retry on network failure (2s, 5s, 10s) — a single transient
   // timeout in mainland no longer surfaces as "网络不佳" to the user.
