@@ -425,6 +425,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* ==== v144.13: 速记升级待办 + 番茄钟全局挂件 ==== */
 .nt-seg{flex:0 0 auto;padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text-sec);cursor:pointer;}
 .nt-seg.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+/* v144.18: 小确幸作者标签 —— 自己的弱化灰，别人用成员色（uidColor） */
+.joy-author{display:inline-block;flex-shrink:0;margin-top:1px;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:600;border:1px solid transparent;white-space:nowrap;}
+.joy-author.mine{color:var(--text-light);background:var(--surface);border-color:var(--border);}
+.joy-del{flex-shrink:0;margin-top:1px;font-size:10px;color:var(--text-light);cursor:pointer;}
+.joy-del:active{color:var(--danger,#DC2626);}
 .tools-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;}
 .tools-input:focus{outline:none;border-color:var(--primary);}
 .tn-mini{color:var(--primary);cursor:pointer;font-weight:600;}
@@ -2542,7 +2547,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.17';
+var APP_VERSION='v144.18';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -9863,9 +9868,14 @@ function renderProfile(){
             var dt=fmtDateShort(j.date)||'';
             var _tn=(typeof joyTripTitle==='function')?joyTripTitle(j):'';
             var tt=_tn?(' · '+escapeHTML(_tn)):'';
-            return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
+            // v144.18: 每条后面标出是谁记的（自己的用弱化样式，别人的用成员色）；
+            // 只有自己的条目给删除入口 —— v133 的「只让自己删自己的」规则此前没有 UI 落点。
+            var au=joyAuthorLabel(j);
+            var delBtn=au.mine?'<span class="joy-del" onclick="event.stopPropagation();joyDel(\''+j.id+'\');">删除</span>':'';
+            return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;align-items:flex-start;">'+
               '<span style="color:var(--primary-dark);font-weight:700;white-space:nowrap;">'+dt+'</span>'+
-              '<span style="color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span></div>';
+              '<span style="flex:1;min-width:0;color:var(--text-sec);line-height:1.5;">'+escapeHTML(j.text||'')+tt+'</span>'+
+              joyAuthorHTML(j)+delBtn+'</div>';
           }).join('')+
           (joys.length>JOY_COLLAPSED_N
             ?'<div onclick="toggleJoyExpand()" style="font-size:12px;font-weight:600;color:var(--primary);text-align:center;padding:9px 0 2px;cursor:pointer;">'+(joyExpanded?'收起 ▲':'展开全部 '+(joys.length-JOY_COLLAPSED_N)+' 条 ▼')+'</div>'
@@ -9875,6 +9885,27 @@ function renderProfile(){
   }catch(e){}
 }
 // v144.6: 小确幸时间线 展开/收起 切换（状态存 window，重渲染不丢）
+// v144.18: 小确幸作者标签 —— 数据层 v133 起就写了 uid，但列表渲染从没画过作者，
+// 造成「看不出是谁记的」。这里补上；老数据（v133 之前、没 uid）归属本人。
+function joyAuthorLabel(j){
+  try{
+    var myId=ghUserId();
+    var myName=((data.settings&&data.settings.name&&data.settings.name.trim())||'我');
+    if(!j||!j.uid)return {name:myName,mine:true,color:''};
+    if(j.uid===myId)return {name:myName,mine:true,color:''};
+    var pn='';
+    try{ if(typeof peerName==='function')pn=peerName(j.uid); }catch(e){}
+    var col='';
+    try{ if(typeof uidColor==='function')col=uidColor(j.uid); }catch(e){}
+    return {name:pn||'旅伴',mine:false,color:col};
+  }catch(e){return {name:'我',mine:true,color:''};}
+}
+function joyAuthorHTML(j){
+  var a=joyAuthorLabel(j);
+  if(a.mine)return '<span class="joy-author mine">'+escapeHTML(a.name)+'</span>';
+  var st=a.color?('color:'+a.color+';border-color:'+a.color+'40;background:'+a.color+'14;'):'';
+  return '<span class="joy-author" style="'+st+'">'+escapeHTML(a.name)+'</span>';
+}
 function toggleJoyExpand(){
   window._joyExpanded=!window._joyExpanded;
   if(typeof renderProfile==='function')renderProfile();
