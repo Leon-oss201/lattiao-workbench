@@ -442,6 +442,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pomo-mini .pm-t{font-size:11px;font-weight:800;color:var(--primary-dark);margin-top:2px;letter-spacing:.3px;}
 @media (prefers-reduced-motion:no-preference){.pomo-mini{transition:transform .2s,opacity .2s;}}
 .pomo-mini:active{transform:scale(.92);}
+/* v144.23: 个性化（App 名称 + 图标） */
+.pi-preview{width:60px;height:60px;border-radius:14px;overflow:hidden;flex-shrink:0;
+  box-shadow:0 3px 10px rgba(124,58,237,.22);background:var(--muted-bg);}
+.pi-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+.pi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pi-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;
+  border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;}
+.pi-cell img{width:32px;height:32px;border-radius:8px;object-fit:cover;background:var(--muted-bg);}
+.pi-cell span{font-size:10px;color:var(--text-sec);}
+.pi-cell.on{border-color:var(--primary);background:var(--primary-light);}
+.pi-cell.on span{color:var(--primary-dark);font-weight:600;}
 /* ==== v144.14: 今日回忆 / 双人默契值 / 成就徽章墙 ==== */
 /* 今日回忆卡：左图右文，像一张从相册里掉出来的拍立得 */
 .mem-card{margin:0 16px 12px;background:linear-gradient(135deg,#FFF7FB,#F5F0FF);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow-sm);display:flex;gap:12px;align-items:center;}
@@ -2322,6 +2333,31 @@ setTimeout(function(){
       <label class="form-label" data-page-node-id="G2BOmcdskD9fhDFwFTra1h">默认城市</label>
       <input class="form-input" id="set-city" placeholder="城市" maxlength="100" data-page-node-id="68AocdSV2EWWrT2yUGF5ic">
     </div>
+
+    <!-- v144.23: 个性化（App 名称 + 主屏幕图标） -->
+    <div class="form-row" style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
+      <label class="form-label">🎨 桌面名称与图标</label>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div class="pi-preview" id="pi-preview"><img id="pi-preview-img" alt="图标预览" /></div>
+        <div style="flex:1;min-width:0;">
+          <input class="form-input" id="set-appname" maxlength="16" placeholder="App 名称（如：我们的回忆录）"
+             onchange="piSetAppName(this.value)" onblur="piSetAppName(this.value)" />
+          <div class="tools-dim" style="margin-top:6px;font-size:11px;line-height:1.6;">
+            改完后 <span style="color:var(--primary);">删除桌面图标 → 重新添加</span> 才会更新（这是系统限制，任何 App 都一样）。
+          </div>
+        </div>
+      </div>
+      <div class="pi-grid" id="pi-theme-grid" style="margin-top:10px;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="document.getElementById('pi-file').click()">📷 上传自己的图</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;" id="pi-clear-btn" onclick="piClearCustom()">恢复默认</button>
+      </div>
+      <input type="file" id="pi-file" accept="image/*" style="display:none;" onchange="piPickImage(event)" />
+      <div class="tools-dim" style="margin-top:8px;font-size:11px;line-height:1.6;">
+        图片会裁成方形存在本机，<b>不会上传云端</b>。若个别机型重新添加后仍不生效，点
+        <a href="javascript:piDownloadIcon()" style="color:var(--primary);">下载图标文件</a> 发给我加进部署，就能 100% 生效。
+      </div>
+    </div>
     <div class="form-row form-row-flex" data-page-node-id="SmhNSQgCPB5nDHRLnYH5zB">
       <div data-page-node-id="mNgLFVyBWuMRwOCw4ETTjz">
         <label class="form-label" data-page-node-id="UypXTSTsfSJZfaCdOOsG3f">主题</label>
@@ -2547,7 +2583,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.22';
+var APP_VERSION='v144.23';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -10162,6 +10198,8 @@ function openSettings(){
   if(pqEl)pqEl.value=photoQuality();
   // v77: hero background picker
   renderBgPicker();
+  // v144.23: 个性化区块（桌面名称 + 图标）
+  try{ piRenderPicker(); }catch(e){}
   // Show current token health at a glance — saves the user from re-typing a bad token.
   var t=ghToken();
   var el=document.getElementById('token-status');
@@ -11204,8 +11242,240 @@ function hideBootSkeleton(){
   el.classList.add('hide');
   setTimeout(function(){if(el&&el.parentNode)el.parentNode.removeChild(el);},240);
 }
-function applyAppearance(){
-  var s=data.settings||{};
+/* ==== v144.23: 个性化 —— App 名称 + 主屏幕图标 ====
+   技术边界（必须诚实说明，改不了的部分）：
+   - 浏览器标签页标题 / favicon：运行时立即生效 ✓
+   - 主屏幕图标下的名字和图标：系统在「添加到主屏幕」那一刻固化，
+     之后**必须删除桌面图标再重新添加**才会更新 —— 这是 iOS/Android 的行为，PWA 改不了。
+   我们的做法：
+   - 设置存 data.settings.appName / iconTheme / hasCustomIcon（随云端同步，多端一致）
+   - 额外写一份**未压缩的轻量副本**到 localStorage['lattiao_appearance']，供 SW 读取
+     （App 数据是 LZ 压缩过的，SW 里解不开，所以必须留这份明文）
+   - 自定义图片存 IndexedDB，SW 拦截 /__app_icon_*.png 动态供给 */
+var PI_APPEAR_KEY='lattiao_appearance';
+var PI_THEMES=[
+  {id:'mint',name:'薄荷紫'},{id:'sea',name:'海盐蓝'},{id:'peach',name:'蜜桃粉'},
+  {id:'cream',name:'奶油白'},{id:'star',name:'星空'},{id:'polaroid',name:'拍立得'},
+  {id:'matcha',name:'抹茶绿'},{id:'sunset',name:'蜜橘'}
+];
+function piSettings(){
+  try{
+    data.settings=data.settings||{};
+    return data.settings;
+  }catch(e){return {};}
+}
+function piAppName(){
+  var s=piSettings();
+  return (s.appName&&String(s.appName).trim())||'薄荷旅行手账';
+}
+function piIconSrc(){
+  var s=piSettings();
+  if(s.hasCustomIcon)return './__app_icon_512.png';
+  var t=(s.iconTheme&&String(s.iconTheme))||'mint';
+  return './app-icon-512-'+t+'.png';
+}
+// 给 SW 读设置：**Service Worker 里没有 localStorage**（实测踩过），
+// 所以除了写一份本地副本供页面自己用，还必须写 IndexedDB + postMessage 给 SW。
+function piSyncAppearance(){
+  var payload={
+    name:piAppName(),
+    theme:(piSettings().iconTheme||'mint'),
+    custom:!!piSettings().hasCustomIcon,
+    ts:Date.now()
+  };
+  try{ localStorage.setItem(PI_APPEAR_KEY,JSON.stringify(payload)); }catch(e){}
+  try{
+    piDb().then(function(db){
+      return new Promise(function(res){
+        var tx=db.transaction('icons','readwrite');
+        tx.objectStore('icons').put(JSON.stringify(payload),'appearance');
+        tx.oncomplete=function(){db.close();res();};
+        tx.onerror=function(){db.close();res();};
+      });
+    }).catch(function(){});
+  }catch(e){}
+  try{
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({type:'appearance',payload:payload});
+    }
+  }catch(e){}
+}
+function piApplyRuntime(){
+  // 标签页标题 + favicon：立即生效
+  try{ document.title=piAppName(); }catch(e){}
+  var s=piSettings();
+  try{
+    var href=piIconSrc();
+    var fav=document.querySelector('link[rel="icon"]');
+    if(fav)fav.setAttribute('href',href);
+    var at=document.querySelector('link[rel="apple-touch-icon"]');
+    if(at)at.setAttribute('href',(s.hasCustomIcon?'./__app_icon_180.png':'./app-icon-180-'+((s.iconTheme||'mint'))+'.png'));
+  }catch(e){}
+}
+// ---- 自定义图标：canvas 居中裁方 → IndexedDB ----
+function piDb(){
+  return new Promise(function(res,rej){
+    if(!window.indexedDB)return rej(new Error('no idb'));
+    var rq=indexedDB.open('lattiao_icon',1);
+    rq.onupgradeneeded=function(){ rq.result.createObjectStore('icons'); };
+    rq.onsuccess=function(){ res(rq.result); };
+    rq.onerror=function(){ rej(rq.error||new Error('idb open failed')); };
+  });
+}
+function piSaveIconBlob(blob){
+  return piDb().then(function(db){
+    return new Promise(function(res,rej){
+      var tx=db.transaction('icons','readwrite');
+      tx.objectStore('icons').put(blob,'appIcon');
+      tx.oncomplete=function(){ db.close(); res(true); };
+      tx.onerror=function(){ db.close(); rej(tx.error); };
+    });
+  });
+}
+function piLoadIconBlob(){
+  return piDb().then(function(db){
+    return new Promise(function(res,rej){
+      var tx=db.transaction('icons','readonly');
+      var rq=tx.objectStore('icons').get('appIcon');
+      rq.onsuccess=function(){ var v=rq.result; db.close(); res(v||null); };
+      rq.onerror=function(){ db.close(); rej(rq.error); };
+    });
+  }).catch(function(){ return null; });
+}
+function piClearIconBlob(){
+  return piDb().then(function(db){
+    return new Promise(function(res){
+      var tx=db.transaction('icons','readwrite');
+      tx.objectStore('icons').delete('appIcon');
+      tx.oncomplete=function(){ db.close(); res(true); };
+      tx.onerror=function(){ db.close(); res(false); };
+    });
+  }).catch(function(){ return false; });
+}
+// 用户选图 → 居中裁成正方形 → 512² PNG
+function piPickImage(ev){
+  var input=ev&&ev.target;
+  var file=input&&input.files&&input.files[0];
+  if(!file)return;
+  if(!/^image\//.test(file.type||'')){showToast('请选择图片文件');return;}
+  var fr=new FileReader();
+  fr.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var S=512;
+      var cv=document.createElement('canvas');
+      cv.width=S;cv.height=S;
+      var ctx=cv.getContext('2d');
+      // 白色底：透明 PNG 转 JPG 时不会变黑
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,S,S);
+      var side=Math.min(img.width,img.height);
+      var sx=(img.width-side)/2, sy=(img.height-side)/2;
+      ctx.drawImage(img,sx,sy,side,side,0,0,S,S);
+      cv.toBlob(function(blob){
+        if(!blob){showToast('图片处理失败，换一张试试');return;}
+        piSaveIconBlob(blob).then(function(){
+          var s=piSettings();
+          s.hasCustomIcon=true;
+          delete s.iconTheme;
+          saveDataLocal&&saveDataLocal();
+          piSyncAppearance();
+          piApplyRuntime();
+          piRenderPicker();
+          showToast('图标已更新 ✨ 删除桌面图标重新添加即可看到');
+        }).catch(function(){ showToast('保存失败：浏览器不支持本地存储'); });
+      },'image/png');
+    };
+    img.onerror=function(){ showToast('这张图片打不开，换一张试试'); };
+    img.src=fr.result;
+  };
+  fr.onerror=function(){ showToast('读取图片失败'); };
+  fr.readAsDataURL(file);
+  try{ input.value=''; }catch(e){}   // 允许重复选同一张
+}
+function piSetTheme(id){
+  var s=piSettings();
+  s.iconTheme=id;
+  s.hasCustomIcon=false;
+  saveDataLocal&&saveDataLocal();
+  piSyncAppearance();
+  piApplyRuntime();
+  piRenderPicker();
+  showToast('图标已切换 ✨');
+}
+function piSetAppName(name){
+  var s=piSettings();
+  var v=String(name||'').trim().slice(0,16);
+  if(!v){delete s.appName;}else{s.appName=v;}
+  saveDataLocal&&saveDataLocal();
+  piSyncAppearance();
+  piApplyRuntime();
+  showToast(v?('名称已改为「'+v+'」'):'已恢复默认名称');
+}
+function piClearCustom(){
+  var s=piSettings();
+  s.hasCustomIcon=false;
+  s.iconTheme=s.iconTheme||'mint';
+  saveDataLocal&&saveDataLocal();
+  piClearIconBlob();
+  piSyncAppearance();
+  piApplyRuntime();
+  piRenderPicker();
+  showToast('已恢复默认图标');
+}
+// 下载当前图标文件（SW 方案在个别机型不生效时的兜底：交给开发者加进部署）
+function piDownloadIcon(){
+  var src=piIconSrc();
+  var go=function(url){
+    var a=document.createElement('a');
+    a.href=url;a.download='app-icon-512.png';
+    document.body.appendChild(a);a.click();a.remove();
+  };
+  if(piSettings().hasCustomIcon){
+    piLoadIconBlob().then(function(b){
+      if(b){go(URL.createObjectURL(b));showToast('已下载，发给我即可 100% 生效 📦');}
+      else showToast('没找到已保存的图标');
+    });
+  }else{
+    fetch(src).then(function(r){return r.blob();}).then(function(b){
+      go(URL.createObjectURL(b));showToast('已下载，发给我即可 100% 生效 📦');
+    }).catch(function(){ showToast('下载失败'); });
+  }
+}
+function piRenderPicker(){
+  var grid=document.getElementById('pi-theme-grid');
+  var nameEl=document.getElementById('set-appname');
+  var s=piSettings();
+  if(nameEl&&document.activeElement!==nameEl)nameEl.value=s.appName||'';
+  var img=document.getElementById('pi-preview-img');
+  if(img){
+    if(s.hasCustomIcon){
+      piLoadIconBlob().then(function(b){
+        if(!img)return;
+        if(b)img.src=URL.createObjectURL(b);
+      });
+    }else{
+      img.src='./app-icon-512-'+((s.iconTheme||'mint'))+'.png';
+    }
+  }
+  if(!grid)return;
+  var cur=s.hasCustomIcon?'custom':(s.iconTheme||'mint');
+  grid.innerHTML=PI_THEMES.map(function(t){
+    return '<div class="pi-cell'+(cur===t.id?' on':'')+'" title="'+escapeHTML(t.name)+'" onclick="piSetTheme(\''+t.id+'\')">'+
+      '<img src="./app-icon-192-'+t.id+'.png" alt="'+escapeHTML(t.name)+'"/>'+
+      '<span>'+escapeHTML(t.name)+'</span></div>';
+  }).join('')+
+  '<div class="pi-cell'+(cur==='custom'?' on':'')+'" onclick="document.getElementById(\'pi-file\').click()" title="自定义">'+
+    // 没上传过时不要留空 src（会显示浏览器破图 + alt 文字），用占位底色
+    '<img id="pi-custom-thumb" alt="" style="background:linear-gradient(135deg,#F3E8FF,#FCE7F3);display:flex;align-items:center;justify-content:center;font-size:15px;"/>'+
+    '<span>我的图</span></div>';
+  piLoadIconBlob().then(function(b){
+    var th=document.getElementById('pi-custom-thumb');
+    if(!th)return;
+    if(b){th.src=URL.createObjectURL(b);th.style.background='';th.removeAttribute('style');}
+    else{th.removeAttribute('src');th.textContent='🎨';}
+  });
+}
+function applyAppearance(){  var s=data.settings||{};
   // v86: explicit light/dark/auto — the previous `classList.toggle('dark', ...)`
   // approach let the @media (prefers-color-scheme: dark) rule win over the
   // user's "浅色" choice (because no .light class was added). Now we set
@@ -11371,6 +11641,17 @@ var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budg
 // v102: notifications now live in data.notifs so they sync across collaborators
 function notifLoad(){
   if(!data.notifs)data.notifs=[];
+  // v144.23: 防御脏数据 —— 云端合并/历史遗留里可能混进没有 title 的条目，
+  // 渲染时 escapeHTML(undefined) 会让通知中心出现字面量「undefined」的空白通知。
+  // 这里只丢掉「既没有 title 也没有 text」的条目，真实通知一律保留。
+  try{
+    var arr=Array.isArray(data.notifs)?data.notifs:[];
+    var clean=arr.filter(function(n){return n&&typeof n==='object'&&(n.title||n.text);});
+    if(clean.length!==arr.length){
+      data.notifs=clean;
+      notifSave(clean,true);   // quiet：自愈不应触发上传
+    }
+  }catch(e){}
   return data.notifs;
 }
 function notifSave(a,quiet){
@@ -13776,6 +14057,8 @@ function init(){
   // Text appears instantly; photos fade in via the existing skeleton/onload.
   applyAppearance();
   loadData();
+  // v144.23: 应用自定义名称/图标（必须在 loadData 之后 —— 设置存在 data 里）
+  try{ piSyncAppearance(); piApplyRuntime(); }catch(e){}
   migrateNotifs();    // v102: move old localStorage notifications into data.notifs
   ensurePeerName();   // v103: register this device's display name for collaborators
   // v144.22: 启动时清一次幽灵 uid（换设备/清缓存留下的零引用条目）。
