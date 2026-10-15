@@ -319,12 +319,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .city-chip .cc-name{font-size:12px;font-weight:600;color:var(--text);}
 .city-chip .cc-count{font-size:10px;color:var(--text-light);}
 /* v77: settings accordion */
-.set-acc{background:rgba(124,58,237,.04);border-radius:12px;padding:10px 14px;}
-.set-acc summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--primary-dark);list-style:none;display:flex;align-items:center;justify-content:space-between;}
+.set-acc{background:var(--card);border:1px solid var(--border);border-radius:14px;margin:0 0 10px;overflow:hidden;}
+.set-acc summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:8px;padding:13px 14px;}
 .set-acc summary::-webkit-details-marker{display:none;}
-.set-acc summary::after{content:'▾';transition:transform .2s;font-size:14px;}
-.set-acc[open] summary::after{transform:rotate(180deg);}
-.set-acc summary:hover{color:var(--primary);}
+.set-acc summary::after{content:'›';margin-left:auto;color:var(--text-light);transition:transform .2s;font-size:19px;line-height:1;flex:none;}
+.set-acc[open] summary::after{transform:rotate(90deg);}
+.set-acc summary:hover{color:var(--primary-dark);}
+/* 折叠头右侧的「当前值」摘要：一屏就能看清设置状态，不用展开 */
+.set-acc summary .set-sum{margin-left:auto;font-size:11px;font-weight:400;color:var(--text-light);
+  max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.set-acc summary::after{margin-left:8px;}
+.set-acc[open] summary{background:var(--primary-lighter);}
+.set-acc-body{padding:2px 14px 14px;}
+/* 旧版 padding:10px 14px 会让嵌套 details 的内容左右贴边，统一收到 body 里 */
+.set-acc>.form-row,.set-acc>.set-acc{margin-left:0;margin-right:0;}
 .home-hero svg.hero-bg{position:absolute;inset:0;width:100%;height:100%;}
 .home-hero .corner-btn{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:var(--pill-glass);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:2;color:var(--text);}
 .sync-indicator{position:absolute;top:18px;right:60px;z-index:2;font-size:11px;padding:4px 10px;border-radius:12px;background:var(--pill-glass);backdrop-filter:blur(8px);cursor:pointer;white-space:nowrap;transition:opacity .2s;user-select:none;}
@@ -450,6 +458,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pi-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;
   border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;}
 .pi-cell img{width:32px;height:32px;border-radius:8px;object-fit:cover;background:var(--muted-bg);}
+.pi-ph{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:linear-gradient(135deg,#F3E8FF,#FCE7F3);}
 .pi-cell span{font-size:10px;color:var(--text-sec);}
 .pi-cell.on{border-color:var(--primary);background:var(--primary-light);}
 .pi-cell.on span{color:var(--primary-dark);font-weight:600;}
@@ -2320,6 +2329,9 @@ setTimeout(function(){
 <div class="modal-overlay" id="settings-modal" data-page-node-id="DHBxJVqTpd4c3JMlUYGGTy">
   <div class="modal" data-page-node-id="bMg6LCvF6icRstZ22vhNlu">
     <div class="modal-handle" data-page-node-id="SSjrX01QCfASRAVv54bwDf"></div>
+    <details class="set-acc set-main">
+      <summary><span class="set-si">👤 个人资料</span><span class="set-sum" id="sum-pers"></span></summary>
+      <div class="set-acc-body">
     <div class="modal-title" data-page-node-id="zKVCysJF1YtICdtt2fksXs">偏好设置</div>
     <div class="form-row" data-page-node-id="FKEafD2HQo31Bq69DRv6Zu">
       <label class="form-label" data-page-node-id="A8rO6dOBLoRqqpXDxYZ8ss">显示名称</label>
@@ -2335,6 +2347,11 @@ setTimeout(function(){
     </div>
 
     <!-- v144.23: 个性化（App 名称 + 主屏幕图标） -->
+      </div>
+    </details>
+    <details class="set-acc set-main">
+      <summary><span class="set-si">🎨 个性化</span><span class="set-sum" id="sum-personal"></span></summary>
+      <div class="set-acc-body">
     <div class="form-row" style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
       <label class="form-label">🎨 桌面名称与图标</label>
       <div style="display:flex;gap:12px;align-items:flex-start;">
@@ -2394,7 +2411,11 @@ setTimeout(function(){
         <input type="file" id="bg-upload-input" accept="image/*" style="display:none;" onchange="uploadHeroBg(event)" data-page-node-id="S6Yo4IKnJSnBZ4Uy3uXXFo">
       </div>
       <div style="font-size:11px;color:var(--text-light);margin-top:6px;" data-page-node-id="0AuNBZOiOac5jYBBZcY97l">选预设后立即应用；自定义图会压缩到 800px 保存在云端，跨设备同步</div>
-    </div>
+      </div>
+    </details>
+    <details class="set-acc set-main">
+      <summary><span class="set-si">☁️ 云端同步</span><span class="set-sum" id="sum-sync"></span></summary>
+      <div class="set-acc-body">
     <div class="form-row" data-page-node-id="LTqC58edKOuLMpEEG3pCpO">
       <label class="form-label" data-page-node-id="sCu6tuDy5kkKOHDpH6gtgH">协作 Token（用于数据同步）</label>
       <div style="display:flex;gap:6px;align-items:center;" data-page-node-id="RpxcMUhnq9h7N9WvSICWa3">
@@ -2414,7 +2435,7 @@ setTimeout(function(){
 
     <!-- v77: settings accordion — collapse rarely-used / advanced buttons to keep
          the main modal clean. Each <details> is independently toggleable. -->
-    <details class="set-acc" style="margin-top:6px;" data-page-node-id="ghG6s9a1Rh8qV58eLFMCRh">
+    <details class="set-acc" data-page-node-id="ghG6s9a1Rh8qV58eLFMCRh">
       <summary data-page-node-id="ZOoGYyMX1sB20rJKUiGjHB">🛠 高级修复工具</summary>
       <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;" data-page-node-id="cG0jnG7MvaIn2IC8uOyUEj">
         <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="onlyPullPhotos()" data-page-node-id="Hf7gfM3VrCZhj8F7BE4yOV">📷 仅拉取照片（不重置行程数据）</button>
@@ -2424,6 +2445,11 @@ setTimeout(function(){
         <div style="font-size:11px;color:var(--text-light);line-height:1.5;" data-page-node-id="LFan0nb4y3z3ahPBf02eW7">正常用 App 不需要打开这个组。遇到「照片不显示」「文字乱码」「云端拉不下来」再展开按提示处理。</div>
       </div>
     </details>
+      </div>
+    </details>
+    <details class="set-acc set-main">
+      <summary><span class="set-si">💾 数据备份</span><span class="set-sum" id="sum-backup"></span></summary>
+      <div class="set-acc-body">
     <details class="set-acc" data-page-node-id="jr1gBzytHkLNtQO6sEbG1r">
       <summary data-page-node-id="gQutTo0FiEoHmuMYVXljCw">💾 数据导入导出</summary>
       <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;" data-page-node-id="bwkUmmwUelElbIxAlhh3Nm">
@@ -2440,6 +2466,11 @@ setTimeout(function(){
         <div style="font-size:11px;color:var(--text-light);line-height:1.5;" data-page-node-id="71udY9wOn3Ij54zuobQH7f">完整备份包含行程、攻略、感受、预算和所有照片，可随时恢复到任何设备。导入会覆盖当前数据（建议先导出再导入）。</div>
       </div>
     </details>
+      </div>
+    </details>
+    <details class="set-acc set-main">
+      <summary><span class="set-si">🛟 修复与诊断</span><span class="set-sum" id="sum-diag"></span></summary>
+      <div class="set-acc-body">
     <details class="set-acc" data-page-node-id="v141sync">
       <summary>🔄 同步健康度自检</summary>
       <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
@@ -2472,6 +2503,8 @@ setTimeout(function(){
       <div style="padding-top:8px;display:flex;flex-direction:column;gap:8px;">
         <div id="collab-activity-box" class="diag-empty">点「刷新」查看最近协作与冲突</div>
         <button class="btn btn-ghost" style="width:100%;" onclick="renderCollabActivity()">🔍 刷新动态</button>
+      </div>
+    </details>
       </div>
     </details>
 
@@ -2583,7 +2616,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.23';
+var APP_VERSION='v144.24';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6238,7 +6271,10 @@ function renderBgPicker(){
   HERO_PRESETS.forEach(function(p){
     var sel=!isCustom&&current===p.k?' sel':'';
     // v94: use CSS vars so thumbnails flip in dark mode too
-    html+=`<div class="bg-thumb bg-default ${p.k}${sel}" data-k="${p.k}" onclick="setHeroBg('${p.k}')" style="background:var(--bg-${p.k}-grad);">`+
+    // v144.24 修复：原来拼成 `var(--bg-${p.k}-grad)`，而 p.k 本身已经带 `bg-` 前缀
+    // （k='bg-mint'）→ 实际引用 `--bg-bg-mint-grad`（不存在）→ **缩略图一直是全透明的**，
+    // 设置页里 6 个背景格子只显示文字，看起来像坏掉。
+    html+=`<div class="bg-thumb bg-default ${p.k}${sel}" data-k="${p.k}" onclick="setHeroBg('${p.k}')" style="background:var(--${p.k}-grad);">`+
       '<div class="bg-thumb-label">'+p.label+'</div>'+
     '</div>';
   });
@@ -10181,6 +10217,33 @@ function importFullBackup(input){
 }
 
 // ============ Settings / Love ============
+// v144.24: 设置页折叠分组 + 右侧「当前值」摘要 —— 一屏看完全部设置，不用逐段展开
+function updateSetSummaries(){
+  try{
+    var s=data.settings||{};
+    var set=function(id,txt){ var el=document.getElementById(id); if(el)el.textContent=txt||''; };
+    // 个人资料
+    var nm=(s.name||'').trim();
+    set('sum-pers',[nm||'未设置',(s.city||'').trim()].filter(Boolean).join(' · '));
+    // 个性化：App 名 + 图标 + 主题
+    var appN=(s.appName||'').trim();
+    var iconN='薄荷紫';
+    try{
+      if(s.hasCustomIcon)iconN='我的图';
+      else{
+        var t=(s.iconTheme||'mint');
+        for(var i=0;i<PI_THEMES.length;i++)if(PI_THEMES[i].id===t)iconN=PI_THEMES[i].name;
+      }
+    }catch(e){}
+    var darkTxt={auto:'跟随系统',on:'深色',off:'浅色'}[s.darkMode||'auto'];
+    set('sum-personal',(appN?'「'+appN+'」':'')+' · '+iconN+' · '+darkTxt);
+    // 云端同步
+    var t2=ghToken();
+    set('sum-sync', t2?(GH.tokenInvalid?'Token 已失效':(GH.status==='synced'?'已同步':'已配置')):'未配置（只读）');
+    // 数据备份
+    set('sum-backup',(data.trips||[]).length+' 段行程 · '+(data.joys||[]).length+' 条小确幸');
+  }catch(e){}
+}
 function openSettings(){
   document.getElementById('set-name').value=data.settings.name||'';
   document.getElementById('set-slogan').value=data.settings.slogan||'';
@@ -10200,6 +10263,8 @@ function openSettings(){
   renderBgPicker();
   // v144.23: 个性化区块（桌面名称 + 图标）
   try{ piRenderPicker(); }catch(e){}
+  // v144.24: 折叠头摘要
+  setTimeout(updateSetSummaries,80);
   // Show current token health at a glance — saves the user from re-typing a bad token.
   var t=ghToken();
   var el=document.getElementById('token-status');
@@ -11381,6 +11446,7 @@ function piPickImage(ev){
           piSyncAppearance();
           piApplyRuntime();
           piRenderPicker();
+          updateSetSummaries();
           showToast('图标已更新 ✨ 删除桌面图标重新添加即可看到');
         }).catch(function(){ showToast('保存失败：浏览器不支持本地存储'); });
       },'image/png');
@@ -11400,6 +11466,7 @@ function piSetTheme(id){
   piSyncAppearance();
   piApplyRuntime();
   piRenderPicker();
+  updateSetSummaries();
   showToast('图标已切换 ✨');
 }
 function piSetAppName(name){
@@ -11409,6 +11476,7 @@ function piSetAppName(name){
   saveDataLocal&&saveDataLocal();
   piSyncAppearance();
   piApplyRuntime();
+  updateSetSummaries();
   showToast(v?('名称已改为「'+v+'」'):'已恢复默认名称');
 }
 function piClearCustom(){
@@ -11420,6 +11488,7 @@ function piClearCustom(){
   piSyncAppearance();
   piApplyRuntime();
   piRenderPicker();
+  updateSetSummaries();
   showToast('已恢复默认图标');
 }
 // 下载当前图标文件（SW 方案在个别机型不生效时的兜底：交给开发者加进部署）
@@ -11465,14 +11534,16 @@ function piRenderPicker(){
       '<span>'+escapeHTML(t.name)+'</span></div>';
   }).join('')+
   '<div class="pi-cell'+(cur==='custom'?' on':'')+'" onclick="document.getElementById(\'pi-file\').click()" title="自定义">'+
-    // 没上传过时不要留空 src（会显示浏览器破图 + alt 文字），用占位底色
-    '<img id="pi-custom-thumb" alt="" style="background:linear-gradient(135deg,#F3E8FF,#FCE7F3);display:flex;align-items:center;justify-content:center;font-size:15px;"/>'+
+    // 没上传过时用占位 div —— img 是 void 元素，塞 textContent 不会显示（会变成破图）
+    '<div class="pi-ph" id="pi-custom-ph">🎨</div>'+
     '<span>我的图</span></div>';
   piLoadIconBlob().then(function(b){
-    var th=document.getElementById('pi-custom-thumb');
-    if(!th)return;
-    if(b){th.src=URL.createObjectURL(b);th.style.background='';th.removeAttribute('style');}
-    else{th.removeAttribute('src');th.textContent='🎨';}
+    var ph=document.getElementById('pi-custom-ph');
+    if(ph&&b){
+      var img=document.createElement('img');
+      img.id='pi-custom-thumb';img.alt='';img.src=URL.createObjectURL(b);
+      ph.replaceWith(img);
+    }
   });
 }
 function applyAppearance(){  var s=data.settings||{};
