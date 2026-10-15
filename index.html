@@ -450,6 +450,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pomo-mini .pm-t{font-size:11px;font-weight:800;color:var(--primary-dark);margin-top:2px;letter-spacing:.3px;}
 @media (prefers-reduced-motion:no-preference){.pomo-mini{transition:transform .2s,opacity .2s;}}
 .pomo-mini:active{transform:scale(.92);}
+/* v144.27: 首页常驻搜索条 + 待办卡 + TA的动态 */
+/* v144.27: FAB 会压住内容，给首页底部留出空间 */
+.page-home{padding-bottom:76px;}
+.home-searchbar{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:10px 14px;border-radius:22px;
+  background:var(--card);border:1px solid var(--border);cursor:pointer;box-shadow:0 1px 3px rgba(124,58,237,.06);}
+.home-searchbar:active{transform:scale(.99);}
+.hs-ico{font-size:14px;}
+.hs-ph{font-size:13px;color:var(--text-light);}
+.todo-card,.collab-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin:10px 0;
+  box-shadow:0 1px 3px rgba(124,58,237,.06);overflow:hidden;}
+.todo-h,.collab-h{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 8px;
+  font-size:13px;font-weight:700;color:var(--text);}
+.todo-n,.collab-n{font-size:11px;font-weight:400;color:var(--text-light);}
+.todo-i{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--border);cursor:pointer;}
+.todo-i:active,.collab-i:active{background:var(--primary-lighter);}
+.todo-ic{font-size:17px;flex-shrink:0;width:24px;text-align:center;}
+.todo-tx{flex:1;min-width:0;}
+.todo-tx b{display:block;font-size:13px;font-weight:600;color:var(--text);line-height:1.4;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.todo-tx i{display:block;font-style:normal;font-size:11px;color:var(--text-light);margin-top:2px;}
+.todo-go{color:var(--text-light);font-size:16px;flex-shrink:0;}
+.collab-i{display:flex;align-items:flex-start;gap:9px;padding:9px 14px;border-top:1px solid var(--border);}
+.collab-av{width:22px;height:22px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.collab-tx{flex:1;min-width:0;font-size:12px;color:var(--text-sec);line-height:1.5;}
+.collab-tx b{color:var(--text);font-weight:600;}
+.collab-tx i{display:block;font-style:normal;font-size:10px;color:var(--text-light);margin-top:1px;}
 /* v144.23: 个性化（App 名称 + 图标） */
 .pi-preview{width:60px;height:60px;border-radius:14px;overflow:hidden;flex-shrink:0;
   box-shadow:0 3px 10px rgba(124,58,237,.22);background:var(--muted-bg);}
@@ -1370,8 +1397,24 @@ setTimeout(function(){
 
     <div id="cd-card-host" data-page-node-id="1GrxoxsCGQiFnHIGVgUCSC"></div>
 
+    <!-- v144.27: 常驻搜索条 —— 全局搜索功能本来就有（搜行程/地点/攻略/收藏），
+         但入口藏在「我的 → 个性化」分组里，等于没有。搜索是用得越多越顺手的功能，
+         越深越没用，所以提到首页头部常驻。 -->
+    <div class="home-searchbar" onclick="openSearch()">
+      <span class="hs-ico">🔍</span>
+      <span class="hs-ph">搜行程 / 地点 / 攻略 / 收藏…</span>
+    </div>
+
+    <!-- v144.27: 待办卡 —— 把「被动通知」变成「主动引导」。
+         数据全部现成（行程日期、预算、小确幸、协作），只是汇总到一个地方。 -->
+    <div id="home-todo" style="display:none;"></div>
+
     <!-- v144.14: 今日回忆 —— 往年今天 / 上次来这里，随手翻出一帧旧时光 -->
     <div id="home-today-memory" style="display:none;" data-page-node-id="tm01memory001"></div>
+
+    <!-- v144.27: TA 的动态 —— 协作动态功能本来就有，但躺在
+         设置 → 修复与诊断 里，那个位置等于不存在。搬到首页，Iris 打开就能看到。 -->
+    <div id="home-collab" style="display:none;"></div>
 
     <!-- v144.7: 快捷入口行 —— 原「开始规划行程」CTA / 工具箱 CTA / quick-grid 三处重复入口收成一行 -->
     <div class="home-quickrow">
@@ -2674,7 +2717,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.26';
+var APP_VERSION='v144.27';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6478,10 +6521,133 @@ function locTypeIcon(type){
   return {food:'🍜',attraction:'🏞',transport:'🚇',stay:'🏨',departure:'✈️',checkin:'📷',return:'🏠',other:'✨'}[type]||'✨';
 }
 
+/* ===== v144.27: 首页「待办卡」+「TA 的动态」=====
+   两块都**不新增功能**，只把已有数据摆到该在的位置：
+   - 待办：行程还剩几天没安排 / 预算用了多少 / 距上次旅行多久 / 该补照片了
+   - TA 的动态：读的就是 renderCollabActivity 那份 collab 通知，只是搬到首页 */
+function renderHomeTodo(){
+  var box=document.getElementById('home-todo');
+  var banner=document.getElementById('reminder-banner');
+  if(!box)return;
+  var items=[];
+  try{
+    // v144.27 去重关键：先复用 **已有的统一聚合器** dueItems()（v144.13 就有，
+    // 已涵盖工具箱待办 / 行程出发 / 签证 / 提醒）。之前这里自己又实现了一套「快出发」
+    // 判断，和 reminder-banner 显示的是同一件事 —— 正是用户说的「不要有重复功能」。
+    var done=(typeof toolsState==='function')?(toolsState().remindDone||[]):[];
+    (typeof dueItems==='function'?dueItems():[]).forEach(function(i){
+      if(done.indexOf(i.id)>=0)return;
+      items.push({
+        ic:i.isTodo?'📌':(i.id&&i.id.indexOf('visa|')===0?'🛂':'✈️'),
+        t:i.title||'', s:i.detail||'',
+        act:i.isTodo?("noteToggleDone('"+i.noteId+"')"):(i.tripId?("openTrip('"+i.tripId+"');showPage('trip-detail');"):"showPage('trips')"),
+        tk:i.tripId||i.id,          // 去重键：同一趟行程只显示一条
+        pri:i.level==='high'?1:(i.level==='mid'?2:4)
+      });
+    });
+    // dueItems 没覆盖的：行程还没安排 / 预算快超 / 久没出发 / 今天没写小确幸
+    var today=new Date(); today.setHours(0,0,0,0);
+    var ms=86400000, tk=dateKey(today);
+    (data.trips||[]).forEach(function(t){
+      if(!t||t.status==='archived'||!t.endDate)return;
+      var e=new Date(String(t.endDate)+'T00:00:00');
+      if(isNaN(e.getTime()))return;
+      var left=Math.round((e-today)/ms);
+      if(left<0||left>14)return;
+      var nLocs=(t.days||[]).reduce(function(a,d){return a+((d.locations||[]).length);},0);
+      var depId='dep|'+t.id;
+      if(nLocs===0&&done.indexOf(depId)<0){
+        items.push({ic:'🗓️',t:'「'+(t.title||t.destination||'这趟行程')+'」还没安排行程',
+          s:left===0?'就是今天，快速安排一下':(left+' 天后出发，去排一排'),
+          act:"showPage('trips')",tk:t.id,pri:1});
+      }
+      var b=t.budget||{};
+      var total=Number(b.total)||0, used=(b.items||[]).reduce(function(a,x){return a+(Number(x.amount)||0);},0);
+      if(total>0&&used>0){
+        var pct=Math.round(used/total*100);
+        if(pct>=80&&pct<=100){
+          items.push({ic:'💰',t:'「'+(t.title||t.destination)+'」预算用了 '+pct+'%',
+            s:'还剩 ¥'+Math.max(0,total-used).toFixed(0)+'，要控制一下吗',
+            act:"showPage('budget')",tk:t.id,pri:2});
+        }
+      }
+    });
+    var last=0;
+    (data.trips||[]).forEach(function(t){
+      if(!t||t.status!=='archived'||!t.startDate)return;
+      var s=new Date(String(t.startDate)+'T00:00:00');
+      if(!isNaN(s.getTime())&&s.getTime()>last)last=s.getTime();
+    });
+    if(last){
+      var gap=Math.round((today.getTime()-last)/ms);
+      if(gap>=30)items.push({ic:'🌙',t:'距离上次出发已经 '+gap+' 天',s:'要不要写点什么留个念想？',act:"showPage('profile')",pri:3});
+    }
+    if(!(data.joys||[]).some(function(j){return j&&j.date===tk;})&&(data.joys||[]).length>0){
+      items.push({ic:'💗',t:'今天还没写小确幸',s:'一句话也算数',act:"showPage('profile')",pri:3});
+    }
+  }catch(e){}
+  if(!items.length){
+    box.style.display='none';
+    // 没有待办时，原来的 reminder-banner 继续独立显示（不丢功能）
+    if(banner&&typeof renderReminderBanner==='function'){ try{renderReminderBanner();}catch(e){} }
+    return;
+  }
+  // 去重：待办卡已经涵盖了 banner 的全部内容 → 隐藏 banner，避免同屏出现两条相似提醒
+  if(banner)banner.style.display='none';
+  items.sort(function(a,b){return a.pri-b.pri;});
+  // 同一趟行程可能命中多条（「还没安排行程」+「还有 5 天出发」）—— 只留优先级最高的一条，
+  // 否则用户会看到同一个行程连着出现两行，正是「不要重复功能」要避免的。
+  var seen={},uniq=[];
+  items.forEach(function(it){
+    var k=it.tk||it.t;
+    if(k&&seen[k])return;
+    if(k)seen[k]=1;
+    uniq.push(it);
+  });
+  items=uniq.slice(0,4);
+  var h='<div class="todo-card"><div class="todo-h"><span>📌 该做的事</span><span class="todo-n">'+items.length+' 项</span></div>';
+  items.forEach(function(it){
+    h+='<div class="todo-i" onclick="'+it.act+'"><span class="todo-ic">'+it.ic+'</span>'+
+       '<span class="todo-tx"><b>'+escapeHTML(it.t)+'</b><i>'+escapeHTML(it.s)+'</i></span>'+
+       '<span class="todo-go">›</span></div>';
+  });
+  h+='</div>';
+  box.innerHTML=h;
+  box.style.display='block';
+}
+function renderHomeCollab(){
+  var box=document.getElementById('home-collab');
+  if(!box)return;
+  try{
+    var ns=(typeof notifLoad==='function')?notifLoad():[];
+    var list=(ns||[]).filter(function(n){return n&&(n.type==='collab'||n.type==='photo'||/^col\|/.test(n.key||'')||/^photo\|/.test(n.key||''));});
+    list.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    list=list.slice(0,4);
+    if(!list.length){ box.style.display='none'; return; }
+    var me=ghUserId();
+    var h='<div class="collab-card"><div class="collab-h"><span>💞 TA 的动态</span><span class="collab-n">最近 '+list.length+' 条</span></div>';
+    list.forEach(function(n){
+      var actorUid=(n.actor&&String(n.actor).indexOf('u_')===0)?n.actor:'';
+      var isMe=actorUid&&actorUid===me;
+      var actorName=actorUid?((typeof peerName==='function'?peerName(actorUid):actorUid)):(n.actor||'旅伴');
+      var color=(typeof uidColor==='function')?uidColor(actorUid||''):'var(--primary)';
+      h+='<div class="collab-i">'+
+         '<span class="collab-av" style="background:'+color+'">'+escapeHTML(String(actorName).slice(0,1))+'</span>'+
+         '<span class="collab-tx"><b>'+(isMe?'我':escapeHTML(actorName))+'</b> '+escapeHTML(n.title||'')+
+         '<i>'+relTimeAgo(n.ts||0)+'</i></span></div>';
+    });
+    h+='</div>';
+    box.innerHTML=h;
+    box.style.display='block';
+  }catch(e){ box.style.display='none'; }
+}
 function renderHome(){
   var city=getActiveWeatherCity();
   // v144.14: 今日回忆（往年今天 / 上次来这里）—— 失败不拖垮首页
   try{renderTodayMemory();}catch(e){console.warn('today memory',e);}
+  // v144.27: 待办卡 + TA 的动态（都复用已有数据，失败不拖垮首页）
+  try{renderHomeTodo();}catch(e){console.warn('home todo',e);}
+  try{renderHomeCollab();}catch(e){console.warn('home collab',e);}
   document.getElementById('greet-hi').textContent='Hi, '+city+' 👋';
   document.getElementById('greet-msg').textContent=(data.settings.slogan||'让每一次出行都值得期待');
   // hero-title: user-editable, persist into data.settings.heroTitle (不再跟 city 派生 —
