@@ -450,6 +450,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .pomo-mini .pm-t{font-size:11px;font-weight:800;color:var(--primary-dark);margin-top:2px;letter-spacing:.3px;}
 @media (prefers-reduced-motion:no-preference){.pomo-mini{transition:transform .2s,opacity .2s;}}
 .pomo-mini:active{transform:scale(.92);}
+/* v144.28: 行程详情「照片优先」网格 */
+.tdpf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:10px 18px 0;}
+.tdpf-cell{aspect-ratio:1;border-radius:9px;overflow:hidden;background:var(--album-cell-grad);cursor:pointer;}
+.tdpf-cell:active{transform:scale(.97);opacity:.9;}
+.tdpf-cell img{width:100%;height:100%;object-fit:cover;display:block;}
 /* v144.27: 首页常驻搜索条 + 待办卡 + TA的动态 */
 /* v144.27: FAB 会压住内容，给首页底部留出空间 */
 .page-home{padding-bottom:76px;}
@@ -988,10 +993,24 @@ img.photo-fade.loaded{opacity:1;}
 .album-spinner{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:6px;border-radius:50%;border:2px solid var(--border-strong);border-top-color:var(--primary-solid);animation:album-spin .7s linear infinite;}
 @keyframes album-spin{to{transform:rotate(360deg);}}
 @media (prefers-reduced-motion:reduce){.album-spinner{animation:none;}}
-.album-cell{aspect-ratio:1;background:var(--album-cell-grad);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
-.album-cell img{width:100%;height:100%;object-fit:cover;}
+/* v144.28: 相册手账化 —— 白色相框（拍立得边）+ 日期戳 + 轻微错落。
+   保持「3 列 + aspect-ratio:1 + lazy」不变：这套是 v98 为绕开 iOS Safari
+   内存上限做的（一次注入 300 张 base64 会把标签页搞崩），改布局等于把性能修复推翻。
+   只在视觉层加质感，不动分页与图片加载策略。 */
+.album-grid{gap:9px;}
+.album-cell{aspect-ratio:1;background:var(--album-cell-grad);border-radius:6px;overflow:hidden;cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  padding:2.5px 2.5px 11px;background:#fff;box-shadow:0 1px 5px rgba(124,58,237,.13);transition:transform .16s,box-shadow .16s;}
+.album-cell>img,.album-cell>.album-emo{width:100%;height:100%;object-fit:cover;border-radius:4px;}
+/* 轻微错落：只转一部分且幅度极小，避免整屏看着歪斜 */
+.album-grid .album-cell:nth-child(6n+1){transform:rotate(-.9deg);}
+.album-grid .album-cell:nth-child(6n+4){transform:rotate(.8deg);}
+.album-cell:active{transform:rotate(0) scale(.97);box-shadow:0 1px 3px rgba(124,58,237,.2);}
 .album-cell .album-emo{font-size:32px;opacity:.5;}
-.album-cell .album-info{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));color:#fff;font-size:10px;font-weight:500;}
+/* 日期戳：放在相框底部白边里，像手账上的日期章 */
+.album-cell .album-info{position:absolute;bottom:0;left:0;right:0;padding:1px 4px 0;
+  color:#A8B3C4;font-size:8.5px;font-weight:600;text-align:center;letter-spacing:.3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;background:#fff;}
 .album-empty{padding:60px 20px;text-align:center;color:var(--text-light);}
 
 /* Toast */
@@ -1631,6 +1650,11 @@ setTimeout(function(){
     </div>
     <!-- v144.5: 归属筛选 —— 多人行程按「这段是谁的行程」过滤时间线（renderTimeline 动态填充） -->
     <div class="owner-filter" id="td-owner-filter"></div>
+    <!-- v144.28: 照片优先模式 —— 行程详情实测 5.23 屏，用户 80% 是为了看照片，
+         却要一路滚下去。这里加一个开关：当天有照片时先铺满照片当主角，
+         行程安排/地图/攻略收进下方，滚动一下就看到（不改原渲染，只切显隐）。 -->
+    <div id="td-photo-toggle-wrap" style="padding:10px 18px 0;"></div>
+    <div id="td-photo-first" style="display:none;"></div>
     <div class="timeline" id="td-timeline" data-page-node-id="H7AcTptBoF8cDw54H0dboC"></div>
     <div class="td-map" id="td-map" data-page-node-id="fScJXRulXtSPJPSeivpOL7">
       <div id="td-map-real" data-page-node-id="8bWNOXDO40pqlefM2BOUUg"></div>
@@ -2197,6 +2221,7 @@ setTimeout(function(){
     <div id="year-poster-box" style="margin-top:10px;overflow:auto;-webkit-overflow-scrolling:touch;max-height:55vh;border-radius:14px;background:var(--muted-bg);padding:10px;" data-page-node-id="qCgIDjlBYdxzZxMCCABuPv"></div>
     <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;text-align:center;" data-page-node-id="NFJvrcyF45FuYUwA3VDple">iOS 点保存后会打开分享 sheet，选「存储图像」即可；若失败可长按图片保存</div>
     <div class="modal-actions" data-page-node-id="d4AI6TxUqA3yImEQePJ90r">
+      <button class="btn btn-primary" onclick="saveYearPoster()" data-page-node-id="v14428savebtn">💾 保存图片</button>
       <button class="btn btn-ghost" onclick="closeModal('year-modal')" data-page-node-id="DvSYFGGMjzIxz6DwIOHB6o">关闭</button>
       <button class="btn btn-primary" onclick="downloadYearPoster()" data-page-node-id="zJEAt2uGtF5B4sGEcG5Cia">保存长图</button>
     </div>
@@ -2717,7 +2742,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.27';
+var APP_VERSION='v144.28';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6618,29 +6643,71 @@ function renderHomeTodo(){
 function renderHomeCollab(){
   var box=document.getElementById('home-collab');
   if(!box)return;
+  var feed=[];
   try{
+    var me='';
+    try{ me=ghUserId()||''; }catch(e){}
+
+    // ---- 源 1：协作通知（最准，有明确 actor + 动作）----
     var ns=(typeof notifLoad==='function')?notifLoad():[];
-    var list=(ns||[]).filter(function(n){return n&&(n.type==='collab'||n.type==='photo'||/^col\|/.test(n.key||'')||/^photo\|/.test(n.key||''));});
-    list.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
-    list=list.slice(0,4);
-    if(!list.length){ box.style.display='none'; return; }
-    var me=ghUserId();
-    var h='<div class="collab-card"><div class="collab-h"><span>💞 TA 的动态</span><span class="collab-n">最近 '+list.length+' 条</span></div>';
-    list.forEach(function(n){
+    (ns||[]).forEach(function(n){
+      if(!n)return;
+      var isCollab=(n.type==='collab'||n.type==='photo'||/^col\|/.test(n.key||'')||/^photo\|/.test(n.key||''));
+      if(!isCollab)return;
       var actorUid=(n.actor&&String(n.actor).indexOf('u_')===0)?n.actor:'';
-      var isMe=actorUid&&actorUid===me;
-      var actorName=actorUid?((typeof peerName==='function'?peerName(actorUid):actorUid)):(n.actor||'旅伴');
-      var color=(typeof uidColor==='function')?uidColor(actorUid||''):'var(--primary)';
+      feed.push({
+        uid:actorUid, me:(actorUid&&actorUid===me),
+        txt:n.title||'', ts:n.ts||0, pri:1
+      });
+    });
+
+    // ---- 源 2：小确幸（**唯一在老数据里就带作者+时间的**）----
+    // 你的历史地点没有 owner/createdBy、云端 notifs 又是空的，
+    // 所以「谁做了什么」只能从小确幸拿 —— 它 v133 起就写 uid。
+    (data.joys||[]).forEach(function(j){
+      if(!j||!j.ts)return;
+      var u=j.uid||'';
+      feed.push({ uid:u, me:(u&&u===me), txt:(j.text||'').trim(), ts:j.ts, pri:2 });
+    });
+
+    // ---- 源 3：行程/地点最近更新（老数据没有作者，只说「有更新」）----
+    (data.trips||[]).forEach(function(t){
+      if(!t||!t.updatedAt)return;
+      var ts=tsOf(t.updatedAt);
+      if(!ts)return;
+      feed.push({ uid:'', me:false, txt:'更新了「'+(t.title||t.destination||'行程')+'」', ts:ts, pri:3 });
+    });
+
+    feed.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    // 同一 uid + 同一天只留一条，避免刷屏
+    var seen={},uniq=[];
+    feed.forEach(function(f){
+      var k=(f.uid||'anon')+'@'+dateKey(new Date(f.ts||Date.now()));
+      if(seen[k])return;
+      seen[k]=1;uniq.push(f);
+    });
+    feed=uniq.slice(0,5);
+    if(!feed.length){ box.style.display='none'; return; }
+
+    var hasOther=feed.some(function(f){return !f.me;});
+    var h='<div class="collab-card"><div class="collab-h"><span>💞 最近的痕迹</span>'+
+           '<span class="collab-n">你们共同留下的</span></div>';
+    feed.forEach(function(f){
+      var nm=f.uid?((typeof peerName==='function')?peerName(f.uid):f.uid):'';
+      var ini=f.uid?String(nm).slice(0,1):'✈️';
+      var color=f.uid?((typeof uidColor==='function')?uidColor(f.uid):'var(--primary)'):'linear-gradient(135deg,#A78BFA,#C4B5FD)';
+      var who=f.uid?(f.me?'我':escapeHTML(nm)):'旅程';
       h+='<div class="collab-i">'+
-         '<span class="collab-av" style="background:'+color+'">'+escapeHTML(String(actorName).slice(0,1))+'</span>'+
-         '<span class="collab-tx"><b>'+(isMe?'我':escapeHTML(actorName))+'</b> '+escapeHTML(n.title||'')+
-         '<i>'+relTimeAgo(n.ts||0)+'</i></span></div>';
+         '<span class="collab-av" style="background:'+color+'">'+escapeHTML(ini)+'</span>'+
+         '<span class="collab-tx"><b>'+who+'</b> '+escapeHTML(String(f.txt||'').slice(0,28))+
+         '<i>'+relTimeAgo(f.ts||0)+'</i></span></div>';
     });
     h+='</div>';
     box.innerHTML=h;
     box.style.display='block';
   }catch(e){ box.style.display='none'; }
 }
+
 function renderHome(){
   var city=getActiveWeatherCity();
   // v144.14: 今日回忆（往年今天 / 上次来这里）—— 失败不拖垮首页
@@ -7846,6 +7913,54 @@ function renderTimeline(){
       '</div></div>';
   });
   document.getElementById('td-timeline').innerHTML=html;
+  try{ renderTdPhotoFirst(); }catch(e){}
+}
+
+/* ===== v144.28: 行程详情「照片优先」=====
+   开关状态存在 data.settings.tdPhotoFirst（随云端同步，两台设备偏好一致）。
+   没有照片的日子自动退回普通时间线 —— 不让开关变成「点了没反应」。 */
+function tdPhotoFirstOn(){
+  var s=data.settings||{};
+  return s.tdPhotoFirst!==false;   // 默认开启
+}
+function renderTdPhotoFirst(){
+  var wrap=document.getElementById('td-photo-toggle-wrap');
+  var box=document.getElementById('td-photo-first');
+  var tl=document.getElementById('td-timeline');
+  if(!wrap||!box||!tl)return;
+  var t=data.trips.find(function(x){return x.id===currentTripId;});
+  var day=(t&&(t.days||[])[currentTripDay])||null;
+  var shots=[];
+  if(day)(day.locations||[]).forEach(function(l){ (l.photos||[]).forEach(function(src,i){ shots.push({src:src,loc:l,idx:i}); }); });
+  var on=tdPhotoFirstOn();
+  if(!shots.length){
+    // 当天没照片 → 不显示开关、不动时间线
+    wrap.innerHTML=''; box.innerHTML=''; box.style.display='none'; tl.style.display='';
+    return;
+  }
+  wrap.innerHTML='<div style="display:flex;gap:8px;align-items:center;">'+
+    '<button class="tpl-btn" id="td-pf-btn" onclick="toggleTdPhotoMode()">'+(on?'📷 正在看照片':'🗂 看看行程安排')+'</button>'+
+    '<span style="font-size:11px;color:var(--text-light);">'+shots.length+' 张照片'+(on?' · 点按可放大':'')+'</span></div>';
+  if(on){
+    var h='<div class="tdpf-grid">';
+    shots.forEach(function(s,i){
+      h+='<div class="tdpf-cell" onclick="tdPfOpen(\''+s.loc.id+'\','+s.idx+')"><img loading="lazy" src="'+s.src+'"></div>';
+    });
+    h+='</div><div class="tools-dim" style="text-align:center;padding:8px 0 2px;font-size:11px;">'
+      +'这一天 '+shots.length+' 张照片 · 往下滑看安排和地图 ↓</div>';
+    box.innerHTML=h; box.style.display='block'; tl.style.display='none';
+  }else{
+    box.innerHTML=''; box.style.display='none'; tl.style.display='';
+  }
+}
+function toggleTdPhotoMode(){
+  data.settings=data.settings||{};
+  data.settings.tdPhotoFirst=!tdPhotoFirstOn();
+  try{ saveData(); }catch(e){}
+  try{ renderTdPhotoFirst(); }catch(e){}
+}
+function tdPfOpen(locId,idx){
+  try{ var ev=new CustomEvent('open-location-photos',{detail:{locId:locId,idx:idx}}); document.dispatchEvent(ev); }catch(e){}
 }
 // v144.4: 地点协作署名行 —— 「谁添加 · 谁最后修改(时间)」。数据由 saveLocation 写入
 // createdBy / editedBy+editedAt，随 _fts 白名单跨设备合并（对端较新者赢 → 实时同步）。
@@ -11133,6 +11248,12 @@ var ALBUM_MAX_CELLS=600;
 var ALBUM_STATE={photos:[],rendered:0,lastMonth:'',lastTrip:'',obs:null,loading:false};
 var ALBUM_SELECT=new Set();   // selected photo indices (into ALBUM_STATE.photos)
 var albumManage=false;        // album batch-select / delete mode (v141 #242)
+// v144.28: 相册日期戳 —— 优先日期（08.12），没日期才退回地点名
+function albumStamp(d,locName){
+  var ds=String(d||'').trim();
+  if(ds.length>=10)return ds.slice(5).replace('-','.');
+  return locName||'';
+}
 function albumMonthLabel(d){
   return (d||'').slice(0,4)+' 年 '+parseInt((d||'').slice(5,7),10)+' 月';
 }
@@ -11154,7 +11275,7 @@ function albumBuildCells(from,to){
     }
     var sel=ALBUM_SELECT.has(i)?' sel':'';
     var check=ALBUM_SELECT.has(i)?'✓':'';
-    g+='<div class="album-cell photo-skeleton'+sel+'" data-i="'+i+'"><div class="ph-sel">'+check+'</div><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(p.locName||'')+'</div></div>';
+    g+='<div class="album-cell photo-skeleton'+sel+'" data-i="'+i+'"><div class="ph-sel">'+check+'</div><img loading="lazy" class="photo-fade" src="'+p.src+'" onload="this.classList.add(\'loaded\');this.parentElement.classList.remove(\'photo-skeleton\');"><div class="album-info">'+escapeHTML(albumStamp(p.d,p.locName))+'</div></div>';
   }
   return g;
 }
@@ -12906,6 +13027,57 @@ function openYearPoster(){
   }
   document.getElementById('year-modal').classList.add('active');
   renderYearPoster();
+}
+/* v144.28: 年度账单本来就是 canvas 画的（drawYearPoster 640×980），
+   所以「分享」不需要新画布 —— 直接把这块 canvas 导出成 PNG。
+   iOS Safari 对 navigator.share 的 files 支持不稳，所以策略是：
+   能分享就分享（原生菜单），不能就降级为下载，用户自己存到相册。 */
+function yearPosterToBlob(cb){
+  try{
+    var cv=document.getElementById('year-canvas');
+    if(!cv){ showToast('还没生成账单哦'); return; }
+    if(cv.toBlob){ cv.toBlob(function(b){ cb(b); },'image/png'); }
+    else{ cb(dataURLToBlob(cv.toDataURL('image/png'))); }
+  }catch(e){ showToast('导出失败：'+String(e&&e.message||e).slice(0,40)); }
+}
+function dataURLToBlob(dataURL){
+  var parts=dataURL.split(','), mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/png';
+  var bin=atob(parts[1]||''), len=bin.length, arr=new Uint8Array(len);
+  for(var i=0;i<len;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+function saveYearPoster(){
+  yearPosterToBlob(function(b){
+    if(!b){ showToast('导出失败'); return; }
+    try{
+      var url=URL.createObjectURL(b);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='旅行账单-'+(document.getElementById('year-select')&&document.getElementById('year-select').value||'')+'.png';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){try{URL.revokeObjectURL(url);}catch(e){}},4000);
+      showToast('已保存到下载 💾 iPhone 可存到相册');
+    }catch(e){ showToast('保存失败，长按图片可手动保存'); }
+  });
+}
+function shareYearPoster(){
+  yearPosterToBlob(function(b){
+    if(!b){ showToast('导出失败'); return; }
+    var file=null;
+    try{ file=new File([b],'旅行账单.png',{type:'image/png'}); }catch(e){}
+    if(navigator.share&&file&&navigator.canShare){
+      try{
+        if(navigator.canShare({files:[file]})){
+          navigator.share({files:[file],title:'我们的年度旅行账单'}).then(function(){}).catch(function(e){
+            if(e&&e.name==='AbortError')return;
+            showToast('分享失败，点「保存图片」试试');
+          });
+          return;
+        }
+      }catch(e){}
+    }
+    saveYearPoster();
+  });
 }
 function drawYearPoster(st,photos,canvas){
   var W=640,H=980;
