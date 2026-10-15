@@ -1,5 +1,5 @@
 // Service Worker for Lattiao Travel Journal PWA v98
-const CACHE_NAME = 'lattiao-travel-v144.25';
+const CACHE_NAME = 'lattiao-travel-v144.26';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -96,7 +96,29 @@ function readAppearance() {
 self.addEventListener('message', function (e) {
   var d = e && e.data;
   if (d && d.type === 'appearance' && d.payload) APPEAR_MEM = d.payload;
+
+  // v144.26: 用户点「发现新版本 → 点击刷新」时，页面不知道本 SW 的 CACHE_NAME
+  //（那是 sw.js 里的常量），所以由 SW 自己把线上最新版 index.html 拉下来写进缓存，
+  // 页面随后 reload 就能**一次**拿到新版，而不是「先旧、再刷新、再新」。
+  // 离线时 fetch 会失败，页面照常 reload，至少还有旧缓存兜底。
+  if (d && d.type === 'CACHE_NEW_INDEX') {
+    event_and_ack(e, CACHE_NAME);
+  }
 });
+
+function event_and_ack(e, cacheName) {
+  var src = e && e.source;
+  var reply = function (ok) { if (src && src.postMessage) src.postMessage({ type: 'CACHE_NEW_INDEX_DONE', ok: !!ok }); };
+  var p = fetch('./index.html?u=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) {
+      if (!r || !r.ok) throw new Error('bad status ' + (r && r.status));
+      return caches.open(cacheName).then(function (c) { return c.put('./index.html', r.clone()).then(function () { return c.put('./', r); }); });
+    })
+    .then(function () { reply(true); })
+    .catch(function () { reply(false); });
+  if (e && e.waitUntil) e.waitUntil(p);
+  return p;
+}
 function openIconDb() {
   return new Promise(function(resolve, reject) {
     if (!self.indexedDB) return reject(new Error('no idb'));

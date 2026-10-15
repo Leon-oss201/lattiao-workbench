@@ -2479,6 +2479,7 @@ setTimeout(function(){
           <button class="btn btn-ghost" style="flex:1;" onclick="renderSyncHealth()">🔍 刷新健康度</button>
           <button class="btn btn-ghost" style="flex:1;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="syncNowManual()">☁️ 立即同步</button>
         </div>
+        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="checkForUpdateManual()">🆕 检查更新（当前 <span id="cur-ver-here"></span>）</button>
       </div>
     </details>
     <details class="set-acc" data-page-node-id="v141photo">
@@ -2559,9 +2560,26 @@ setTimeout(function(){
       console.warn('SW register failed',e);
     });
   }
+  /* v144.26: 版本比较之前一直是坏的 ——
+     正则 /lattiao-travel-v(\d+)/ 只取整数段，v144.24 和 v144.25 都变成「v144」；
+     而本页自己用 replace(/\D/g,'') 把 'v144.24' 变成 '14424'（小数点被抹平）。
+     于是 `144 > 14424` 恒为 false —— **「发现新版本」横幅从引入小数版本号起就没再出现过**，
+     用户只能靠 SW 的后台静默更新，等多久全看运气。
+     现在：正则保留小数段 + 逐段语义比较。 */
+  function parseVerStr(v){
+    return String(v||'').replace(/^v/,'').split('.').map(function(x){return parseInt(x,10)||0;});
+  }
+  function verGreater(a,b){
+    var A=parseVerStr(a),B=parseVerStr(b);
+    for(var i=0;i<Math.max(A.length,B.length);i++){
+      var x=A[i]||0,y=B[i]||0;
+      if(x!==y)return x>y;
+    }
+    return false;
+  }
   function latestVersionFromSW(text){
-    var m=text.match(/lattiao-travel-v(\d+)/);
-    return m?('v'+m[1]):null;
+    var m=text.match(/lattiao-travel-v([\d.]+)/);
+    return m?('v'+m[1].replace(/\.+$/,'')):null;
   }
   var done=false;
   function check(){
@@ -2570,19 +2588,24 @@ setTimeout(function(){
     // 「检测线上是否有新版本」的自检 —— 它只对真实部署的 HTTPS 站点有意义。
     if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')return;
     // Read APP_VERSION lazily — the assignment below happens after this IIFE runs.
-    var myVer=parseInt((window.APP_VERSION||'v0').replace(/\D/g,''),10)||0;
+    // v144.26: 保留完整版本串做逐段比较，不能再抹掉小数点
+    var myVer=(window.APP_VERSION||'v0');
     try{
       fetch('./sw.js?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(txt){
         var latest=latestVersionFromSW(txt);
         if(!latest)return;
-        var latestN=parseInt(latest.replace(/\D/g,''),10)||0;
-        if(latestN>myVer){
+        if(verGreater(latest,myVer)){
           console.warn('[updater] found newer build',latest,'current',APP_VERSION);
           showUpdateBanner(latest);
         }
       }).catch(function(e){console.warn('version check failed',e);});
     }catch(e){console.warn('version check error',e);}
   }
+  // v144.26: 暴露到全局 —— 设置页的「检查更新」按钮（全局函数）要用到它们，
+  // 之前只在本 IIFE 内可见，外部调用会 ReferenceError。
+  window.verGreater=verGreater;
+  window.latestVersionFromSW=latestVersionFromSW;
+  window.parseVerStr=parseVerStr;
   // Check after first paint + again after a short delay (covers slow networks).
   window.addEventListener('load',function(){setTimeout(check,800);setTimeout(check,6000);});
 })();
@@ -2601,22 +2624,57 @@ function showUpdateBanner(latest){
     // v90: before reloading, nudge the service worker to re-download sw.js so
     // the new SW takes over on the next load (a reload alone could otherwise
     // still be served by the cached old SW).
-    bar.onclick=function(){
-      try{
-        if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){
-          navigator.serviceWorker.getRegistration().then(function(reg){
-            if(reg&&reg.update)reg.update();
-            setTimeout(function(){location.reload();},700);
-          }).catch(function(){location.reload();});
-        }else{location.reload();}
-      }catch(e){location.reload();}
-    };
+    bar.onclick=function(){ refreshToLatest(); };
     document.body.appendChild(bar);
   }catch(e){console.warn('update banner error',e);}
 }
+/* v144.26: 「刷新到最新版」的正确姿势。
+   以前是 reg.update() + 700ms 后 reload —— 但 SW 的 staleWhileRevalidate 会**先返回缓存里的旧
+   index.html**，后台才更新，所以用户要点好几次才看到新版（正是你反馈的现象）。
+   现在改成：让 SW 先把线上最新 index.html 拉下来写进缓存，ack 回来再 reload —— 一次到位。
+   离线时 ack=false，照常 reload（至少有旧缓存兜底，不会卡死）。 */
+function refreshToLatest(){
+  var reload=function(){ try{location.reload();}catch(e){} };
+  var askSW=function(){
+    try{
+      var ctl=navigator.serviceWorker&&navigator.serviceWorker.controller;
+      if(!ctl){return false;}
+      var settled=false;
+      var timer=setTimeout(function(){ if(!settled){ settled=true; cleanup(); reload(); } },4000);
+      function onMsg(e){
+        if(e&&e.data&&e.data.type==='CACHE_NEW_INDEX_DONE'){ settled=true; clearTimeout(timer); cleanup(); reload(); }
+      }
+      function cleanup(){ try{navigator.serviceWorker.removeEventListener('message',onMsg);}catch(e){} }
+      navigator.serviceWorker.addEventListener('message',onMsg);
+      ctl.postMessage({type:'CACHE_NEW_INDEX'});
+      return true;
+    }catch(e){ return false; }
+  };
+  try{
+    if(askSW())return;
+  }catch(e){}
+  reload();
+}
+// 设置页手动「检查更新」：拿到新版直接预热 + 刷新，并明确告知结果
+function checkForUpdateManual(){
+  showToast('正在检查…');
+  try{
+    fetch('./sw.js?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(txt){
+      var latest=latestVersionFromSW(txt);
+      var mine=(window.APP_VERSION||'v0');
+      if(!latest){ showToast('无法识别线上版本'); return; }
+      if(!verGreater(latest,mine)){
+        showToast('✅ 已是最新（'+mine+'）');
+        return;
+      }
+      showToast('发现新版本 '+latest+'，正在更新…');
+      refreshToLatest();
+    }).catch(function(){ showToast('检查失败，请检查网络'); });
+  }catch(e){ showToast('检查失败'); }
+}
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.25';
+var APP_VERSION='v144.26';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -10265,6 +10323,7 @@ function openSettings(){
   try{ piRenderPicker(); }catch(e){}
   // v144.24: 折叠头摘要
   setTimeout(updateSetSummaries,80);
+  try{ var cv=document.getElementById('cur-ver-here'); if(cv)cv.textContent=window.APP_VERSION||''; }catch(e){}
   // Show current token health at a glance — saves the user from re-typing a bad token.
   var t=ghToken();
   var el=document.getElementById('token-status');
