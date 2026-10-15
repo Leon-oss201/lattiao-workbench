@@ -2742,7 +2742,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.28';
+var APP_VERSION='v144.29';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -12083,18 +12083,17 @@ var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budg
 // v102: notifications now live in data.notifs so they sync across collaborators
 function notifLoad(){
   if(!data.notifs)data.notifs=[];
-  // v144.23: 防御脏数据 —— 云端合并/历史遗留里可能混进没有 title 的条目，
-  // 渲染时 escapeHTML(undefined) 会让通知中心出现字面量「undefined」的空白通知。
-  // 这里只丢掉「既没有 title 也没有 text」的条目，真实通知一律保留。
-  try{
-    var arr=Array.isArray(data.notifs)?data.notifs:[];
-    var clean=arr.filter(function(n){return n&&typeof n==='object'&&(n.title||n.text);});
-    if(clean.length!==arr.length){
-      data.notifs=clean;
-      notifSave(clean,true);   // quiet：自愈不应触发上传
-    }
-  }catch(e){}
   return data.notifs;
+}
+/* v144.28: 通知渲染前的**只读**净化 —— 只影响「显示什么」，绝不改写/落盘数据。
+   之前 v144.23 是在 notifLoad 里 filter 之后直接 notifSave 落盘删条目 —— 那是**有风险的自愈**：
+   万一某条通知的正文存在别的字段（不是 title/text），它会被永久删除且不可恢复。
+   现在改成：渲染时用 notifSafeList() 过滤，原始 data.notifs 一个字节都不动。
+   代价是「空条目」仍会占 data.notifs 的名额（上限 80），换取「绝不丢数据」。 */
+function notifSafeList(){
+  var arr=notifLoad();
+  if(!Array.isArray(arr))return [];
+  return arr.filter(function(n){return n&&typeof n==='object'&&(n.title||n.text||n.msg||n.content);});
 }
 function notifSave(a,quiet){
   data.notifs=(a||[]).slice(0,80);
@@ -12168,7 +12167,7 @@ function openNotifCenter(){
 function renderNotifList(){
   var box=document.getElementById('notif-list');
   if(!box)return;
-  var a=notifLoad();
+  var a=notifSafeList();   // v144.28: 只读净化，不动原始数据
   if(!a.length){
     box.innerHTML='<div class="srch-empty">还没有通知 ✨<br><span style="font-size:11px;">出发提醒、天气预警、朋友的更新都会出现在这里</span></div>';
     return;
