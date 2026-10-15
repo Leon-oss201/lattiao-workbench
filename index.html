@@ -2616,7 +2616,7 @@ function showUpdateBanner(latest){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.24';
+var APP_VERSION='v144.25';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -11387,14 +11387,32 @@ function piDb(){
     rq.onerror=function(){ rej(rq.error||new Error('idb open failed')); };
   });
 }
-function piSaveIconBlob(blob){
+// v144.25: 存 Blob 失败时自动降级为「存 dataURL 字符串」。
+// 实测（WebKit/iOS 引擎）：IndexedDB put(Blob) 直接失败且 tx.error 为 null，
+// 而 put(字符串) 正常 —— 「上传自己的图标」在 iPhone 上会直接失效。
+// 读的时候两种都认，所以降级对用户完全无感。
+function piIdbPut(key,val){
   return piDb().then(function(db){
     return new Promise(function(res,rej){
       var tx=db.transaction('icons','readwrite');
-      tx.objectStore('icons').put(blob,'appIcon');
+      tx.objectStore('icons').put(val,key);
       tx.oncomplete=function(){ db.close(); res(true); };
-      tx.onerror=function(){ db.close(); rej(tx.error); };
+      tx.onerror=function(){ var e=tx.error||new Error('idb write failed'); db.close(); rej(e); };
+      tx.onabort=function(){ db.close(); rej(new Error('idb tx aborted')); };
     });
+  });
+}
+function piBlobToDataURL(blob){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(){ res(String(fr.result||'')); };
+    fr.onerror=function(){ rej(new Error('read blob failed')); };
+    fr.readAsDataURL(blob);
+  });
+}
+function piSaveIconBlob(blob){
+  return piIdbPut('appIcon',blob).catch(function(){
+    return piBlobToDataURL(blob).then(function(u){ return piIdbPut('appIcon',u); });
   });
 }
 function piLoadIconBlob(){
@@ -11402,8 +11420,15 @@ function piLoadIconBlob(){
     return new Promise(function(res,rej){
       var tx=db.transaction('icons','readonly');
       var rq=tx.objectStore('icons').get('appIcon');
-      rq.onsuccess=function(){ var v=rq.result; db.close(); res(v||null); };
-      rq.onerror=function(){ db.close(); rej(rq.error); };
+      rq.onsuccess=function(){
+        var v=rq.result; db.close();
+        // 可能是 Blob（首选），也可能是 dataURL 字符串（Blob 存失败时的降级格式）
+        if(v&&typeof v==='string'&&v.indexOf('data:')===0){
+          return fetch(v).then(function(r){return r.blob();}).catch(function(){return null;});
+        }
+        res(v||null);
+      };
+      rq.onerror=function(){ db.close(); rej(rq.error||new Error('idb read failed')); };
     });
   }).catch(function(){ return null; });
 }

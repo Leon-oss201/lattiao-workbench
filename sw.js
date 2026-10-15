@@ -1,5 +1,5 @@
 // Service Worker for Lattiao Travel Journal PWA v98
-const CACHE_NAME = 'lattiao-travel-v144.24';
+const CACHE_NAME = 'lattiao-travel-v144.25';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -111,7 +111,14 @@ function readCustomIcon() {
     return new Promise(function(resolve) {
       var tx = db.transaction('icons', 'readonly');
       var rq = tx.objectStore('icons').get('appIcon');
-      rq.onsuccess = function () { var v = rq.result; db.close(); resolve(v || null); };
+      rq.onsuccess = function () {
+        var v = rq.result; db.close();
+        // 兼容降级格式：Blob 存失败时页面会存 dataURL 字符串，这里换回 Blob
+        if (v && typeof v === 'string' && v.indexOf('data:') === 0) {
+          return fetch(v).then(function (r) { return r.blob(); }).catch(function () { return null; });
+        }
+        resolve(v || null);
+      };
       rq.onerror = function () { db.close(); resolve(null); };
     });
   }).catch(function () { return null; });
