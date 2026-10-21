@@ -2713,6 +2713,8 @@ var UPDATE_BANNER_SHOWN=false;
 function showUpdateBanner(latest){
   if(UPDATE_BANNER_SHOWN)return;
   UPDATE_BANNER_SHOWN=true;
+  // v144.34: 记下要跳到哪个版本（刷新时用 ?v= 强制绕过缓存）
+  try{ window.__LATEST_VER__=latest||''; }catch(e){}
   try{
     if(document.getElementById('update-banner'))return;
     var bar=document.createElement('div');
@@ -2731,28 +2733,40 @@ function showUpdateBanner(latest){
    index.html**，后台才更新，所以用户要点好几次才看到新版（正是你反馈的现象）。
    现在改成：让 SW 先把线上最新 index.html 拉下来写进缓存，ack 回来再 reload —— 一次到位。
    离线时 ack=false，照常 reload（至少有旧缓存兜底，不会卡死）。 */
+/* v144.34: 刷新到最新版 —— 改成「**物理上不可能失败**」的做法。
+   v144.33 靠 postMessage 让 SW 预热缓存，线上实测 **SW 根本不回 ack**
+   （老版本 SW 里没有这段处理，或者消息通道在 iOS 上不通）→ 预热没发生 →
+   reload 命中旧缓存 → 永远更新不到（用户实测：横幅一直显示 v144.33）。
+
+   新方案：刷新时跳到 **`./?v=<新版本号>`**。
+   SW 的缓存是按「完整 URL」匹配的，带了 query 就**必然匹配不上缓存** →
+   一定走网络 → 一定拿到最新版本。不依赖 SW 通信、不依赖老 SW 版本。
+   页面加载后再用 history.replaceState 把 query 抹掉，地址栏保持干净。
+   同时仍然发一次预热消息（如果 SW 支持），让**下一次**不带 query 的访问也能秒开。 */
 function refreshToLatest(){
-  var reload=function(){ try{location.reload();}catch(e){} };
-  var askSW=function(){
-    try{
-      var ctl=navigator.serviceWorker&&navigator.serviceWorker.controller;
-      if(!ctl){return false;}
-      var settled=false;
-      var timer=setTimeout(function(){ if(!settled){ settled=true; cleanup(); reload(); } },4000);
-      function onMsg(e){
-        if(e&&e.data&&e.data.type==='CACHE_NEW_INDEX_DONE'){ settled=true; clearTimeout(timer); cleanup(); reload(); }
-      }
-      function cleanup(){ try{navigator.serviceWorker.removeEventListener('message',onMsg);}catch(e){} }
-      navigator.serviceWorker.addEventListener('message',onMsg);
-      ctl.postMessage({type:'CACHE_NEW_INDEX'});
-      return true;
-    }catch(e){ return false; }
-  };
+  var ver=(window.__LATEST_VER__||'').replace(/[^0-9A-Za-z.]/g,'');
+  // 1) 顺手预热（老 SW 不支持也无所谓，不阻塞）
   try{
-    if(askSW())return;
+    var ctl=navigator.serviceWorker&&navigator.serviceWorker.controller;
+    if(ctl){ try{ ctl.postMessage({type:'CACHE_NEW_INDEX'}); }catch(e){} }
   }catch(e){}
-  reload();
+  // 2) 强制绕过缓存：带 query 的地址 cache.match 必然落空
+  try{
+    if(ver){ location.replace('./?v='+encodeURIComponent(ver)); return; }
+  }catch(e){}
+  try{
+    if(ver){ location.href='./?v='+encodeURIComponent(ver); return; }
+  }catch(e){}
+  try{ location.reload(); }catch(e){}
 }
+// 页面加载后把 ?v=xxx 抹掉（地址栏干净，且不影响 SW 缓存键）
+(function(){
+  try{
+    if(location.search&&/[?&]v=/.test(location.search)){
+      history.replaceState(null,'',location.pathname+location.hash);
+    }
+  }catch(e){}
+})();
 // 设置页手动「检查更新」：拿到新版直接预热 + 刷新，并明确告知结果
 /* ===== v144.33: 照片 EXIF 自检 =====
    目的：让用户自己就能判断「照片的拍摄时间/GPS 有没有被读到」，
@@ -2816,13 +2830,14 @@ function checkForUpdateManual(){
         return;
       }
       showToast('发现新版本 '+latest+'，正在更新…');
+      try{ window.__LATEST_VER__=latest; }catch(e){}
       refreshToLatest();
     }).catch(function(){ showToast('检查失败，请检查网络'); });
   }catch(e){ showToast('检查失败'); }
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.33';
+var APP_VERSION='v144.34';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
