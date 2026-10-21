@@ -2575,6 +2575,9 @@ setTimeout(function(){
           <button class="btn btn-ghost" style="flex:1;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="syncNowManual()">☁️ 立即同步</button>
         </div>
         <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="checkForUpdateManual()">🆕 检查更新（当前 <span id="cur-ver-here"></span>）</button>
+        <!-- v144.33: EXIF 自检 —— 让用户一次就能定论「是 App 没读到，还是 iOS 抹掉了元数据」 -->
+        <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="exifSelfTest()">🔬 照片 EXIF 自检</button>
+        <input type="file" id="exif-test-input" accept="image/*" style="display:none;" onchange="exifSelfTestPick(event)" />
       </div>
     </details>
     <details class="set-acc" data-page-node-id="v141photo">
@@ -2751,6 +2754,56 @@ function refreshToLatest(){
   reload();
 }
 // 设置页手动「检查更新」：拿到新版直接预热 + 刷新，并明确告知结果
+/* ===== v144.33: 照片 EXIF 自检 =====
+   目的：让用户自己就能判断「照片的拍摄时间/GPS 有没有被读到」，
+   而不用猜是 App 的问题还是 iOS 抹掉了元数据。
+   读的是**原始文件头部**（与上传流程完全同一条路径），所以结果可代表真实表现。 */
+function exifSelfTest(){
+  var el=document.getElementById('exif-test-input');
+  if(el)el.click();
+}
+function exifSelfTestPick(e){
+  var f=e&&e.target&&e.target.files&&e.target.files[0];
+  try{ if(e.target)e.target.value=''; }catch(e2){}
+  if(!f)return;
+  showToast('正在读取…');
+  readExifMeta(f).then(function(meta){
+    var lines=[];
+    lines.push('文件名：'+f.name);
+    lines.push('大小：'+(f.size/1024).toFixed(0)+' KB');
+    lines.push('类型：'+(f.type||'未知'));
+    lines.push('── 解析结果 ──');
+    if(meta&&meta.at){
+      var d=new Date(meta.at);
+      lines.push('📅 拍摄时间：'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'));
+    }else{
+      lines.push('📅 拍摄时间：❌ 没读到');
+    }
+    if(meta&&(meta.lat||meta.lng)){
+      lines.push('📍 GPS：'+meta.lat.toFixed(5)+', '+meta.lng.toFixed(5));
+    }else{
+      lines.push('📍 GPS：❌ 没读到');
+    }
+    var ok=(meta&&meta.at)?1:0;
+    var verdict=ok
+      ? '✅ 读到了！照片上传后格子左下角会自动显示「📅 日期」。'
+      : '❌ 这张图里没有可读的 EXIF。\n· iPhone 原生照片通常**有**拍摄时间；\n· 若你是用第三方修图/压缩 App 导出的，元数据常被抹掉；\n· 也可以在「设置→隐私与安全性→定位服务→照片」里确认没有禁止分享位置。';
+    var box=document.createElement('div');
+    box.className='modal-overlay';
+    box.id='exif-test-modal';
+    box.innerHTML='<div class="modal"><div class="modal-handle"></div>'+
+      '<div class="modal-title">🔬 照片 EXIF 自检</div>'+
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.9;font-family:monospace;white-space:pre-wrap;word-break:break-all;">'+
+        escapeHTML(lines.join('\n'))+
+      '</div>'+
+      '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.7;background:var(--primary-lighter);color:var(--primary-dark);">'+
+        escapeHTML(verdict)+
+      '</div>'+
+      '<div class="modal-actions"><button class="btn btn-primary" onclick="closeModal(\'exif-test-modal\')">知道了</button></div></div>';
+    document.body.appendChild(box);
+    box.classList.add('active');
+  });
+}
 function checkForUpdateManual(){
   showToast('正在检查…');
   try{
@@ -2769,7 +2822,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.32';
+var APP_VERSION='v144.33';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
