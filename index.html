@@ -490,9 +490,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* v144.36: 通用触摸热区 —— 运行时扫描所有「可点但尺寸 < 40px」的元素，
    给它们加 .tap-fix，用 ::after 把**点击区域**撑到 44×44（视觉尺寸不变）。
    Apple HIG 要求 44×44pt；实测日历页有 27 个元素不达标（‹› 只有 18px 宽）。 */
+/* v144.36: 两类热区 ——
+   .tap-fix  → 元素是 static，需要 position:relative 才能让 ::after 相对它定位
+   .tap-fix2 → 元素已经是 absolute/relative/fixed，**本身��是定位基准**，
+                绝不能再设 position（会把 absolute 覆盖成 relative → 布局塌掉）。
+   这个坑踩过一次：首页 hero 里的 ⚙️🔍🔔🎁📴离线 标题全是 absolute，
+   被统一设成 relative 后全挤到顶部 → 整页跑偏。 */
 .tap-fix{position:relative;}
-.tap-fix::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:max(100%,44px);height:max(100%,44px);z-index:0;}
+.tap-fix::after,.tap-fix2::after{content:'';position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);width:max(100%,44px);height:max(100%,44px);z-index:0;}
 .todo-h,.collab-h{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 8px;
   font-size:13px;font-weight:700;color:var(--text);}
 .todo-n,.collab-n{font-size:11px;font-weight:400;color:var(--text-light);}
@@ -2902,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.36';
+var APP_VERSION='v144.37';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6911,6 +6917,17 @@ function renderHomeCollab(){
    之前用 CSS 逐个点名（日历 .cal-arrow 等），漏了一堆（"今天"、"全部"、展开按钮…）。
    改成**运行时扫描**：任何可点但 < 40px 的元素自动加 .tap-fix，
    换页面/重新渲染后自动重扫 —— 不用再手工维护类名清单。 */
+/* v144.36: 判断元素内部是否有 absolute 定位的子元素。
+   有的话就不能给这个元素加 position:relative —— 会改变那些子元素的定位基准。 */
+function hasAbsoluteChild(el){
+  try{
+    var kids=el.querySelectorAll('*');
+    for(var i=0;i<kids.length;i++){
+      if(getComputedStyle(kids[i]).position==='absolute')return true;
+    }
+  }catch(e){}
+  return false;
+}
 function fixTapTargets(){
   try{
     // 全局扫描（不限当前页）—— 日历等内容是异步渲染的，
@@ -6921,9 +6938,21 @@ function fixTapTargets(){
       var r=el.getBoundingClientRect();
       if(r.width===0||r.height===0)return;
       if(r.width<40||r.height<40){
-        if(!el.classList.contains('tap-fix'))el.classList.add('tap-fix');
-      }else if(el.classList.contains('tap-fix')){
+        // 关键约束（踩过两次坑）：
+        //  a) 只有 static 的元素才加 .tap-fix（它会设 position:relative）。
+        //     已经是 absolute/relative/fixed 的加 .tap-fix2 —— 它的 ::after 以自身为基准。
+        //  b) **容器里如果已经有 absolute 定位的子元素，绝不能动它的 position** ——
+        //     否则那些子元素的定位基准会从"外层祖先"变成"这个容器"，位置全乱。
+        //     实测：mood-cover（static）被设成 relative 后，里面的"晚上好"气泡
+        //     从卡内右上角跑到卡外，首页整个跑偏。
+        var st=getComputedStyle(el).position;
+        var canBeRelative=(st==='static')&&!hasAbsoluteChild(el);
+        var cls=canBeRelative?'tap-fix':'tap-fix2';
+        el.classList.add(cls);
+        el.classList.remove(cls==='tap-fix'?'tap-fix2':'tap-fix');
+      }else{
         el.classList.remove('tap-fix');
+        el.classList.remove('tap-fix2');
       }
     });
   }catch(e){}
