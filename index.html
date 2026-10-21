@@ -1668,8 +1668,8 @@ setTimeout(function(){
          实现上**不改任何现有区块结构**，只用 JS 打 data-tdtab 标记 + 切 display，
          这样编辑地点、滑动删除、懒加载等既有手势完全不受影响。 -->
     <div class="td-tabs" id="td-tabs">
-      <div class="tdt active" data-tdtab-btn="photo" onclick="tdSwitchTab('photo')">📷 照片</div>
-      <div class="tdt" data-tdtab-btn="plan" onclick="tdSwitchTab('plan')">📍 行程</div>
+      <div class="tdt active" data-tdtab-btn="plan" onclick="tdSwitchTab('plan')">📍 行程</div>
+      <div class="tdt" data-tdtab-btn="photo" onclick="tdSwitchTab('photo')">📷 照片</div>
       <div class="tdt" data-tdtab-btn="note" onclick="tdSwitchTab('note')">📝 记录</div>
       <div class="tdt" data-tdtab-btn="budget" onclick="tdSwitchTab('budget')">💰 预算</div>
     </div>
@@ -2769,7 +2769,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.31';
+var APP_VERSION='v144.32';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -7805,16 +7805,29 @@ function tdMarkTabs(){
   if(secs[1])secs[1].setAttribute('data-tdtab','photo');
   if(secs[2])secs[2].setAttribute('data-tdtab','budget');
 }
+/* v144.32: 修「切到预算 → 换一天 → 行程又被带出来」。
+   根因：renderTdPhotoFirst() 里直接写 `tl.style.display=''`（把时间线强制显示），
+   **抢了 Tab 的显示控制权** —— 切日期会触发 renderTimeline → renderTdPhotoFirst →
+   时间线被重新显示，不管当前在哪个 Tab。
+   修法：显示权收归一处 —— tdApplyTabVisibility()，所有区块的显隐只由它决定；
+   renderTdPhotoFirst 只管渲染内容，绝不碰 display。 */
+var TD_CUR_TAB='plan';
+function tdApplyTabVisibility(){
+  var sec=document.getElementById('page-trip-detail');
+  if(!sec)return;
+  Array.prototype.forEach.call(sec.querySelectorAll('[data-tdtab]'),function(el){
+    var on=(el.getAttribute('data-tdtab')===TD_CUR_TAB);
+    el.style.display=on?'':'none';
+  });
+}
 function tdSwitchTab(tab){
-  if(TD_TABS.indexOf(tab)<0)tab='photo';
+  if(TD_TABS.indexOf(tab)<0)tab='plan';
   try{ tdMarkTabs(); }catch(e){}
   var sec=document.getElementById('page-trip-detail');
   if(!sec)return;
-  // 切区块显隐
-  Array.prototype.forEach.call(sec.querySelectorAll('[data-tdtab]'),function(el){
-    var on=(el.getAttribute('data-tdtab')===tab);
-    el.style.display=on?'':'none';
-  });
+  TD_CUR_TAB=tab;
+  // 切区块显隐（唯一控制点）
+  tdApplyTabVisibility();
   // 切 Tab 头高亮
   Array.prototype.forEach.call(sec.querySelectorAll('[data-tdtab-btn]'),function(b){
     b.classList.toggle('active',b.getAttribute('data-tdtab-btn')===tab);
@@ -7834,17 +7847,9 @@ function tdSwitchTab(tab){
     },60);
   }
 }
-// 打开行程时决定默认 Tab：有照片先看照片，否则看行程
-function tdAutoTab(){
-  try{
-    var t=data.trips.find(function(x){return x.id===currentTripId;});
-    var has=false;
-    if(t)(t.days||[]).forEach(function(d){
-      (d.locations||[]).forEach(function(l){ if((l.photos&&l.photos.length)||l._photoCount)has=true; });
-    });
-    return has?'photo':'plan';
-  }catch(e){return 'plan';}
-}
+// v144.32: 默认 Tab 固定为「行程」（原来是有照片就自动切照片）。
+// 用户反馈：默认看照片的话，行程安排反而被藏起来了 —— 行程才是主信息。
+function tdAutoTab(){ return 'plan'; }
 function toggleTdNotes(){
   var body=document.getElementById('td-notes-body');
   var chev=document.getElementById('td-notes-chev');
@@ -8029,8 +8034,9 @@ function renderTdPhotoFirst(){
   if(day)(day.locations||[]).forEach(function(l){ (l.photos||[]).forEach(function(src,i){ shots.push({src:src,loc:l,idx:i}); }); });
   var on=tdPhotoFirstOn();
   if(!shots.length){
-    // 当天没照片 → 不显示开关、不动时间线
-    wrap.innerHTML=''; box.innerHTML=''; box.style.display='none'; tl.style.display='';
+    // 当天没照片 → 不显示开关（Tab 显隐交给 tdApplyTabVisibility）
+    wrap.innerHTML=''; box.innerHTML='';
+    try{ tdApplyTabVisibility(); }catch(e){}
     return;
   }
   wrap.innerHTML='<div style="display:flex;gap:8px;align-items:center;">'+
@@ -8042,11 +8048,13 @@ function renderTdPhotoFirst(){
       h+='<div class="tdpf-cell" onclick="tdPfOpen(\''+s.loc.id+'\','+s.idx+')"><img loading="lazy" src="'+s.src+'"></div>';
     });
     h+='</div><div class="tools-dim" style="text-align:center;padding:8px 0 2px;font-size:11px;">'
-      +'这一天 '+shots.length+' 张照片 · 往下滑看安排和地图 ↓</div>';
-    box.innerHTML=h; box.style.display='block'; tl.style.display='none';
+      +'这一天 '+shots.length+' 张照片 · 切到「行程」看安排 ↓</div>';
+    box.innerHTML=h;
   }else{
-    box.innerHTML=''; box.style.display='none'; tl.style.display='';
+    box.innerHTML='';
   }
+  // v144.32：**只应用 Tab 显隐，不自己决定谁显示**
+  try{ tdApplyTabVisibility(); }catch(e){}
 }
 function toggleTdPhotoMode(){
   data.settings=data.settings||{};
@@ -8777,6 +8785,26 @@ function noteQuickDel(id){
   toolsSave(); renderNoteList();
   try{updateRemindBadge();}catch(e){}
 }
+/* v144.32: 「在一起第 N 天」的起始日。
+   原来是从「最早一条旅行记录」起算（2026.08 → 204 天），但你和 Iris 是
+   2023-10-01 在一起的 —— 那才是真正的起点。
+   起始日固定在这里，也允许 data.settings.coupleSince 覆盖（以后想改不用改代码）。
+   计数规则：起始日当天 = 第 1 天，每天 +1。 */
+var COUPLE_SINCE='2023-10-01';
+function coupleSinceDate(){
+  try{
+    var s=(data.settings&&data.settings.coupleSince)||COUPLE_SINCE;
+    var d=parseDateStr(sanitizeDateStr(s));
+    if(d&&!isNaN(d.getTime()))return d;
+  }catch(e){}
+  return new Date(2023,9,1);   // 2023-10-01
+}
+function coupleDays(){
+  var d=coupleSinceDate();
+  var now=new Date();now.setHours(0,0,0,0);
+  var n=Math.floor((now.getTime()-d.getTime())/86400000)+1;  // 起始当天算第 1 天
+  return n>0?n:0;
+}
 /* ==== v144.14: 双人默契值 + 成就徽章墙 ==== */
 /* 一次扫描把旅行统计全算出来，默契值与徽章共用（避免各扫一遍大数组）。 */
 function travelStats(){
@@ -8816,7 +8844,8 @@ function travelStats(){
     });
   });
   s.cities=Object.keys(cityMap).length;
-  s.days=s.firstDate?Math.max(0,Math.floor((Date.now()-s.firstDate)/86400000)+1):0;
+  // v144.32: 「第 N 天」改从 2023-10-01（在一起纪念日）起算，而不是最早一条旅行记录
+  s.days=coupleDays();
   return s;
 }
 function peerNameSafe(uid){
@@ -10521,15 +10550,9 @@ function coupleStats(){
       byUid[u]=(byUid[u]||0)+1;
     });
     st.cities=Object.keys(citySet).length;
-    if(dates.length){
-      var min=dates.reduce(function(a,b){return (!a||b<a)?b:a;},'');
-      var d0=parseDateStr(min);
-      if(d0){
-        var now=new Date();now.setHours(0,0,0,0);
-        st.days=Math.max(1,Math.round((now.getTime()-d0.getTime())/86400000)+1);
-        st.first=d0.getTime();
-      }
-    }
+    // v144.32: 统一用在一起纪念日（2023-10-01）起算，每天 +1
+    st.days=coupleDays();
+    try{ st.first=coupleSinceDate().getTime(); }catch(e){}
     // 谁写得多
     var me='';
     try{ me=ghUserId()||''; }catch(e){}
