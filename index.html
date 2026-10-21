@@ -2577,6 +2577,10 @@ setTimeout(function(){
         <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="checkForUpdateManual()">🆕 检查更新（当前 <span id="cur-ver-here"></span>）</button>
         <!-- v144.33: EXIF 自检 —— 让用户一次就能定论「是 App 没读到，还是 iOS 抹掉了元数据」 -->
         <button class="btn btn-ghost" style="width:100%;background:var(--accent-soft);color:var(--accent-fg);font-weight:600;" onclick="exifSelfTest()">🔬 照片 EXIF 自检</button>
+        <!-- v144.35: 强制拉取最新版 —— 不依赖版本检测、不依赖横幅，永远可用。
+             带时间戳的 query 让 SW 的缓存匹配必然落空 → 一定走网络 → 一定是最新的。
+             横幅检测坏掉、或 iOS PWA 卡在旧缓存时，这是最后一道手动兜底。 -->
+        <button class="btn btn-ghost" style="width:100%;background:var(--primary-lighter);color:var(--primary-dark);font-weight:600;" onclick="forceFetchLatest()">🌐 强制拉取最新版</button>
         <input type="file" id="exif-test-input" accept="image/*" style="display:none;" onchange="exifSelfTestPick(event)" />
       </div>
     </details>
@@ -2772,6 +2776,25 @@ function refreshToLatest(){
    目的：让用户自己就能判断「照片的拍摄时间/GPS 有没有被读到」，
    而不用猜是 App 的问题还是 iOS 抹掉了元数据。
    读的是**原始文件头部**（与上传流程完全同一条路径），所以结果可代表真实表现。 */
+/* v144.35: 强制拉取最新版（手动兜底）
+   带时间戳 query → SW 缓存匹配必然落空 → 走网络 → 一定是最新代码。
+   页面加载后会自动把 query 抹掉，地址栏保持干净。
+   离线时会失败 —— 这时提示一下，别让用户以为按了没用。 */
+function forceFetchLatest(){
+  showToast('正在拉取最新版…');
+  var stamp=Date.now();
+  var jump=function(){
+    try{ location.replace('./?v=force_'+stamp); }
+    catch(e){ try{ location.href='./?v=force_'+stamp; }catch(e2){ location.reload(); } }
+  };
+  // 先探一下网络通不通
+  try{
+    fetch('./index.html?probe='+stamp,{method:'GET',cache:'no-store'}).then(function(r){
+      if(r&&r.ok){ jump(); }
+      else{ showToast('拉取失败（HTTP '+(r?r.status:'?')+'）'); }
+    }).catch(function(){ showToast('网络不通，请联网后再试'); });
+  }catch(e){ jump(); }
+}
 function exifSelfTest(){
   var el=document.getElementById('exif-test-input');
   if(el)el.click();
@@ -2837,7 +2860,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.34';
+var APP_VERSION='v144.35';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
