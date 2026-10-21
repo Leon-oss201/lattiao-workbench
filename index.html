@@ -2908,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.38';
+var APP_VERSION='v144.39';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -4602,6 +4602,31 @@ function snapGet(){
 // it never spams the API. Silent failure is fine (main trips.json is the source
 // of truth; this is a rollback safety net).
 var BACKUP_KEY='lattiao_last_backup';
+/* ===== v144.31: 读取云端备份报告 → 通知中心反馈 =====
+   备份由 GitHub Actions 在云端跑（本地电脑关着也执行），跑完写一份
+   data/backup-report.json。App 启动/联网时读它：
+     - 报告日期比本地已处理的更新 → 在**通知中心**给用户一条反馈
+     - 同一份报告不重复提醒（用 localStorage 记住已处理的日期）
+   报告里只有元信息（日期/条数/耗时），不含任何行程内容。 */
+function checkBackupReport(){
+  try{
+    if(!ghHasToken())return;
+    geGetRaw('data/backup-report.json',20000).then(function(txt){
+      if(!txt)return;
+      var r=null;
+      try{ r=JSON.parse(txt); }catch(e){ return; }
+      if(!r||!r.date)return;
+      var seen=localStorage.getItem('lattiao_backup_report_seen')||'';
+      if(seen===r.date)return;              // 已提醒过，不重复
+      var st=r.stats||{};
+      var msg=r.ok_msg||('备份完成（%d 行程 · %d 小确幸）'%(st.trips||0,st.joys||0));
+      try{
+        pushNotif('backup','今晚的云端备份完成了 💾',msg+' · 保留 '+(r.kept||7)+' 天');
+      }catch(e){}
+      try{ localStorage.setItem('lattiao_backup_report_seen',r.date); }catch(e){}
+    }).catch(function(){});
+  }catch(e){}
+}
 function maybeCloudBackup(){
   try{
     if(!ghHasToken())return;
@@ -12713,7 +12738,7 @@ function updateQueueChip(){
 
 /* ---------------- v99-3/v102: 通知中心（数据进云端，跨设备同步） ---------------- */
 var NOTIF_STORE='lattiao_notifs_v1';
-var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔',photo:'📷',edit:'✏️'};
+var NOTIF_ICON={weather:'🌦',departure:'✈️',sync:'🔄',collab:'👥',budget:'💰',memory:'💜',system:'🔔',photo:'📷',edit:'✏️',backup:'🗄️'};
 // v102: notifications now live in data.notifs so they sync across collaborators
 function notifLoad(){
   if(!data.notifs)data.notifs=[];
@@ -15402,6 +15427,9 @@ function init(){
   // v143: 每日云备份是网络 I/O，与首屏渲染无关 —— 延后到首屏骨架撤掉之后再跑，
   // 避免启动时被网络往返拖慢（备份本身不影响任何 UI 展示）。
   setTimeout(function(){ try{maybeCloudBackup();}catch(e){} }, 0);
+  // v144.31: 云端备份报告 → 通知中心反馈（联网后稍等再试，避开启动高峰）
+  setTimeout(function(){ try{checkBackupReport();}catch(e){} }, 6000);
+  setTimeout(function(){ try{checkBackupReport();}catch(e){} }, 30000);
   applyHeroBg();      // v77: apply saved hero background
   maybeShowInstallHint(); // v79: one-time PWA install hint
   // v82: if a previous push was left pending (e.g. the user killed the app
