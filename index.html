@@ -2908,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.37';
+var APP_VERSION='v144.38';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -6913,10 +6913,16 @@ function renderHomeCollab(){
   }catch(e){ box.style.display='none'; }
 }
 
-/* v144.36: 自动给过小的可点元素补热区。
-   之前用 CSS 逐个点名（日历 .cal-arrow 等），漏了一堆（"今天"、"全部"、展开按钮…）。
-   改成**运行时扫描**：任何可点但 < 40px 的元素自动加 .tap-fix，
-   换页面/重新渲染后自动重扫 —— 不用再手工维护类名清单。 */
+/* v144.37: 自动给过小的可点元素补热区。
+   ⚠️ 两条铁律（都是踩过坑换来的）：
+   1) **加了 tap-fix/tap-fix2 的元素，下一轮扫描必须原样跳过**。
+      否则会无限切换：第 1 轮 static → 加 tap-fix（position 变 relative）→
+      第 2 轮读到 relative → 改成 tap-fix2 并移除 relative（又变回 static）→ 来回摇摆。
+      摇摆的中间态里元素没有自己的定位上下文，伪元素就跑到外层定位祖先那儿 ——
+      .tdt 的 4 个伪元素全部按「.td-tabs 宽度的 100%」= 480px 展开叠在一起，
+      点「照片」命中的是「预算」→ 整个 Tab 栏错位（真机上出现过）。
+   2) **容器里已有 absolute 子元素时，绝不能动它的 position**（见 hasAbsoluteChild）。
+   之前用 CSS 逐个点名类名漏了一堆，改成运行时扫描后这两条就是必须守住的前提。 */
 /* v144.36: 判断元素内部是否有 absolute 定位的子元素。
    有的话就不能给这个元素加 position:relative —— 会改变那些子元素的定位基准。 */
 function hasAbsoluteChild(el){
@@ -6938,18 +6944,16 @@ function fixTapTargets(){
       var r=el.getBoundingClientRect();
       if(r.width===0||r.height===0)return;
       if(r.width<40||r.height<40){
-        // 关键约束（踩过两次坑）：
+        // 已处理过就保持稳定 —— **绝不能重复判断**（下面解释为什么）
+        if(el.classList.contains('tap-fix')||el.classList.contains('tap-fix2'))return;
+        // 关键约束：
         //  a) 只有 static 的元素才加 .tap-fix（它会设 position:relative）。
         //     已经是 absolute/relative/fixed 的加 .tap-fix2 —— 它的 ::after 以自身为基准。
         //  b) **容器里如果已经有 absolute 定位的子元素，绝不能动它的 position** ——
         //     否则那些子元素的定位基准会从"外层祖先"变成"这个容器"，位置全乱。
-        //     实测：mood-cover（static）被设成 relative 后，里面的"晚上好"气泡
-        //     从卡内右上角跑到卡外，首页整个跑偏。
         var st=getComputedStyle(el).position;
         var canBeRelative=(st==='static')&&!hasAbsoluteChild(el);
-        var cls=canBeRelative?'tap-fix':'tap-fix2';
-        el.classList.add(cls);
-        el.classList.remove(cls==='tap-fix'?'tap-fix2':'tap-fix');
+        el.classList.add(canBeRelative?'tap-fix':'tap-fix2');
       }else{
         el.classList.remove('tap-fix');
         el.classList.remove('tap-fix2');
