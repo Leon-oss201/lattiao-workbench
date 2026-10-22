@@ -1,0 +1,21 @@
+name: 每日数据备份（午夜）
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 运行备份
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_REPO: zyl_Leon/lattiao-workbench
+        run: python .workbuddy/backup_cloud.py
