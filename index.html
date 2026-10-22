@@ -2908,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.39';
+var APP_VERSION='v144.40';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -4611,8 +4611,16 @@ var BACKUP_KEY='lattiao_last_backup';
 function checkBackupReport(){
   try{
     if(!ghHasToken())return;
-    geGetRaw('data/backup-report.json',20000).then(function(txt){
-      if(!txt)return;
+    geGetRaw('data/backup-report.json',20000).then(function(res){
+      if(!res||!res.content)return;
+      // geGetRaw 返回 {sha, content}，content 是 **base64**（Gitee Contents API）
+      var txt=res.content;
+      // atob 返回的是**字节串**，中文必须再按 UTF-8 转一次，
+      // 否则通知里全是 "ä¸€æ¬¾" 这种乱码。
+      // 照抄 App 里既有的写法（见 4972/5673 行）：decodeURIComponent(escape(atob(...)))
+      try{ txt=decodeURIComponent(escape(atob(String(res.content).replace(/\s/g,'')))); }catch(e){
+        try{ txt=atob(res.content); }catch(e2){}
+      }
       var r=null;
       try{ r=JSON.parse(txt); }catch(e){ return; }
       if(!r||!r.date)return;
@@ -4621,7 +4629,7 @@ function checkBackupReport(){
       var st=r.stats||{};
       var msg=r.ok_msg||('备份完成（%d 行程 · %d 小确幸）'%(st.trips||0,st.joys||0));
       try{
-        pushNotif('backup','今晚的云端备份完成了 💾',msg+' · 保留 '+(r.kept||7)+' 天');
+        pushNotif('backup','今晚的云端备份完成了 💾',msg);  // msg 已含「保留 N 天」，别再拼一次
       }catch(e){}
       try{ localStorage.setItem('lattiao_backup_report_seen',r.date); }catch(e){}
     }).catch(function(){});
