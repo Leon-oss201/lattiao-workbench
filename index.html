@@ -2908,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.40';
+var APP_VERSION='v144.41';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -11916,9 +11916,9 @@ var albumManage=false;        // album batch-select / delete mode (v141 #242)
 // v144.28/30: 相册角标 —— 白边底部两行：日期（08.12）+ 地点名
 // 只显示日期的话用户不知道这是哪个地方，所以地点名必须一起给。
 function albumStampDate(d){
-  var ds=String(d||'').trim();
-  if(ds.length>=10)return ds.slice(5).replace('-','.');
-  return '';
+  // v144.41: 改用 fmtDateShort（内部走 sanitizeDateStr），遵守「日期展示禁用
+  // slice(5)」硬规则；非法日期返回空而非 "N-NaN"。
+  return fmtDateShort(d);
 }
 function albumMonthLabel(d){
   return (d||'').slice(0,4)+' 年 '+parseInt((d||'').slice(5,7),10)+' 月';
