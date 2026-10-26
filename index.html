@@ -2908,7 +2908,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.41';
+var APP_VERSION='v144.42';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -4628,8 +4628,15 @@ function checkBackupReport(){
       if(seen===r.date)return;              // 已提醒过，不重复
       var st=r.stats||{};
       var msg=r.ok_msg||('备份完成（%d 行程 · %d 小确幸）'%(st.trips||0,st.joys||0));
+      // 把备份的「月日 时分」带进通知标题，让用户知道昨晚几点备份的
+      var when='';
+      var dm=/^(\d{4})-(\d{2})-(\d{2})/.exec(r.date||'');
+      if(dm) when=(parseInt(dm[2],10))+'月'+(parseInt(dm[3],10))+'日';
+      var tm=/T(\d{2}:\d{2})/.exec(r.at||'');
+      if(tm) when+=' '+tm[1];
+      var title='云端每日备份完成 💾'+(when?(' · '+when):'');
       try{
-        pushNotif('backup','今晚的云端备份完成了 💾',msg);  // msg 已含「保留 N 天」，别再拼一次
+        pushNotif('backup',title,msg);  // msg 已含「保留 N 天」，别再拼一次
       }catch(e){}
       try{ localStorage.setItem('lattiao_backup_report_seen',r.date); }catch(e){}
     }).catch(function(){});
