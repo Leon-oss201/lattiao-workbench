@@ -18,6 +18,10 @@
 """
 import os, sys, json, io, time, base64, hashlib, shutil, datetime, urllib.request, urllib.parse, urllib.error
 
+# 上海时区（UTC+8，无夏令时）。GitHub Actions runner 是 UTC，必须用上海时区算"日期"，
+# 否则北京时间凌晨跑的备份会被归到 UTC 的前一天（曾导致 backups/ 目录与通知日期错位）。
+SHANGHAI = datetime.timezone(datetime.timedelta(hours=8))
+
 REPO = os.environ.get('GITEE_REPO', 'zyl_Leon/lattiao-workbench')
 BRANCH = os.environ.get('GITEE_BRANCH', 'master')
 TOKEN = (os.environ.get('GITEE_TOKEN') or '').strip()
@@ -147,7 +151,7 @@ def main():
     if not TOKEN:
         print('!! 没有 GITEE_TOKEN，退出'); sys.exit(2)
     log('仓库 %s 分支 %s 保留 %d 天' % (REPO, BRANCH, KEEP))
-    stamp = datetime.date.today().isoformat()
+    stamp = datetime.datetime.now(SHANGHAI).date().isoformat()
 
     # ① 读正式数据（只读）
     raw = get_file('data/trips.json')
@@ -210,7 +214,7 @@ def main():
     # ④ 写备份报告（App 读它来生成通知）
     report = {
         'date': stamp,
-        'at': datetime.datetime.now().isoformat(timespec='seconds'),
+        'at': datetime.datetime.now(SHANGHAI).isoformat(timespec='seconds'),
         'ok': True,
         'sha': digest,
         'stats': stats,
