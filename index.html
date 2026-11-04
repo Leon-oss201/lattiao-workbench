@@ -278,6 +278,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .bn-item .bn-icon{font-size:20px;line-height:1;position:relative;display:flex;align-items:center;justify-content:center;width:26px;height:24px;}
 .bn-item.active{color:var(--primary);font-weight:600;}
 .bn-item.active .bn-icon{transform:scale(1.1);}
+/* v144.43: LQIP 渐进式照片 —— 先显示极小模糊占位，真图加载完再清晰淡入 */
+.lq-wrap{position:relative;width:100%;height:100%;background-color:#e9e4f0;background-size:cover;background-position:center;background-repeat:no-repeat;}
+.lq-wrap>.lq-img{width:100%;height:100%;object-fit:cover;filter:blur(12px);transform:scale(1.2);transition:filter .45s ease, transform .45s ease, opacity .45s ease;opacity:0;}
+.lq-wrap.lq-loaded>.lq-img{filter:blur(0);transform:scale(1);opacity:1;}
+.lq-img-plain{width:100%;height:100%;object-fit:cover;}
+/* v144.43: 足迹图浮层 */
+.fp-overlay{position:fixed;inset:0;z-index:1150;background:linear-gradient(160deg,#1e1b4b 0%,#2e1065 55%,#4c1d95 100%);color:#fff;display:none;flex-direction:column;}
+.fp-overlay.show{display:flex;}
+.fp-head{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 10px;}
+.fp-title{font-size:17px;font-weight:800;}
+.fp-close{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;border:none;font-size:18px;cursor:pointer;}
+.fp-svg-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px 10px;overflow:auto;}
+.fp-svg-wrap svg{width:100%;height:auto;max-height:100%;border-radius:14px;}
+.fp-stats{display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap;}
+.fp-stat{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 12px;flex:1;min-width:90px;text-align:center;}
+.fp-stat .v{font-size:18px;font-weight:800;}
+.fp-stat .l{font-size:11px;opacity:.85;margin-top:2px;}
+.fp-legend{padding:6px 16px calc(16px + env(safe-area-inset-bottom));font-size:11px;opacity:.8;line-height:1.5;}
 /* v74: sync status dot on tabs */
 .bn-dot{display:none;position:absolute;top:-3px;right:-8px;width:9px;height:9px;border-radius:50%;background:#E25C5C;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);}
 .bn-dot.on{display:block;animation:dotPulse 1.6s ease-in-out infinite;}
@@ -1884,6 +1902,13 @@ setTimeout(function(){
       <div class="pro-stat" data-page-node-id="g2dtxbsyAeoul2XOKOrbSw"><div class="ps-v" id="ps-photos" data-page-node-id="7MsQ9zUSez0FNA5VT4mqdV">0</div><div class="ps-l" data-page-node-id="pSOXDnRDdZvGgQN5aQAk2n">张照片</div></div>
       <div class="pro-stat" data-page-node-id="h93SUOFYSUWWg43U7uJjvN"><div class="ps-v" id="ps-km" data-page-node-id="yslMjFgn16H9TxLS94vpUg">0</div><div class="ps-l" data-page-node-id="WB2GGowjlIpBzvA1YGln3M">座城市</div></div>
     </div>
+    <div class="pro-footprint-card" onclick="openFootprintMap()" style="margin:0 16px 12px;background:linear-gradient(135deg,#7C3AED,#EC4899);border-radius:14px;padding:14px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,.28);">
+      <div>
+        <div style="font-size:14px;font-weight:700;">🗺️ 精确足迹</div>
+        <div style="font-size:11px;opacity:.92;margin-top:3px;" id="fp-card-sub">按真实 GPS 坐标画出航行轨迹</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;">→</div>
+    </div>
     <div class="pro-highlights" id="pro-highlights" style="display:none;" data-page-node-id="tetEDb5ogqZmX8134uc7Bw">
       <div class="pro-highlight" id="ph-card-far" data-page-node-id="D4yeg0t5qvEgZZtbJPBJOf"><div class="ph-v" id="ph-farthest" data-page-node-id="SjkIzjyNb5gA0YWpqF5MQ4">—</div><div class="ph-l" data-page-node-id="Scuuf6vtp83hSrWGbvClsG">最远目的地</div></div>
       <div class="pro-highlight" id="ph-card-day" data-page-node-id="pDmxfcWKwtdpDFP5xVAFLT"><div class="ph-v" id="ph-photoday" data-page-node-id="8j1D7kDk5wsgOtR4CIxQg8">—</div><div class="ph-l" data-page-node-id="SDk2z1yE308nDUcmeNnzUx">照片最多的一天</div></div>
@@ -1901,6 +1926,17 @@ setTimeout(function(){
   </section>
 
   <!-- ===== Bottom Nav ===== -->
+  <!-- v144.43: 足迹图浮层 —— 纯 SVG（无地图 SDK），等距投影绘制经纬度点 + 飞行弧线 -->
+  <div class="fp-overlay" id="fp-overlay">
+    <div class="fp-head">
+      <div class="fp-title">🗺️ 我们的足迹</div>
+      <button class="fp-close" onclick="closeFootprintMap()">×</button>
+    </div>
+    <div class="fp-stats" id="fp-stats-map"></div>
+    <div class="fp-svg-wrap" id="fp-svg-wrap"></div>
+    <div class="fp-legend" id="fp-legend"></div>
+  </div>
+
   <nav class="bottom-nav" role="navigation" aria-label="主导航" data-page-node-id="NOd2ftW04xLFKn58kqTiBo">
     <div class="bottom-nav-items" data-page-node-id="omPvgxLrml4IkYWwBJMmC2">
       <div class="bn-item active" data-page="home" role="button" tabindex="0" aria-label="首页" data-page-node-id="l6SE6BlPq2aOzhUfYoKtlU"><div class="bn-icon" data-page-node-id="otWlaBuuGctiLYHcNetxHr"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="GwDjDRHBdEjxJkSUu1vax4"><path d="M3 10.5 12 3l9 7.5" data-page-node-id="RPHIr9jxxANeWETNetUx7t"/><path d="M5 9.5V21h14V9.5" data-page-node-id="oLmgAX4RKSchyb69C2FrPT"/><path d="M9.5 21v-6h5v6" data-page-node-id="riBPiapnFtktpqAHyXFEyO"/></svg><span class="bn-dot" id="dot-home" data-page-node-id="cUmMs7nyyhRBFbPjFymDlz"></span></div>首页</div>
@@ -2908,7 +2944,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.42';
+var APP_VERSION='v144.43';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -3379,6 +3415,8 @@ var GH={
   lastSha:null,      // sha of the last successfully pulled cloud file (incremental pull)
   lastPushFp:null,   // tripsFingerprint of the last successfully pushed state (incremental push)
   photoChunkFp:null, // {path: fingerprint} of photo chunks we've already uploaded
+  lqipCache:null,    // v144.43: {photoDataUrl: tinyBlurredDataUrl} — LQIP 渐进式照片占位
+  savedSync:0,       // v144.43: 累计因云端无变化而跳过的无效同步次数（条件拉取可视化）
   payloadStripped:false, // true when the last push dropped photos to stay under the size cap
   payloadWarned:false,   // one-time toast flag so we don't nag the user on every sync
   tokenInvalid:false,    // set when GitHub returns 401 — we surface a hint to reconfigure the token
@@ -4138,6 +4176,9 @@ function syncPull(force){
       // {skip:true} means the cloud sha matched our last pull — nothing changed, so
       // skip the merge + re-render entirely (this is the fast path for idle polling).
       if(remote&&remote.skip){
+        // v144.43: 条件拉取 —— 云端 sha 与上次一致即跳过整套合并/重渲染，省流量又省电。
+        // 累计计数可视化，让用户「看见」App 在偷懒（实际上是聪明的懒）。
+        GH.savedSync=(GH.savedSync||0)+1;
         GH.lastSync=Date.now();setSyncStatus('synced');
         return;
       }
@@ -4391,22 +4432,30 @@ var PHOTO_CHUNK_MAX=700000;
 function buildPhotoChunksForLoc(tripId,loc){
   var out=[];
   if(!loc||!loc.id||!(loc.photos&&loc.photos.length))return out;
+  if(!GH.lqipCache)GH.lqipCache={};
   var cur=[],curBytes=0,ci=0;
   loc.photos.forEach(function(p){
     var pBytes=(p?p.length:0)+40; // JSON overhead approx
     if(cur.length&&curBytes+pBytes>PHOTO_CHUNK_TARGET){
-      out.push({path:'data/photos/'+tripId+'/'+loc.id+'_'+ci+'.json',data:{photos:cur}});
+      out.push(photoChunkRecord(tripId,loc.id,ci,cur));
       cur=[];curBytes=0;ci++;
     }
     cur.push(p);curBytes+=pBytes;
     // Single photo bigger than max: still ship it alone (can't shrink here).
     if(curBytes>PHOTO_CHUNK_MAX&&cur.length===1){
-      out.push({path:'data/photos/'+tripId+'/'+loc.id+'_'+ci+'.json',data:{photos:cur}});
+      out.push(photoChunkRecord(tripId,loc.id,ci,cur));
       cur=[];curBytes=0;ci++;
     }
   });
-  if(cur.length)out.push({path:'data/photos/'+tripId+'/'+loc.id+'_'+ci+'.json',data:{photos:cur}});
+  if(cur.length)out.push(photoChunkRecord(tripId,loc.id,ci,cur));
   return out;
+}
+// v144.43: 把一批照片打包成「分片记录」，附带并行 lqips 数组（仅在有值时写，避免膨胀）
+function photoChunkRecord(tripId,locId,ci,photos){
+  var lqips=photos.map(function(p){return (GH.lqipCache&&GH.lqipCache[p])||'';});
+  var data={photos:photos};
+  if(lqips.some(function(x){return !!x;}))data.lqips=lqips;
+  return {path:'data/photos/'+tripId+'/'+locId+'_'+ci+'.json',data:data};
 }
 function buildPhotoChunks(t){
   var out=[];
@@ -4540,11 +4589,13 @@ function photoDBOpen(){
   });
   return photoDBPromise;
 }
-function photoCachePut(locKey,photos){
+function photoCachePut(locKey,photos,lqips){
   return photoDBOpen().then(function(db){
     return new Promise(function(resolve,reject){
       var tx=db.transaction('photos','readwrite');
-      tx.objectStore('photos').put({key:locKey,photos:photos,ts:Date.now()});
+      var rec={key:locKey,photos:photos,ts:Date.now()};
+      if(lqips)rec.lqips=lqips; // v144.43: 顺带存 LQIP，重载后也能渐进式显示
+      tx.objectStore('photos').put(rec);
       tx.oncomplete=function(){resolve();};
       tx.onerror=function(){reject(tx.error);};
     });
@@ -4669,7 +4720,13 @@ function photoCacheGet(locKey){
       return new Promise(function(res){
         var tx=db.transaction('photos','readonly');
         var r=tx.objectStore('photos').get(locKey);
-        r.onsuccess=function(){res(r.result?r.result.photos:null);};
+        r.onsuccess=function(){
+          var rec=r.result;
+          if(rec){
+            if(rec.lqips)lqipWarm(rec.photos,rec.lqips); // v144.43: 读缓存时暖回 LQIP
+            res(rec.photos||null);
+          } else res(null);
+        };
         r.onerror=function(){res(null);};
       });
     }).then(function(v){
@@ -4699,7 +4756,7 @@ function restorePhotosFromIndexedDB(){
       var r=tx.objectStore('photos').openCursor();
       r.onsuccess=function(){
         var c=r.result;
-        if(c){all[c.value.key]=c.value.photos||[];c.continue();}
+        if(c){all[c.value.key]={photos:c.value.photos||[],lqips:c.value.lqips};c.continue();}
         else resolve(all);
       };
       r.onerror=function(){resolve(all);};
@@ -4710,7 +4767,11 @@ function restorePhotosFromIndexedDB(){
         (d.locations||[]).forEach(function(l){
           if(!l||!l.id)return;
           var key=locPhotoKey(t.id,l.id);
-          if(all[key]&&all[key].length)l.photos=all[key];
+          var rec=all[key];
+          if(rec&&rec.photos&&rec.photos.length){
+            l.photos=rec.photos;
+            if(rec.lqips)lqipWarm(rec.photos,rec.lqips); // v144.43: 重载即暖回 LQIP
+          }
         });
       });
       // v71: restore trip cover from IndexedDB cache (key 'cover_'+tripId)
@@ -4745,7 +4806,7 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
   return cached.then(function(photos){
     var cHave=(photos&&photos.length)||0;
     if(cHave&&!forceRemote&&!(want>cHave)){loc.photos=photos;return photos;}
-    var all=[];
+    var all=[],allLq=[];
     var maxChunk=30;
     // v98: read chunks CONCURRENTLY instead of one serial round-trip each.
     // Old behaviour: readNext(0) → wait → readNext(1) → wait … so a location
@@ -4769,6 +4830,8 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
         var r=res[n];
         if(!(r.chunk&&r.chunk.photos&&r.chunk.photos.length))return false;
         all=all.concat(r.chunk.photos);
+        if(r.chunk.lqips)allLq=allLq.concat(r.chunk.lqips);
+        else allLq=allLq.concat(r.chunk.photos.map(function(){return '';}));
       }
       return true;
     }
@@ -4798,7 +4861,7 @@ function ensureLocationPhotos(tripId,loc,forceRemote){
       // unconditionally silently shrank a location's photos (measured: 30 → 5),
       // and the loss was then persisted to the photo cache — unrecoverable.
       // Keep the richer side: overwrite only when we got at least as many back.
-      if(all.length&&all.length>=have){loc.photos=all;photoCachePut(key,all);}
+      if(all.length&&all.length>=have){loc.photos=all;photoCachePut(key,all,allLq);lqipWarm(all,allLq);}
       return all;
     });
   });
@@ -4824,6 +4887,10 @@ function ghReadPhotoChunk(path){
           GH.photoChunkFp[path]=chunkFpCalc(JSON.stringify(chunk));
           if(m.sha){if(!GH.photoChunkSha)GH.photoChunkSha={};GH.photoChunkSha[path]=m.sha;}
           persistPhotoChunkMeta();
+        }
+        // v144.43: 读回分片时把携带的 lqips 暖进缓存，渲染端即可做渐进式占位
+        if(chunk&&chunk.lqips&&chunk.photos&&chunk.photos.length){
+          lqipWarm(chunk.photos,chunk.lqips);
         }
       }catch(e2){}
       return chunk;
@@ -5826,7 +5893,9 @@ function setSyncStatus(s){
       var qSuffix=(typeof SYNC_QUEUE!=='undefined'&&SYNC_QUEUE.count>0)?(' · '+SYNC_QUEUE.count+' 条待同步'):'';
       el.textContent=locCount>0?('✅ 已同步 '+locCount+' 地点 · '+photoTxt+qSuffix):('✅ 已同步'+qSuffix);
       el.className='sync-indicator sync-synced';
-      el.title=marked>downloaded?'云端还有 '+(marked-downloaded)+' 张照片未下载' :'点击立即同步';
+      var _titleBase=marked>downloaded?'云端还有 '+(marked-downloaded)+' 张照片未下载' :'点击立即同步';
+      if(GH.savedSync>0)_titleBase+=' · 已为你跳过 '+GH.savedSync+' 次无效同步 ⚡';
+      el.title=_titleBase;
     }else{
       var qSuffix2=(typeof SYNC_QUEUE!=='undefined'&&SYNC_QUEUE.count>0)?(' · '+SYNC_QUEUE.count+' 条待同步'):'';
       el.textContent=(map[s]||s)+qSuffix2;el.className='sync-indicator sync-'+s;
@@ -6000,6 +6069,109 @@ function compressImage(file,maxWidth,quality,cb){
 }
 
 // ============ Pages ============
+// v144.43: LQIP 渐进式照片 —— 把一张图压成 ~28px 极小模糊缩略图，作为加载占位
+function makeLqip(src,cb){
+  try{
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var W=28,H=Math.max(1,Math.round(28*img.height/img.width));
+        var c=document.createElement('canvas');c.width=W;c.height=H;
+        var ctx=c.getContext('2d');ctx.drawImage(img,0,0,W,H);
+        cb(c.toDataURL('image/jpeg',0.5));
+      }catch(e){cb('');}
+    };
+    img.onerror=function(){cb('');};
+    img.src=src;
+  }catch(e){cb('');}
+}
+// 取某张照片的 LQIP（没有则返回空串 → 调用方降级为普通 img）
+function lqipFor(src){ return (GH.lqipCache&&GH.lqipCache[src])||''; }
+// 输出「先模糊后清晰」的图标签：有 LQIP 时用模糊底图 + 叠加真图淡入，否则普通 img
+function lqipImg(src){
+  var lq=lqipFor(src);
+  if(lq){
+    return '<div class="lq-wrap" style="background-image:url(\''+lq+'\');">'
+      +'<img class="lq-img" loading="lazy" src="'+src+'" onload="this.parentNode.classList.add(\'lq-loaded\');"></div>';
+  }
+  return '<img class="lq-img-plain" loading="lazy" src="'+src+'">';
+}
+// 把一批 (photos, lqips) 暖进 GH.lqipCache（从缓存/分片读回时调用）
+function lqipWarm(photos,lqips){
+  if(!photos||!lqips)return;
+  if(!GH.lqipCache)GH.lqipCache={};
+  for(var i=0;i<photos.length;i++){ if(lqips[i])GH.lqipCache[photos[i]]=lqips[i]; }
+}
+// v144.43: 足迹图 —— 纯 SVG（无地图 SDK），等距投影画经纬度点 + 按时间串联的飞行弧线
+function fpProject(lat,lng,W,H,pad){
+  var x=pad+((lng+180)/360)*(W-2*pad);
+  var y=pad+((90-lat)/180)*(H-2*pad);
+  return [x,y];
+}
+function haversineKm(a,b){
+  function rad(d){return d*Math.PI/180;}
+  var R=6371, dLat=rad(b[0]-a[0]), dLng=rad(b[1]-a[1]);
+  var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return Math.round(2*R*Math.asin(Math.sqrt(s)));
+}
+function openFootprintMap(){ renderFootprintMap(); var o=document.getElementById('fp-overlay'); if(o)o.classList.add('show'); }
+function closeFootprintMap(){ var o=document.getElementById('fp-overlay'); if(o)o.classList.remove('show'); }
+function renderFootprintMap(){
+  try{
+    var W=680,H=380,pad=24;
+    var pts=[],arcs=[],citySet={},seq=[];
+    (data.trips||[]).forEach(function(t){
+      var lastPt=null;
+      (t.days||[]).forEach(function(d){
+        (d.locations||[]).forEach(function(l){
+          if(typeof l.lat==='number'&&typeof l.lng==='number'&&!isNaN(l.lat)&&!isNaN(l.lng)){
+            var p=fpProject(l.lat,l.lng,W,H,pad);
+            pts.push({x:p[0],y:p[1],name:l.name||'',trip:t.title||''});
+            if(l.name)citySet[l.name]=1;
+            if(lastPt)arcs.push([lastPt,p]);
+            lastPt=p;
+            seq.push([l.lat,l.lng]);
+          }
+        });
+      });
+    });
+    var realKm=0;
+    for(var i=1;i<seq.length;i++)realKm+=haversineKm(seq[i-1],seq[i]);
+    var tripCount=(data.trips||[]).length;
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+    svg+='<defs><linearGradient id="fpbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#312e81"/><stop offset="1" stop-color="#6d28d9"/></linearGradient>'
+        +'<radialGradient id="fpglow" cx="0.5" cy="0.4" r="0.7"><stop offset="0" stop-color="#a78bfa" stop-opacity="0.35"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient></defs>';
+    svg+='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="14" fill="url(#fpbg)"/>';
+    svg+='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="14" fill="url(#fpglow)"/>';
+    var grid='';
+    for(var gx=0;gx<=360;gx+=30){ var x=pad+(gx/360)*(W-2*pad); grid+='<line x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(H-pad)+'" stroke="#ffffff" stroke-opacity="0.07"/>'; }
+    for(var gy=0;gy<=180;gy+=30){ var y=pad+(gy/180)*(H-2*pad); grid+='<line x1="'+pad+'" y1="'+y+'" x2="'+(W-pad)+'" y2="'+y+'" stroke="#ffffff" stroke-opacity="0.07"/>'; }
+    svg+=grid;
+    svg+='<line x1="'+pad+'" y1="'+(pad+(90/180)*(H-2*pad))+'" x2="'+(W-pad)+'" y2="'+(pad+(90/180)*(H-2*pad))+'" stroke="#ffffff" stroke-opacity="0.16"/>';
+    arcs.forEach(function(a){
+      var x1=a[0][0],y1=a[0][1],x2=a[1][0],y2=a[1][1];
+      var mx=(x1+x2)/2, my=(y1+y2)/2-Math.abs(x2-x1)*0.18-10;
+      svg+='<path d="M'+x1+' '+y1+' Q'+mx+' '+my+' '+x2+' '+y2+'" fill="none" stroke="#f9a8d4" stroke-opacity="0.55" stroke-width="1.6"/>';
+    });
+    pts.forEach(function(p){ svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3.4" fill="#fff" stroke="#ec4899" stroke-width="1.6"/>'; });
+    svg+='</svg>';
+    var wrap=document.getElementById('fp-svg-wrap'); if(wrap)wrap.innerHTML=svg;
+    var st=document.getElementById('fp-stats-map');
+    if(st){
+      st.innerHTML=''
+        +'<div class="fp-stat"><div class="v">'+tripCount+'</div><div class="l">段旅程</div></div>'
+        +'<div class="fp-stat"><div class="v">'+pts.length+'</div><div class="l">个坐标点</div></div>'
+        +'<div class="fp-stat"><div class="v">'+realKm.toLocaleString()+'</div><div class="l">公里飞行</div></div>';
+    }
+    var leg=document.getElementById('fp-legend');
+    if(leg){
+      if(pts.length===0) leg.innerHTML='还没有带定位的地点 ✦ 在地点里允许读取 GPS / 地图选点后，这里会画出你们的航行轨迹～';
+      else leg.innerHTML='白点 = 带 GPS 的地点，粉线 = 行程内的移动轨迹（按时间串联），换设备也会自动同步显示。';
+    }
+    var sub=document.getElementById('fp-card-sub');
+    if(sub)sub.textContent= pts.length? ('已点亮 '+pts.length+' 个坐标 · 飞行 '+realKm.toLocaleString()+' 公里') : '看看我们一起走过的地方';
+  }catch(e){ console.warn('footprint',e); }
+}
 function showPage(name){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   // Map page id: trips list, guides, favorites all use page-trips class but different ids
@@ -7175,7 +7347,7 @@ function renderTodayMemory(targetId){
       ensureLocationPhotos(m.t.id,pick).then(function(){
         if(!slot||!slot.isConnected)return;
         var src=(pick.photos&&pick.photos[0])||'';
-        if(src)slot.innerHTML='<img src="'+src+'" alt="回忆">';
+        if(src)slot.innerHTML=lqipImg(src);
       }).catch(function(){});
     }catch(e){}
   }
@@ -7418,7 +7590,7 @@ function renderCalLocationDetails(l){
   if(l.photos&&l.photos.length){
     html+='<div style="margin-bottom:6px;"><b style="color:var(--primary-dark);">📷 照片</b></div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">'+
-      l.photos.map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
+      l.photos.map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')">'+lqipImg(src)+'</div>';}).join('')+
       '</div>';
   }else if(l._photoCount>0){
     // v66: photo placeholder while chunks are still loading
@@ -8254,7 +8426,7 @@ function renderTimeline(){
     var photoThumbs='';
     if(l.photos&&l.photos.length){
       photoThumbs='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;">'+
-        l.photos.slice(0,4).map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')"><img loading="lazy" src="'+src+'" style="width:100%;height:100%;object-fit:cover;"></div>';}).join('')+
+        l.photos.slice(0,4).map(function(src){return '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;" onclick="event.stopPropagation();viewPhoto(\''+src+'\')">'+lqipImg(src)+'</div>';}).join('')+
         (l.photos.length>4?'<div style="aspect-ratio:1;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--primary);font-weight:600;">+'+(l.photos.length-4)+'</div>':'')+
         '</div>';
     }else if(l._photoCount>0){
@@ -8686,6 +8858,8 @@ function handleLocationPhotoUpload(e){
       var _sp2=photoSpec(isSlowNet());
       compressImage(f,_sp2.maxW,_sp2.q,function(d){
         lmPhotos.push(d);
+        // v144.43: 上传即生成 LQIP 渐进占位（keyed by 原图 dataURL，分片时一并携带）
+        makeLqip(d,function(lq){ if(lq){ if(!GH.lqipCache)GH.lqipCache={}; GH.lqipCache[d]=lq; } });
         lmPhotoMeta.push({at:(meta&&meta.at)||null,lat:(meta&&meta.lat)||null,lng:(meta&&meta.lng)||null});
         renderLocationModalPhotos();
       });
@@ -15054,6 +15228,8 @@ function ddSave(){
   catch(e){showToast('保存失败');return;}
   tgt.loc.photos=tgt.loc.photos||[];
   tgt.loc.photos.push(out);
+  // v144.43: 涂鸦也是新照片，生成 LQIP 占位
+  makeLqip(out,function(lq){ if(lq){ if(!GH.lqipCache)GH.lqipCache={}; GH.lqipCache[out]=lq; } });
   tgt.loc._photoCount=tgt.loc.photos.length;
   tgt.trip.updatedAt=new Date().toISOString();
   // v120 BUG FIX: key 必须是 locPhotoKey(tripId,locId)（即 "tripId|locId"），
