@@ -93,9 +93,6 @@
   --bg-cherry-grad:linear-gradient(180deg,#FDF2F8 0%,#FBCFE8 100%);
   --polaroid-bg:#FFFFFF;
   --polaroid-ink:#4A4458;
-  --fp-land:#EDE9FE;
-  --fp-line:#C4B5FD;
-  --fp-dot:#B45309;
 }
 /* v73: dark mode — overrides all the design tokens above for night viewing */
 :root.dark,html.dark{
@@ -152,9 +149,6 @@
   --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
   --polaroid-bg:#E9E5DB;
   --polaroid-ink:#3A3448;
-  --fp-land:#3D2B5F;
-  --fp-line:#7A6AA8;
-  --fp-dot:#FFA76B;
 }
 /* v85: iOS 26 / Safari 17 — when the user picks "auto" (or hasn't picked at all
    and the system goes dark at night), honor prefers-color-scheme immediately
@@ -201,9 +195,6 @@
     --bg-cherry-grad:linear-gradient(180deg,#3D1F2B 0%,#2E1823 100%);
   --polaroid-bg:#E9E5DB;
   --polaroid-ink:#3A3448;
-  --fp-land:#3D2B5F;
-  --fp-line:#7A6AA8;
-  --fp-dot:#FFA76B;
   }
 }
 /* v73: font scaling (set in JS via --font-scale) */
@@ -891,6 +882,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 
 /* v142: 分类花销柱状图（实际金额占比，区别于按 plan 比例的甜甜圈图） */
 .budget-cat-chart{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
+.budget-forecast-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
+.budget-forecast-card .bfc-row{display:flex;gap:12px;}
+.budget-forecast-card .bfc-item{flex:1;min-width:0;}
+.budget-forecast-card .bfc-amt{font-size:20px;font-weight:800;color:var(--primary-dark);line-height:1.2;}
+.budget-forecast-card .bfc-amt.over{color:var(--danger);}
+.budget-forecast-card .bfc-amt.under{color:var(--success-fg);}
+.budget-forecast-card .bfc-lab{font-size:11px;color:var(--text-sec);margin-top:2px;}
+.budget-forecast-card .bfc-bar{height:8px;border-radius:6px;background:var(--primary-light);margin:12px 0 8px;overflow:hidden;}
+.budget-forecast-card .bfc-bar-fill{height:100%;border-radius:6px;transition:width .6s ease;}
+.budget-forecast-card .bfc-note{font-size:11px;color:var(--text-light);line-height:1.5;}
 .cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .cat-bar-row:last-child{margin-bottom:0;}
 .cat-bar-lab{width:52px;font-size:13px;font-weight:600;color:var(--text-sec);display:flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap;}
@@ -1277,20 +1278,6 @@ img.photo-fade.loaded{opacity:1;}
 .bb-note{font-size:13px;color:var(--text-sec);text-align:center;line-height:1.75;padding:0 8px;}
 .bb-meta{font-size:11px;color:var(--text-light);text-align:center;}
 .bb-btn{padding:11px 26px;border-radius:22px;border:none;background:var(--primary-solid);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
-/* ================= v100: footprint map ================= */
-.fp-wrap{position:relative;margin-top:8px;border-radius:14px;overflow:hidden;background:var(--muted-bg);border:1px solid var(--border);}
-.fp-wrap svg{display:block;width:100%;height:auto;}
-.fp-stats{display:flex;gap:10px;margin-top:10px;}
-.fp-stat{flex:1;background:var(--muted-bg);border-radius:12px;padding:10px;text-align:center;}
-.fp-stat .fv{font-size:20px;font-weight:700;color:var(--primary-dark);}
-.fp-stat .fl{font-size:11px;color:var(--text-sec);margin-top:2px;}
-.fp-list{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
-/* v144.36: 城市到访次数徽标 */
-.fp-city .fp-n{margin-left:4px;font-size:10px;font-weight:700;color:var(--primary-dark);
-  background:var(--primary-lighter);border-radius:8px;padding:1px 5px;vertical-align:1px;}
-.fp-city{font-size:11px;padding:4px 10px;border-radius:12px;background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
-.fp-city.off{background:var(--muted-bg);color:var(--text-light);font-weight:400;}
-.fp-note{font-size:11px;color:var(--text-light);margin-top:9px;line-height:1.6;}
 /* ================= v100: personality card ================= */
 .ps-card{border-radius:18px;padding:20px 18px;text-align:center;margin-top:10px;border:1px solid var(--border);background:var(--muted-bg);}
 .ps-emo{font-size:44px;line-height:1;}
@@ -1846,6 +1833,10 @@ setTimeout(function(){
       <div class="budget-cat-chart" id="budget-cat-chart"></div>
     </div>
     <div id="budget-daily-chart" style="padding:0 18px;margin-bottom:14px;" data-page-node-id="0NSYnmiUAvq3Y3PBWNkKr0"></div>
+    <div class="home-section" id="budget-forecast-section" style="padding:0 18px 14px;display:none;" data-page-node-id="bfc">
+      <div class="section-head"><h2>预算预测</h2><span class="sh-sub" id="forecast-sub"></span></div>
+      <div id="budget-forecast" class="budget-forecast-card"></div>
+    </div>
     <div class="home-section" data-page-node-id="LyRwq0mwbH95nLe7toJAiS">
       <div class="section-head" data-page-node-id="a1f0aRfNRntsGU5uvoUVVl"><h2 data-page-node-id="5gVvysoaqaQNggah6MuwSN">行程安排</h2></div>
       <div id="budget-trip-list" data-page-node-id="rR4ch1ISNXfMjRmS7R7nlE"></div>
@@ -2256,7 +2247,7 @@ setTimeout(function(){
     <div class="modal-title" data-page-node-id="KMzmT17mY1PfgN5KQ9owfc">🔍 全局搜索</div>
     <div class="srch-input-wrap" data-page-node-id="378GQ3IuthwE17e5gO2SBo">
       <span data-page-node-id="mnnvCaRFGE6U8oME1I5rxA">🔍</span>
-      <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏…" oninput="runGlobalSearch(this.value)" autocomplete="off" aria-label="全局搜索行程、地点、攻略、收藏" data-page-node-id="WFTHzif2eQDMFK9Lgr5EaH">
+      <input id="srch-input" placeholder="搜行程 / 地点 / 攻略 / 收藏 / 命令…" oninput="runGlobalSearch(this.value)" autocomplete="off" aria-label="全局搜索行程、地点、攻略、收藏" data-page-node-id="WFTHzif2eQDMFK9Lgr5EaH">
       <span style="cursor:pointer;color:var(--text-light);" onclick="document.getElementById('srch-input').value='';runGlobalSearch('')" data-page-node-id="rZE1iwmZLFGT51vOujjzYw">✕</span>
     </div>
     <div class="srch-filters" id="srch-filters"></div>
@@ -2477,18 +2468,6 @@ setTimeout(function(){
       <button class="btn-primary" style="width:100%;" onclick="drawBlindBox()" data-page-node-id="5eVLUrVa2wLJVwoAZlpGNG">再抽一张</button>
     </div>
     <div style="margin-top:10px;" data-page-node-id="lYVcvkkTU3DuD2UUHcgF6R"><button class="btn-ghost" style="width:100%;" onclick="closeModal('blindbox-modal')" data-page-node-id="ykAoHcEagEjfZq0stCbNIF">关闭</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="footprint-modal" data-page-node-id="ZC9QhcqeBYNSQto6QBOfB3">
-  <div class="modal" data-page-node-id="6MoNQa5DTvvC6zIjpSEPJ7">
-    <div class="modal-handle" data-page-node-id="FLq4WwQ0JMfPi9cUy9848W"></div>
-    <div class="modal-title" data-page-node-id="X1VwbZDuMRrOCJIHuBTvrW">🗺️ 我的足迹</div>
-    <div class="fp-wrap" id="fp-wrap" data-page-node-id="zjHfGSaB12CZk16mXYXrdC"></div>
-    <div class="fp-stats" id="fp-stats" data-page-node-id="MaNKfxgWV1RVcm2H0QM6va"></div>
-    <div class="fp-list" id="fp-list" data-page-node-id="FatK9lCxM34uuBsUU4FAqx"></div>
-    <div class="fp-note" data-page-node-id="uLFwGxdPCaWXGgx316io5x">手绘示意图，只用来点亮去过的地方，不作导航或测绘用途。</div>
-    <div style="margin-top:10px;" data-page-node-id="HHw3BSN6T1HW9Czyi7aHZX"><button class="btn-ghost" style="width:100%;" onclick="closeModal('footprint-modal')" data-page-node-id="Mmtxo4kzxdj1USHafIY18C">关闭</button></div>
   </div>
 </div>
 
@@ -2944,7 +2923,7 @@ function checkForUpdateManual(){
 }
 // ============ Data ============
 // App version — bump this on every release so users can check the version they run.
-var APP_VERSION='v144.43';
+var APP_VERSION='v144.44';
 var STORAGE_KEY='lattiao_v4_data';
 var data={trips:[],guides:[],favorites:[],settings:{name:'',slogan:'让每一次出行都值得期待',city:'杭州',heroTitle:'杭州旅行计划'},tools:{pomo:[],notes:[],remindDone:[]}};
 var calDate=new Date();
@@ -10489,6 +10468,7 @@ function renderBudget(){
     document.getElementById('stat-left').textContent='¥0';
     document.getElementById('budget-daily-chart').innerHTML='';
     renderCatBarChart({},0,function(r){return '¥'+Math.round(r);});
+    document.getElementById('budget-forecast-section').style.display='none';
     return;
   }
   // sum
@@ -10550,6 +10530,38 @@ function renderBudget(){
   renderCatBarChart(catTotals, paid, fmt);
   // v75: daily spend bar chart
   renderDailyChart(trips);
+  // v144.44: 预算预测 —— 已花金额按「日均 × 总天数」推算行程结束总花费，对比预算给出盈余/超支预警。纯只读，不新增同步字段。
+  (function(){
+    try{
+      var sec=document.getElementById('budget-forecast-section');
+      var box=document.getElementById('budget-forecast');
+      if(!sec||!box)return;
+      var tk=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
+      var elapsedDays=0, plannedDays=0;
+      trips.forEach(function(t){
+        if(t.startDate&&t.endDate){
+          var tot=daysBetween(t.startDate,t.endDate)+1;
+          plannedDays+=tot;
+          var el=Math.max(0,Math.min(tot,Math.round((parseDateStr(tk)-parseDateStr(t.startDate))/86400000)+1));
+          elapsedDays+=el;
+        }
+      });
+      if(plannedDays<=0||elapsedDays<=0||plan<=0){sec.style.display='none';return;}
+      var daily=paid/elapsedDays;
+      var projected=daily*plannedDays;
+      var diff=plan-projected;
+      var over=diff<0;
+      var sub=document.getElementById('forecast-sub');
+      if(sub)sub.textContent='已花 '+fmt(paid)+' · 日均 '+fmt(daily);
+      var pct=plan?Math.min(100,Math.round(projected/plan*100)):0;
+      box.innerHTML=
+        '<div class="bfc-row"><div class="bfc-item"><div class="bfc-amt">'+fmt(projected)+'</div><div class="bfc-lab">预计行程结束总花费</div></div>'+
+        '<div class="bfc-item"><div class="bfc-amt '+(over?'over':'under')+'">'+(over?('超支 '+fmt(Math.abs(diff))):('盈余 '+fmt(diff)))+'</div><div class="bfc-lab">对比预算 '+fmt(plan)+'</div></div></div>'+
+        '<div class="bfc-bar"><div class="bfc-bar-fill" style="width:'+pct+'%;background:'+(over?'var(--danger)':'var(--primary)')+';"></div></div>'+
+        '<div class="bfc-note">按当前日均 '+fmt(daily)+' × '+plannedDays+' 天推算；实际以行程结束为准</div>';
+      sec.style.display='block';
+    }catch(e){}
+  })();
   // trip list with budget detail
   var html='';
   var icons={transport:'🚇',stay:'🏨',food:'🍜',ticket:'🎫',shop:'🛍',other:'📦'};
@@ -10872,8 +10884,6 @@ var FEATURES={
     desc:'如果误重复创建了同一个行程（标题/日期/目的地都相同），点这个一键合并。<br><br>⚠️合并会保留每个字段最新的修改和所有照片，建议先用「导出数据」备份。'},
   blindbox:{icon:'🎁',label:'回忆盲盒',group:'回忆探索',act:'openBlindBox()',
     desc:'随机抽一张老照片 + 当时的心情文案 + 旅行小贴士，唤起回忆。<br><br>💡抽过的会变灰，不会重复抽到。'},
-  footprint:{icon:'🗺️',label:'我的足迹地图',group:'回忆探索',act:'openFootprint()',
-    desc:'把所有去过的城市点亮在 SVG 中国/世界地图上，看自己的旅行疆域。<br><br>💡地图全部自绘 SVG，完全合规。'},
   personality:{icon:'🌸',label:'我的旅行人格',group:'回忆探索',act:'openPersonality()',
     desc:'根据你的旅行偏好（慢游/打卡/美食/风景/夜猫子…）生成一张可分享的人格卡，可保存到相册。<br><br>💡记的地点越多，分析越准。'},
   yearPoster:{icon:'🎴',label:'年度旅行账单',group:'回忆探索',act:'openYearPoster()',
@@ -13110,7 +13120,13 @@ function collectNotifEvents(){
         if(dleft===1)pushNotif('departure','明天出发：'+(t.title||''),'目的地 '+(t.destination||'—')+' · 记得检查行李和车票'+(t.flightNo?(' · 航班/车次 '+t.flightNo):''),'dep|'+t.id+'|1');
         else if(dleft===0)pushNotif('departure','今天出发：'+(t.title||''),'祝旅途愉快 ✨'+(t.flightNo?(' · '+t.flightNo):''),'dep|'+t.id+'|0');
         else if(dleft===7)pushNotif('departure','还有 7 天出发：'+(t.title||''),'可以开始收拾行李啦','dep|'+t.id+'|7');
-        else if(dleft===3)pushNotif('packing','出发前 3 天：收拾行李清单','🛂 证件 · 🔌 充电器 · 💊 常用药 · 📷 相机 · 👕 换洗衣物','pack|'+t.id);
+        else if(dleft===3){
+          // v144.44: 收拾行李清单按行程属性智能调整（有签证→护照/签证，有航班→机票确认），合并进既有打包提醒，不另起功能。
+          var pack=['🔌 充电器','💊 常用药','📷 相机','👕 换洗衣物'];
+          if(t.visaDate)pack.unshift('🛂 护照/签证'); else pack.unshift('🛂 证件');
+          if(t.flightNo)pack.push('✈️ 机票/车次确认');
+          pushNotif('packing','出发前 3 天：收拾行李清单',pack.join(' · '),'pack|'+t.id);
+        }
         // v141: 签证到期日提醒
         if(t.visaDate){
           var vd=Math.round((parseDateStr(t.visaDate)-parseDateStr(tk))/86400000);
@@ -13420,9 +13436,24 @@ function openSearch(){
 }
 // v141: 搜索增强——类型筛选 + 可保存搜索
 var srchFilter='全部';
+// v144.44: 命令面板（合并进全局搜索）——关键字同时匹配「内容搜索 + 快捷操作/页面跳转」，复用同一搜索框，不新增独立 UI。
+var QUICK_CMDS=[
+  {t:'去首页',act:"closeModal('search-modal');showPage('home')"},
+  {t:'看行程列表',act:"closeModal('search-modal');showPage('trips')"},
+  {t:'打开预算',act:"closeModal('search-modal');showPage('budget')"},
+  {t:'看攻略',act:"closeModal('search-modal');showPage('guides')"},
+  {t:'我的收藏',act:"closeModal('search-modal');showPage('favorites')"},
+  {t:'行程日历',act:"closeModal('search-modal');showPage('calendar')"},
+  {t:'工具箱',act:"closeModal('search-modal');showPage('tools')"},
+  {t:'通知中心',act:"closeModal('search-modal');openNotifCenter()"},
+  {t:'我的资料',act:"closeModal('search-modal');showPage('me')"},
+  {t:'新建行程',act:"closeModal('search-modal');showPage('trips');setTimeout(function(){openTripModal();},180)"},
+  {t:'保存当前为模板',act:"closeModal('search-modal');saveCurrentTripAsTemplate()"},
+  {t:'打开模板管理',act:"closeModal('search-modal');openTemplateManager()"}
+];
 function renderSrchFilters(){
   var box=document.getElementById('srch-filters'); if(!box)return;
-  var cats=['全部','行程','地点','攻略','收藏'];
+  var cats=['全部','行程','地点','攻略','收藏','命令'];
   box.innerHTML=cats.map(function(c){
     return '<span class="srch-chip'+(c===srchFilter?' on':'')+'" onclick="setSrchFilter(\''+c+'\')">'+c+'</span>';
   }).join('');
@@ -13471,7 +13502,7 @@ function runGlobalSearch(q){
   var box=document.getElementById('srch-results');
   if(!box)return;
   q=(q||'').trim();
-  if(!q){box.innerHTML='<div class="srch-empty">输入关键字开始搜索 ✨<br><span style="font-size:11px;">支持行程 / 地点 / 攻略 / 收藏</span></div>';return;}
+  if(!q){box.innerHTML='<div class="srch-empty">输入关键字开始搜索 ✨<br><span style="font-size:11px;">支持行程 / 地点 / 攻略 / 收藏 / 命令</span></div>';return;}
   var ql=q.toLowerCase();
   var hits=[];
   // trips
@@ -13501,6 +13532,11 @@ function runGlobalSearch(q){
     var pool=[f.name,f.note,f.address].join(' ').toLowerCase();
     if(pool.indexOf(ql)>=0)hits.push({g:'收藏',icon:'🎒',t:f.name||'未命名',s:(f.address||f.note||'').slice(0,28),act:"closeModal('search-modal');showPage('favorites');"});
   });
+  // v144.44: 命令/快捷操作 也可被搜索匹配（合并进全局搜索）
+  (QUICK_CMDS||[]).forEach(function(c){
+    var pool=(c.t+' 命令 快捷操作').toLowerCase();
+    if(pool.indexOf(ql)>=0)hits.push({g:'命令',icon:'⚡',t:c.t,s:'快捷操作',act:c.act});
+  });
   if(srchFilter&&srchFilter!=='全部')hits=hits.filter(function(h){return h.g===srchFilter;});
   if(!hits.length){
     // v144.36: 空状态分两种 ——「压根没数据」vs「有数据但没匹配上」。
@@ -13521,7 +13557,7 @@ function runGlobalSearch(q){
         '</div></div>';
     return;
   }
-  var order=['行程','地点','攻略','收藏'];
+  var order=['行程','地点','攻略','收藏','命令'];
   var html='';
   order.forEach(function(g){
     var list=hits.filter(function(h){return h.g===g;});
@@ -13536,6 +13572,16 @@ function runGlobalSearch(q){
   });
   box.innerHTML=html;
 }
+
+// v144.44: Cmd/Ctrl+K 唤起命令面板（复用全局搜索；再次按下关闭）
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){
+    e.preventDefault();
+    var m=document.getElementById('search-modal');
+    if(m&&m.classList.contains('active'))closeModal('search-modal');
+    else openSearch();
+  }
+});
 
 /* ---------------- v99-4: 我的行程模板 ---------------- */
 var TPL_STORE='lattiao_my_templates';
@@ -15301,19 +15347,13 @@ function drawBlindBox(){
   if(ac)ac.style.display='block';
 }
 
-/* ================= v100: footprint map =================
-   Hand-drawn decorative silhouette. It is a stylised illustration for lighting
-   up places the user has been — NOT a survey-grade map and never used for
-   navigation or routing. Taiwan Island and Hainan Island are drawn as parts of
-   China. Coordinates are approximate city-centre points for placement only. */
-var FP_MAIN=[
- [73,39],[76,41],[80,44],[85,47],[90,48],[96,43],[103,42],[110,44],[115,46],[119,48],
- [124,50],[127,53],[131,48],[134,47],[133,45],[131,43],[128,42],[126,40],[122,40],[121,38],
- [118,39],[122,37],[121,34],[122,31],[121,30],[120,27],[117,24],[114,23],[110,21],[108,21],
- [106,22],[102,23],[99,25],[97,28],[93,29],[89,28],[85,29],[81,31],[78,34],[75,37]
-];
-var FP_HAINAN=[[108.5,19.8],[110.6,20.1],[111,19.5],[110,18.2],[108.6,18.5],[108.5,19.3]];
-var FP_TAIWAN=[[120.1,25.3],[121.9,25.1],[121.6,22.6],[120.7,21.9],[120.1,23.0]];
+/* ================= FP_CITY (city coordinates) =================
+   Shared coordinate table used by weather geocoding (v144.19 泉州 fix):
+   forecast() looks up FP_CITY by city name before falling back to online
+   geocoding. Kept after the old decorative footprint map (v144.36
+   renderFootprint/openFootprint/footprint-modal) was removed in v144.44 -
+   the GPS footprint map (renderFootprintMap) supersedes it and does NOT
+   use FP_CITY. Do NOT delete: weather depends on it. */
 var FP_CITY={
  '北京':[116.4,39.9],'上海':[121.47,31.23],'广州':[113.26,23.13],'深圳':[114.06,22.55],
  '杭州':[120.15,30.27],'成都':[104.07,30.57],'重庆':[106.55,29.56],'西安':[108.94,34.34],
@@ -15339,119 +15379,6 @@ var FP_CITY={
  '秦皇岛':[119.60,39.94],'承德':[117.94,40.98],'开封':[114.31,34.80],'曲阜':[116.99,35.60],
  '常州':[119.95,31.79],'徐州':[117.18,34.26],'烟台':[121.39,37.54],'威海':[122.12,37.51]
 };
-function fpXY(lon,lat){
-  var W=400,H=300;
-  var x=30+(lon-73)/(135-73)*(W-60);
-  var y=22+(53-lat)/(53-18)*(H-52);
-  return [x,y];
-}
-function fpPath(pts){
-  return pts.map(function(p,i){
-    var q=fpXY(p[0],p[1]);
-    return (i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1);
-  }).join(' ')+' Z';
-}
-function fpCityList(){
-  var seen={},out=[];
-  (data.trips||[]).forEach(function(t){
-    var d=(t.destination||'').trim();
-    if(!d||seen[d])return;
-    seen[d]=1;out.push(d);
-  });
-  return out;
-}
-function openFootprint(){
-  document.getElementById('footprint-modal').classList.add('active');
-  renderFootprint();
-}
-// v144.36: 取某个城市最近的一张照片（用作地图上的照片图钉）
-function fpCityPhoto(cityName){
-  try{
-    var best=null,bestTs=0;
-    (data.trips||[]).forEach(function(t){
-      if(!t)return;
-      var dest=(t.destination||'').trim()||(t.title||'').trim();
-      var match=(dest===cityName)||(cityName&&dest&&dest.indexOf(cityName)>=0);
-      (t.days||[]).forEach(function(d){
-        (d.locations||[]).forEach(function(l){
-          var ph=(l.photos||[]);
-          if(!ph||!ph.length)return;
-          var ts=0;
-          try{ ts=tsOf(l.ts)||0; }catch(e){}
-          // 目的地匹配 → 优先；否则同行程内的照片也可用
-          if(match||!best){
-            if(!best||ts>=bestTs){ best=ph[0]; bestTs=ts; }
-          }
-        });
-      });
-    });
-    return best||null;
-  }catch(e){ return null; }
-}
-function renderFootprint(){
-  var wrap=document.getElementById('fp-wrap');
-  var stats=document.getElementById('fp-stats');
-  var list=document.getElementById('fp-list');
-  var cities=fpCityList();
-  var lit=[],unlit=[];
-  cities.forEach(function(c){
-    var k=FP_CITY[c]?c:null;
-    if(!k){
-      for(var key in FP_CITY){
-        if(FP_CITY[key]&&c.indexOf(key)>=0){k=key;break;}
-      }
-    }
-    if(k&&FP_CITY[k])lit.push({name:c,pt:FP_CITY[k]});
-    else unlit.push(c);
-  });
-  // v144.36: 统计每个城市去过几次（合并「城市到访次数排行」到足迹地图，
-  // 不单独开新功能 —— 那样会和足迹地图重复）
-  var visitCount={};
-  (data.trips||[]).forEach(function(t){
-    if(!t)return;
-    var dest=(t.destination||'').trim()||(t.title||'').trim();
-    if(!dest)return;
-    visitCount[dest]=(visitCount[dest]||0)+1;
-  });
-  var dots=lit.map(function(c){
-    var q=fpXY(c.pt[0],c.pt[1]);
-    // v144.36: 照片图钉（signifier）—— Polarsteps 用照片当地图标记，
-    // 一眼就知道"这是我拍过的地方"，比纯圆点有说服力得多。
-    var pin=fpCityPhoto(c.name);
-    if(pin){
-      return '<image href="'+escapeHTML(pin)+'" x="'+(q[0]-7).toFixed(1)+'" y="'+(q[1]-7).toFixed(1)+
-             '" width="14" height="14" preserveAspectRatio="xMidYMid slice" clip-path="circle(7px)"/>'+
-             '<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="7.4" fill="none" stroke="#fff" stroke-width="1.4"/>';
-    }
-    return '<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="4.2" fill="var(--fp-dot)" stroke="#fff" stroke-width="1.2"/>';
-  }).join('');
-  if(wrap){
-    wrap.innerHTML='<svg viewBox="0 0 400 300" role="img" aria-label="足迹示意图">'+
-      '<path d="'+fpPath(FP_MAIN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.4"/>'+
-      '<path d="'+fpPath(FP_HAINAN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.2"/>'+
-      '<path d="'+fpPath(FP_TAIWAN)+'" fill="var(--fp-land)" stroke="var(--fp-line)" stroke-width="1.2"/>'+
-      dots+'</svg>';
-  }
-  var provinceCount=(function(){
-    var s={};cities.forEach(function(c){s[c]=1;});return Object.keys(s).length;
-  })();
-  if(stats){
-    stats.innerHTML='<div class="fp-stat"><div class="fv">'+lit.length+'</div><div class="fl">已点亮城市</div></div>'+
-      '<div class="fp-stat"><div class="fv">'+unlit.length+'</div><div class="fl">待补充坐标</div></div>'+
-      '<div class="fp-stat"><div class="fv">'+((data.trips||[]).length)+'</div><div class="fl">段旅程</div></div>';
-  }
-  if(list){
-    // v144.36: 每个城市后面标出「去过 N 次」（合并 P2-7 到这里）
-    var h=lit.map(function(c){
-      var n=visitCount[c.name]||0;
-      return '<span class="fp-city">📍 '+escapeHTML(c.name)+(n>1?('<b class="fp-n">'+n+'次</b>'):'')+'</span>';
-    }).join('');
-    h+=unlit.map(function(c){return '<span class="fp-city off">'+escapeHTML(c)+'</span>';}).join('');
-    if(!cities.length)h='<span class="fp-city off">还没有去过的地方</span>';
-    list.innerHTML=h;
-  }
-}
-
 /* ================= v100: travel personality ================= */
 var PS_DESC={
  food:['你是为了那一口才出发的人。','行程可以改，但那家店必须去。'],
